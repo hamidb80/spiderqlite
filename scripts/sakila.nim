@@ -41,7 +41,7 @@ when isMainModule:
         "name": x[1] & ' ' & x[2],
       }
       newid = graphDB.insertID(
-        sql"INSERT INTO nodes (tag, data) VALUES ('actor', ?)",
+        sql"INSERT INTO nodes (tag, data) VALUES ('person', ?)",
         $data)
 
     vritualId[(nActor, oldid)] = newid

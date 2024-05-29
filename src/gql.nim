@@ -8,8 +8,6 @@ type
     goNotEq
     goMoreEq
     goMore
-    goIn
-    goNotIn
     goPlus
     goMinus
     goMult
@@ -17,6 +15,8 @@ type
     goMod
     goAnd
     goOr
+    goIn
+    goNotIn
     goEmpty     # empty?
     goCheckNull # null?
     # goGroup     # (...)
@@ -28,6 +28,8 @@ type
     gkReturn
     gkUpdate
     gkDelete
+    
+    gkTypes
     
     gkInsertNode
     gkInsertEdge

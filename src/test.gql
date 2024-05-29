@@ -9,9 +9,59 @@
     --     .xp   > |min_xp|
     --   .sex == 'f'  
   
-#acted_in d
+#acted_in a
+#directed_by d
 
-ask p-d-m 10 2 -- query limit offset
+ask 10 2 -- limit offset: query
+  p->a->m 
+
+ask p->a->m -- p->d->m & m->c->p
+ask 
+  & m->d->p
+  & p->a->m
+ask 
+  | m->d->p
+  | p->a->m
+return m p a? d?
+
+ask p->(p&q)->m
+ask p->(p|q)->m
+
+#task t
+#person p
+#person p1
+  .name = "ali"
+#completed c
+
+ask t<-(!c) 10 2
+ask t<-c->p 10 2
+
+#device      d
+#utilized    u
+#assigned_to a
+#customer    b
+#ordered     o
+
+sort t.timestamp DESC
+ask 
+  :->!c->*t->a->p -- * means start query from here
+  d->u->*t
+  b->o->*t
+  
+return
+  t p d b
+
+#device d
+#check_program cp
+
+ask -- return all check programs of all devices
+  d<-cp<-:
+
+return d cp
+
+
+ask p1->c->t 10 2
+select t c
 
 -- select p.name
 -- delete 
@@ -30,11 +80,17 @@ update -- {data: ..} is in body
 insert node m
 insert node p
 insert edge r m p -- the relation is m-r-p
-insert edge r : p -- : means null
+insert edge r _ p -- : means null here
 return m p
 
 create index for nodes on data.title named what
 -- create index what on nodes(json_extract(data, '$.title'))
 list   indexes
 fields #people
+
+types edges -- list unique types of edges
+types nodes -- list unique types of nodes
+
 delete index of nodes named what
+structure #person name age ...
+guard len(#person.name) > 0
