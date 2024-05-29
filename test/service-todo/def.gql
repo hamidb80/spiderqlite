@@ -1,0 +1,36 @@
+-- just wanna put my mental model of that
+
+-- table: strcuture
+-- references: relation
+
+database
+  table #device d 
+    program
+
+  table #person p
+    name
+
+  table #task t
+
+  -- constraint
+  
+  references #owner        p-.->d -- owner edge connects person `p` to device `d`
+  references #assigned_to  p-.->t
+  references #completed_by t-.->p
+
+
+namespace queries
+  proc get_uncompleted_tasks_of_user (user_id)
+    #task         t
+    #completed_by c
+    #assigned_to  a
+    #person       p  
+      @|user_id|
+
+    from
+      p-a->t
+      t-!c->p
+    select t
+    sort   t.timestamp
+    limit  10
+

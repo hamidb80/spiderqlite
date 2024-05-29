@@ -13,16 +13,19 @@ type
     goMult
     goDiv
     goMod
-    goAnd
-    goOr
     goIn
     goNotIn
     goEmpty     # empty?
     goCheckNull # null?
+
+    goAnd
+    goOr
+    goUnion
+    goSubtract
     # goGroup     # (...)
 
   GqlKind = enum
-    gkDataDef
+    gkTagDef
     gkFieldPred
     gkAsk
     gkReturn
@@ -30,6 +33,7 @@ type
     gkDelete
     
     gkTypes
+    gkSort
     
     gkInsertNode
     gkInsertEdge
@@ -48,14 +52,25 @@ type
     gkChain # 1-:-p
 
     gkNull # :
-    gkTrue
-    gkFalse
+    gkBool
+    gkInf
 
     gkVar # |var|
     # gkFnCall
 
+    gkNameSpace
+    gkStructure
+    gkRelation
+    gkProcedure
+
+    gkComment
+
+    gkIdSpecifier # @ID
+
+
   GqlNode = object
     kind: GqlKind
+    children: seq[GqlNode]
 
 
 func cmd(line: string): tuple[indent: Natural, key: string] = 
@@ -73,13 +88,13 @@ proc parseGql(content: string): seq[GqlNode] =
     if not isEmptyOrWhitespace line:
       let tk = cmd line
       case tk.key
-      of "#":       add result, GqlNode(kind: gkDataDef)
+      of "#":       add result, GqlNode(kind: gkTagDef)
       of "ASK" :    add result, GqlNode(kind: gkAsk)
       of "RETURN":  add result, GqlNode(kind: gkReturn)
       of "SELECT":  discard
       of "INSERT":  discard
       of "UPDATE":  discard
-      of "LIST":    discard
+      of "LIST"  :  discard
       of "CREATE":  discard
       of "DELETE":  discard
       of "FIELDS":  discard

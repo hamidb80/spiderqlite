@@ -13,19 +13,28 @@
 #directed_by d
 
 ask 10 2 -- limit offset: query
-  p->a->m 
+  p-a->m 
 
-ask p->a->m -- p->d->m & m->c->p
 ask 
-  & m->d->p
-  & p->a->m
+  p-a->m -- p->d->m & m->c->p
+ask
+  and
+    m-d->p
+    p-a->m
+
 ask 
-  | m->d->p
-  | p->a->m
+  union
+    m-d->p
+    p-a->m
+
+  subtract
+    m-d->p
+    p-a->m
+
 return m p a? d?
 
-ask p->(p&q)->m
-ask p->(p|q)->m
+ask p-(p&q)->m
+ask p-(p|q)->m
 
 #task t
 #person p
@@ -44,9 +53,9 @@ ask t<-c->p 10 2
 
 sort t.timestamp DESC
 ask 
-  :->!c->*t->a->p -- * means start query from here
-  d->u->*t
-  b->o->*t
+  :-!c->*t-a->p -- * means start query from here
+  d-u->*t
+  b-o->*t
   
 return
   t p d b
@@ -60,7 +69,7 @@ ask -- return all check programs of all devices
 return d cp
 
 
-ask p1->c->t 10 2
+ask p1-c->t 10 2
 select t c
 
 -- select p.name
