@@ -1,3 +1,7 @@
+-- source: id
+-- target: id
+-- self: id
+
 SELECT 
   nodes.id, 
   nodes.tag, 
@@ -15,6 +19,9 @@ ON
   nodes.id = edges.source OR 
   nodes.id = edges.target
 WHERE 
-  (source = ? OR target = ?) 
+  (
+    source = {source} OR 
+    target = {target}
+  ) 
   AND 
-  (nodes.id <> ?)
+  (nodes.id <> {self)

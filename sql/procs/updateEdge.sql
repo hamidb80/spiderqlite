@@ -1,6 +1,9 @@
+-- tag: string
+-- id: id
+
 UPDATE 
   edges 
 SET 
-  tag = ?
+  tag = {tag}
 WHERE 
-  id  = ?
+  id  = {id}

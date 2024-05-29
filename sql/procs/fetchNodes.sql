@@ -1,9 +1,12 @@
+-- tag  : string
+-- conds: string
+
 SELECT 
-  nodes.id, 
-  nodes.tag, 
-  nodes.properties
+  id, 
+  tag, 
+  properties
 FROM 
   nodes
 WHERE 
-  nodes.tag = ? 
-  |propies|
+  tag = ? 
+  [conds]

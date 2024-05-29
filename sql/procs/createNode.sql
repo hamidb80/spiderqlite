@@ -2,6 +2,12 @@
 -- props: json
 
 INSERT INTO
-  nodes (tag,   properties) 
+  nodes (
+    tag,
+    properties
+  ) 
 VALUES 
-        ({tag}, {props})
+  (
+    {tag},
+    {props}
+  )

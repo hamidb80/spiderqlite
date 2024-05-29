@@ -1,5 +1,9 @@
-DELETE FROM 
+-- source: id
+-- target: id
+
+DELETE 
+FROM 
   edges 
 WHERE 
-  source = ? OR 
-  target = ?
+  source = {source} OR 
+  target = {target}

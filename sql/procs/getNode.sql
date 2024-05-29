@@ -1,7 +1,9 @@
+-- id: id
+
 SELECT 
-  nodes.tag, 
-  nodes.properties 
+  tag, 
+  properties 
 FROM 
   nodes 
 WHERE 
-  nodes.id = ?
+  id = {id}

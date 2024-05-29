@@ -1,3 +1,5 @@
+-- key: string
+
 (
-  json_extract(nodes.properties, ?) != ''
+  json_extract(nodes.properties, {key}) != ''
 )

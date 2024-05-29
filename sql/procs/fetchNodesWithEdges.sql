@@ -1,3 +1,8 @@
+-- conds: string
+-- tag: string
+-- edgeLimit: int
+-- edgies: seq[int]
+
 SELECT 
     nodes.id, 
     nodes.tag, 
@@ -10,13 +15,13 @@ ON
     edges.source = nodes.id OR 
     edges.target = nodes.id
 WHERE 
-    nodes.tag    = ? |propies|
+    nodes.tag    = {tag} [conds]
 GROUP BY 
     nodes.id 
 HAVING 
     COUNT( 
         CASE 
-            WHEN |edgies|
+            WHEN {edgies}
             THEN 1 
         END 
-    ) |edgeLimit|
+    ) {edgeLimit}

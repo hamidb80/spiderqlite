@@ -1,1 +1,5 @@
-(edges.tag=?)
+-- tag: string
+
+(
+  edges.tag = {tag}
+)

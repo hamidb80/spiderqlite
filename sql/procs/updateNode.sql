@@ -1,7 +1,11 @@
+-- tag: string
+-- properties: json
+-- id: id
+
 UPDATE 
   nodes 
 SET 
-  tag        = ?, 
-  properties = ?
+  tag        = {tag}, 
+  properties = {properties}
 WHERE 
-  id         = ?
+  id         = {id}

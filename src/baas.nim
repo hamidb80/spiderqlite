@@ -1,7 +1,33 @@
 import std/[macros]
-import std/[strutils, sequtils, paths, strscans]
+import std/[strutils, sequtils, paths, strscans, os]
 import lowdb/sqlite
 import iterrr
+
+
+type 
+  ProcParam = tuple
+    name: string
+    typ:  string
+
+  SqlProc = object
+    sql:    string
+    params: seq[ProcParam]
+
+type
+  QueryPart = enum
+    putLit
+    putExpr
+    putValue
+
+proc parseSqlProc(content: string): SqlProc = 
+  for l in splitLines content:
+    if l.startsWith "-- ":
+      var pp: ProcParam
+      if scanf(l, "-- $w$s:$s$w", pp.name, pp.typ):
+        add result.params, pp
+    else:
+      add result.sql, l
+
 
 
 template withDb(path, ident, body): untyped =
@@ -15,12 +41,6 @@ template p(strPath): untyped =
 template readFile(p: Path): untyped =
   readfile string p
   
-
-# template `~>`(collection, op): untyped =
-#   collection.mapit op it
-
-# template `~.`(a, b): untyped =
-#   cast[seq[a]](b)
 
 func empty(s: string): bool = 
   0 == len s
@@ -46,12 +66,6 @@ proc exec(db: DbConn, sqls: seq[SqlQuery]) =
 
 func sqlize*[T](items: seq[T]): string =
   '(' & join(items, ", ") & ')'
-
-type
-  QueryPart = enum
-    putLit
-    putExpr
-    putValue
 
 proc sqlToFnImpl(str: string): NimNode =
     let
@@ -115,28 +129,6 @@ macro fsql*(str: static string): untyped =
     
     sqlToFnImpl str
 
-
-type 
-  ProcParam = object
-    name: string
-    typ:  string
-
-  SqlProc = object
-    sql:    string
-    params: seq[ProcParam]
-
-proc parseSqlProc(content: string): SqlProc = 
-  for l in splitLines content:
-    if l.startsWith "-- ":
-      var pp: ProcParam
-      if scanf(l, "-- $w$s:$s$w", pp.name, pp.typ):
-        add result.params, pp
-      else:
-        assert false, "bad sql param: " & l
-    else:
-      add result.sql, l
-
-
 when isMainModule:
     let
         name = "hamid"
@@ -149,7 +141,10 @@ when isMainModule:
         ;
         """ 
 
-    echo parseSqlProc readFile "./sql/procs/createNode.sql"
+    for fpath in walkDirRec "./sql":
+      echo fpath
+      echo fpath.splitFile.name
+      echo parseSqlProc readFile fpath
 
 when isMainModule:
   echo "what the hell"

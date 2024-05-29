@@ -1,4 +1,7 @@
+-- tag: string
+-- searchForProperties: string
+
 (
-  edges.tag = ? AND 
-  |searchForProperties|
+  edges.tag = {tag} AND 
+  [searchForProperties]
 )

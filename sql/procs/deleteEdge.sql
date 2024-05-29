@@ -1,7 +1,11 @@
+-- tag   : string
+-- source: id
+-- target: id
+
 DELETE 
 FROM 
   edges 
 WHERE 
-  tag    = ? AND 
-  source = ? AND 
-  target = ?
+  tag    = {tag}    AND 
+  source = {source} AND 
+  target = {target}

@@ -1,5 +1,9 @@
+-- tag: string
+-- target: id
+-- searchForProperties: string
+
 (
-  edges.tag    = ? AND 
-  edges.target = ? 
-  |searchForProperties|
+  edges.tag    = {tag} AND 
+  edges.target = {target} 
+  [searchForProperties]
 )
