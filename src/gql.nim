@@ -2,70 +2,73 @@ import std/[strutils]
 
 type
   GqlOperator = enum
-    goLess
-    goLessEq
-    goEq
-    goNotEq
-    goMoreEq
-    goMore
-    goPlus
-    goMinus
-    goMult
-    goDiv
-    goMod
-    goIn
-    goNotIn
+    goLess  # <
+    goLessEq # <=
+    goEq # = 
+    goNotEq # !=
+    goMoreEq # >=
+    goMore # >
+    goPlus # +
+    goMinus # -
+    goMult # *
+    goDiv # /
+    goMod # %
+    goIn  # in
+    goNotIn # notin
     goEmpty     # empty?
     goCheckNull # null?
 
-    goAnd
-    goOr
-    goUnion
-    goSubtract
-    # goGroup     # (...)
+    goAnd # and
+    goOr  # or
+    goUnion # union
+    goSubtract # subtract
 
   GqlKind = enum
-    gkTagDef
-    gkFieldPred
-    gkAsk
-    gkReturn
-    gkUpdate
-    gkDelete
+    gkDef # #tag
+    gkFieldPred # inside def
+    gkAsk # ask [limit] [offset] query
+    gkReturn # return
+    gkUpdate # update
+    gkDelete # delete
     
-    gkTypes
-    gkSort
+    gkTypes # types
+    gkSort  # sort
     
-    gkInsertNode
-    gkInsertEdge
+    gkInsertNode # insert node
+    gkInsertEdge # insert edge
     
-    gkDeleteIndex
-    gkCreateIndex
+    gkDeleteIndex # delete index 
+    gkCreateIndex # create index 
 
-    gkListIndexes
+    gkListIndexes # list indexes
 
-    gkInfix
-    gkPrefix
+    gkInfix # a + 2
+    gkPrefix # not good
 
-    gkIdent
-    gkIntLit
-    gkStrLit
+    gkIdent # name
+    gkIntLit # 13
+    gkStrLit # "salam"
     gkChain # 1-:-p
 
     gkNull # :
-    gkBool
-    gkInf
+    gkBool # true false
+    gkInf # inf
 
     gkVar # |var|
-    # gkFnCall
 
-    gkNameSpace
-    gkStructure
-    gkRelation
-    gkProcedure
+    gkSelect # select
 
-    gkComment
+    gkNameSpace # namespace
+    gkDataBase # database
+    gkStructure # structure, struct, table, object, obj
+    gkRelation  # references, ref, rel, relation
+    gkProcedure # procedure, proc
+    gkFrom # from
+    gkLimit # limit
+    gkComment # --
 
     gkIdSpecifier # @ID
+    gkFieldAccess # table.field
 
 
   GqlNode = object
@@ -87,22 +90,34 @@ proc parseGql(content: string): seq[GqlNode] =
   for line in splitLines content:
     if not isEmptyOrWhitespace line:
       let tk = cmd line
-      case tk.key
-      of "#":       add result, GqlNode(kind: gkTagDef)
-      of "ASK" :    add result, GqlNode(kind: gkAsk)
-      of "RETURN":  add result, GqlNode(kind: gkReturn)
-      of "SELECT":  discard
-      of "INSERT":  discard
-      of "UPDATE":  discard
-      of "LIST"  :  discard
-      of "CREATE":  discard
-      of "DELETE":  discard
-      of "FIELDS":  discard
-      of "--": discard
+      let d = 
+        case tk.key
+        of "#":          gkDef
+        of "ASK" :       gkAsk
+        of "DATABASE":   gkDataBase
+        of "TABLE"   :   gkStructure
+        of "REFERENCES": gkRelation
+        of "NAMESPACE":  gkNameSpace
+        of "PROC":       gkProcedure
+        of "SELECT":     gkSelect
+        of "FROM":       gkFrom
+        of "LIMIT":      gkLimit
+        of "--":         gkComment
+        else: raise newException(ValueError, "")
+      # of "RETURN":     gkReturn
+      # of "INSERT":     gkInsert
+      # of "CREATE":     discard
+      # of "DELETE":     discard
+      # of "FIELDS":     discard
+      # of "UPDATE":    gkUpdate
+      # of "LIST"  :    
       elif tk.indent > 0:
         discard
       else: assert false, "WTF: " & line
 
+# TODO match predefined patterns
+#      a-b->c
+#      a-b->c-d->a
 
 when isMainModule:
   echo parseGql readFile "./play.sql"

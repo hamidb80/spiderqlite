@@ -19,7 +19,7 @@ database
   references #completed_by t-.->p
 
 
-namespace queries
+namespace user
   proc get_uncompleted_tasks_of_user (user_id)
     #task         t
     #completed_by c
@@ -28,9 +28,9 @@ namespace queries
       @|user_id|
 
     from
-      p-a->t
-      t-!c->p
+      p-a->t-!c->p
     select t
+    -- plan a p t c t p
     sort   t.timestamp
     limit  10
-
+  
