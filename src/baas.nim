@@ -149,7 +149,7 @@ when isMainModule:
 when isMainModule:
   echo "what the hell"
   discard stdin.readline
-  withDb "play.db", db:
+  withDb paramStr(1), db:
     db.exec loadSqls p"./sql/schema.sql"
-    echo db.insertId(loadSql p"./sql/procs/createNode.sql", "person", "1")
-    echo "???"
+    # echo db.insertId(loadSql p"./sql/procs/createNode.sql", "person", "1")
+    # echo "???"

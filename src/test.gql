@@ -1,0 +1,40 @@
+#movie m
+  .title = "CHICAGO NORTH"
+
+#person p
+  .born >= 2000
+  -- or
+    --   and
+    --     .sex == 'm' 
+    --     .xp   > |min_xp|
+    --   .sex == 'f'  
+  
+#acted_in d
+
+ask p-d-m 10 2 -- query limit offset
+
+-- select p.name
+-- delete 
+
+update -- {data: ..} is in body
+  .age   = .age + 1
+  .state = |data|
+
+
+-- insert data is sent in body as {m: ...}, {p: ...}
+
+#movie    m
+#person   p
+#acted_in r 
+
+insert node m
+insert node p
+insert edge r m p -- the relation is m-r-p
+insert edge r : p -- : means null
+return m p
+
+create index for nodes on data.title named what
+-- create index what on nodes(json_extract(data, '$.title'))
+list   indexes
+fields #people
+delete index of nodes named what
