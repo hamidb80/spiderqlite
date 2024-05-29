@@ -1,0 +1,4 @@
+(
+  json_extract(nodes.properties, ?)
+  |collate| |symb| |val|
+)

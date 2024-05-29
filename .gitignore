@@ -1,0 +1,11 @@
+.vscode
+
+play.*
+*.exe
+*.db
+*.sqlite
+*.sqlite3
+
+/tmp
+/temp
+

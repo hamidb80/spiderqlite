@@ -1,0 +1,8 @@
+(
+  edges.tag=? AND 
+  (
+    edges.target = ? OR 
+    edges.source = ?
+  ) 
+  |searchForProperties|
+)

@@ -1,0 +1,4 @@
+(
+  json_extract(edges.properties, ?)
+  |collate| |symb| |val|
+)
