@@ -27,8 +27,7 @@ namespace user
     #person       p  
       @|user_id|
 
-    from
-      p-a->t-!c->p
+    from   p-a->t-!c->p
     select t
     -- plan a p t c t p
     sort   t.timestamp

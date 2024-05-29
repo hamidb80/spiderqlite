@@ -22,6 +22,7 @@ type
     goOr  # or
     goUnion # union
     goSubtract # subtract
+    goGroup # (a b c)
 
   GqlKind = enum
     gkDef # #tag
@@ -30,6 +31,8 @@ type
     gkReturn # return
     gkUpdate # update
     gkDelete # delete
+    
+    gkUnique # unique
     
     gkTypes # types
     gkSort  # sort
@@ -48,7 +51,7 @@ type
     gkIdent # name
     gkIntLit # 13
     gkStrLit # "salam"
-    gkChain # 1-:-p
+    gkChain # 1-:->p
 
     gkNull # :
     gkBool # true false
@@ -116,8 +119,8 @@ proc parseGql(content: string): seq[GqlNode] =
       else: assert false, "WTF: " & line
 
 # TODO match predefined patterns
-#      a-b->c
-#      a-b->c-d->a
+#      A-B->C
+#      A-B->C-D->A
 
 when isMainModule:
   echo parseGql readFile "./play.sql"
