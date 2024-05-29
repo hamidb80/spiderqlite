@@ -12,24 +12,21 @@ database
 
   table #task t
 
-  -- constraint
-  
   references #owner        p-.->d -- owner edge connects person `p` to device `d`
   references #assigned_to  p-.->t
   references #completed_by t-.->p
 
 
 namespace user
-  proc get_uncompleted_tasks_of_user (user_id)
+  proc get_uncompleted_tasks_of_user (id)
     #task         t
     #completed_by c
     #assigned_to  a
     #person       p  
-      @|user_id|
+      @|id|
 
     from   p-a->t-!c->p
     select t
-    -- plan a p t c t p
     sort   t.timestamp
     limit  10
   

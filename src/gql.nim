@@ -93,7 +93,7 @@ proc parseGql(content: string): seq[GqlNode] =
   for line in splitLines content:
     if not isEmptyOrWhitespace line:
       let tk = cmd line
-      let d = 
+      discard 
         case tk.key
         of "#":          gkDef
         of "ASK" :       gkAsk
@@ -114,13 +114,46 @@ proc parseGql(content: string): seq[GqlNode] =
       # of "FIELDS":     discard
       # of "UPDATE":    gkUpdate
       # of "LIST"  :    
-      elif tk.indent > 0:
-        discard
-      else: assert false, "WTF: " & line
+      # elif tk.indent > 0:
+      #   discard
+      # else: assert false, "WTF: " & line
 
-# TODO match predefined patterns
-#      A-B->C
-#      A-B->C-D->A
+func qp(s: string): string = s
+
+
+const predefinedQueryPatterns = {
+  qp"A-B->C":      1,
+  qp"A-B->C-D->A": 2
+}
+
+discard """
+  SELECT 
+    p
+  FROM 
+    nodes p
+  JOIN 
+    edges a,
+    edges c,
+    nodes t
+  ON
+    a.tag    == 'assigned_to'  AND
+    a.source == p.id           AND
+    a.target == t.id           
+    AND
+    c.tag    == 'completed_by' AND
+    c.source == t.id           AND
+    c.target != m.id           
+  WHERE 
+    p.id     == |id|
+"""
+
+func matches(pattern, query: string): bool = 
+  false
+
+proc goGql(q: string) = 
+  for (p, a) in predefinedQueryPatterns:
+    if matches(p, q):
+      discard
 
 when isMainModule:
   echo parseGql readFile "./play.sql"
