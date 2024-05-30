@@ -2,6 +2,7 @@ import std/[macros]
 import std/[strutils, sequtils, paths, strscans, os]
 import lowdb/sqlite
 import iterrr
+import ./utils
 
 
 type 
@@ -41,9 +42,6 @@ template p(strPath): untyped =
 template readFile(p: Path): untyped =
   readfile string p
   
-
-func empty(s: string): bool = 
-  0 == len s
 
 proc sep(sqls: SqlQuery): seq[SqlQuery] = 
   iterrr sqls.string.split ';':

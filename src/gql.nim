@@ -1,5 +1,7 @@
 import std/[strutils, json, nre]
 import db_connector/db_sqlite
+import ./utils
+import pretty # debug print
 
 type
   GqlOperator = enum
@@ -76,46 +78,10 @@ type
     
     gkWrapper
 
-  GqlNode = object
+  GqlNode = ref object
     kind: GqlKind
     children: seq[GqlNode]
 
-
-func cmd(line: string): tuple[indent: Natural, key: string] = 
-  let
-    ind = indentation line
-    tmp = line.substr ind
-    cmd = 
-      if   tmp[0] == '#': "#"
-      else              : toUpper tmp.split[0]
-  
-  (ind, cmd)
-
-func `$`(s: SqlQuery): string = 
-  s.string
-
-proc parseGql(content: string): GqlNode = 
-  var lastIdent = 0
-  for line in splitLines content:
-    if not isEmptyOrWhitespace line:
-      let tk = cmd line
-      case tk.key
-      of "#":              gkDef
-      of "!":              gkDef
-      of "ASK", "FROM":    gkAsk
-      of "DATABASE":       gkDataBase
-      of "TABLE"   :       gkStructure
-      of "REFERENCES":     gkRelation
-      of "NAMESPACE":      gkNameSpace
-      of "PROC":           gkProcedure
-      of "TAKE", "SELECT": gkTake
-      of "LIMIT":          gkLimit
-      of "--":             gkComment
-      # elif tk.indent > 0:
-      else: raise newException(ValueError, tk.key)
-
-
-type 
   AskPatKind = enum
     apkNode
     apkArrow
@@ -128,17 +94,79 @@ type
 
   AskPatNode = object
     case kind: AskPatKind
+    
     of apkNode:
       ident: string
       starred: bool
+    
     of apkArrow:
       dir: ArrowDir
 
-  Obj = object
+  PatObj = object
     ask: seq[AskPatNode]
     selectable: seq[string]
 
-func q(askedPattern, selectables: string): Obj  = 
+
+func `$`(s: SqlQuery): string = 
+  s.string
+
+
+func cmd(ind: int, line: string): string = 
+  line
+    .match(
+      re "[\".#=<>!%*+-/^$?]+|\\d+|\\w+", 
+      ind, 
+      line.high)
+    .get
+    .match
+    .toUpper
+
+proc parseGql(content: string): GqlNode = 
+  result = GqlNode(kind: gkWrapper)
+
+  type
+    Temp = tuple
+      node: GqlNode
+      indentLevel: int
+
+  var 
+    nested: seq[Temp]= @[(result, -1)]
+
+  proc getParent(indent: Natural): GqlNode = 
+    while not empty nested:
+      let p = nested.last
+      if  p.indentLevel >= indent:
+        prune nested
+      else:
+        return p.node
+
+  for line in splitLines content:
+    if not isEmptyOrWhitespace line:
+      let 
+        ind     = indentation line
+        key     = cmd(ind, line)
+        parent  = getParent ind
+        # tokens = 
+        n = 
+          case key
+          of "--":             parseComment
+          of "\"":             parseString
+          of "0", "1", "2", 
+             "3", "4", "5", 
+             "6", "7", "8", 
+             "9"             : parseNumber
+          of "#":              parseDefHeader
+          of "<", "<=", "==", 
+              "!=", ">=", ">",
+              "AND", "OR"    : parseInfix
+          of "ASK", "FROM":    parseAsk
+          of "TAKE", "SELECT": parseSelect
+          else: raise newException(ValueError, key)
+
+      parent.children.add n
+      nested         .add (n, ind)
+
+func q(askedPattern, selectables: string): PatObj  = 
   result.selectable = split selectables
   for kw in askedPattern.findAll re"\*?\w+|[-<>]{2}":
     result.ask.add:
@@ -249,11 +277,13 @@ proc toSql(q: GqlNode): SqlQuery =
 
   raise newException(ValueError, "such pattern is not defined")
 
+
 when isMainModule:
-  let 
+  let
     parsedQl = parseGql readFile "./test/sakila/get.gql"
     # mname = "ACADEMY DINOSAUR"
     # ctx   = %*{"movie": {"title": mname}} 
     # nq    = parsedQl.resolve ctx
   
   # echo tosql parseGql
+  print parsedQl
