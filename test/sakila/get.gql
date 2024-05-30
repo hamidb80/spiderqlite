@@ -1,0 +1,8 @@
+-- or can be #: p -- since it does not matter
+#person   p  
+#acted_in a  
+#movie    m
+  .title == "ACADEMY DINOSAUR"
+
+ask  p>-a->*m
+take p

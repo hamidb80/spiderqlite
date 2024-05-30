@@ -12,9 +12,9 @@ database
 
   table #task t
 
-  references #owner        p-.->d -- owner edge connects person `p` to device `d`
-  references #assigned_to  p-.->t
-  references #completed_by t-.->p
+  references #owner        p>-.->d -- owner edge connects person `p` to device `d`
+  references #assigned_to  p>-.->t
+  references #completed_by t>-.->p
 
 
 namespace user
@@ -25,8 +25,8 @@ namespace user
     #person       p  
       @|id|
 
-    from   p-a->t-!c->p
     select t
+    from   *p>-a->t>-!c->p
     sort   t.timestamp
     limit  10
   

@@ -1,4 +1,5 @@
-import std/[strutils]
+import std/[strutils, json, nre]
+import db_connector/db_sqlite
 
 type
   GqlOperator = enum
@@ -59,7 +60,7 @@ type
 
     gkVar # |var|
 
-    gkSelect # select
+    gkTake # select take
 
     gkNameSpace # namespace
     gkDataBase # database
@@ -72,7 +73,8 @@ type
 
     gkIdSpecifier # @ID
     gkFieldAccess # table.field
-
+    
+    gkWrapper
 
   GqlNode = object
     kind: GqlKind
@@ -89,71 +91,169 @@ func cmd(line: string): tuple[indent: Natural, key: string] =
   
   (ind, cmd)
 
-proc parseGql(content: string): seq[GqlNode] = 
+func `$`(s: SqlQuery): string = 
+  s.string
+
+proc parseGql(content: string): GqlNode = 
+  var lastIdent = 0
   for line in splitLines content:
     if not isEmptyOrWhitespace line:
       let tk = cmd line
-      discard 
-        case tk.key
-        of "#":          gkDef
-        of "ASK" :       gkAsk
-        of "DATABASE":   gkDataBase
-        of "TABLE"   :   gkStructure
-        of "REFERENCES": gkRelation
-        of "NAMESPACE":  gkNameSpace
-        of "PROC":       gkProcedure
-        of "SELECT":     gkSelect
-        of "FROM":       gkFrom
-        of "LIMIT":      gkLimit
-        of "--":         gkComment
-        else: raise newException(ValueError, "")
-      # of "RETURN":     gkReturn
-      # of "INSERT":     gkInsert
-      # of "CREATE":     discard
-      # of "DELETE":     discard
-      # of "FIELDS":     discard
-      # of "UPDATE":    gkUpdate
-      # of "LIST"  :    
+      case tk.key
+      of "#":              gkDef
+      of "!":              gkDef
+      of "ASK", "FROM":    gkAsk
+      of "DATABASE":       gkDataBase
+      of "TABLE"   :       gkStructure
+      of "REFERENCES":     gkRelation
+      of "NAMESPACE":      gkNameSpace
+      of "PROC":           gkProcedure
+      of "TAKE", "SELECT": gkTake
+      of "LIMIT":          gkLimit
+      of "--":             gkComment
       # elif tk.indent > 0:
-      #   discard
-      # else: assert false, "WTF: " & line
-
-func qp(s: string): string = s
+      else: raise newException(ValueError, tk.key)
 
 
-const predefinedQueryPatterns = {
-  qp"A-B->C":      1,
-  qp"A-B->C-D->A": 2
+type 
+  AskPatKind = enum
+    apkNode
+    apkArrow
+
+  ArrowDir = enum
+    headL2R # >-
+    tailL2R # ->
+    headR2L # -<
+    tailR2L # <-
+
+  AskPatNode = object
+    case kind: AskPatKind
+    of apkNode:
+      ident: string
+      starred: bool
+    of apkArrow:
+      dir: ArrowDir
+
+  Obj = object
+    ask: seq[AskPatNode]
+    selectable: seq[string]
+
+func q(askedPattern, selectables: string): Obj  = 
+  result.selectable = split selectables
+  for kw in askedPattern.findAll re"\*?\w+|[-<>]{2}":
+    result.ask.add:
+      case kw
+      of ">-": AskPatNode(kind: apkArrow, dir: headL2R)
+      of "->": AskPatNode(kind: apkArrow, dir: tailL2R)
+      of "-<": AskPatNode(kind: apkArrow, dir: headR2L)
+      of "<-": AskPatNode(kind: apkArrow, dir: tailR2L)
+      else:
+        let (starred, id) = 
+          if kw[0] == '*': (true,  kw.substr 1)
+          else:            (false, kw)
+
+        AskPatNode(
+          kind: apkNode, 
+          ident: id, 
+          starred: starred)
+
+# pattern : what can be taken as result 
+# * means primary i.e. where query starts
+let queryStrategies = {
+
+    q("*a>-c->b", "a b c"): dedent """
+      SELECT 
+        |select_fields|
+      FROM
+        nodes a,
+      JOIN 
+        edges c
+        nodes b
+      ON
+        |check_edge c a b|
+        |check_node b|
+      WHERE 
+        |check_node a|
+      |sort_clause|
+      |offset_clause|
+      |limit_clause|
+    """,
+
+  q("a>-*c->b",          "a b c"): dedent """
+      SELECT 
+        |select_fields|
+      FROM
+        edges c
+      JOIN 
+        nodes a,
+        nodes b
+      ON
+        |check_node a|
+        |check_node b|
+      WHERE 
+        |check_edge c a b|
+      |sort_clause|
+      |offset_clause|
+      |limit_clause|
+    """,
+  
+  q("a>-c->*b", "a b c"): dedent """
+      SELECT 
+        |select_fields|
+      FROM
+        nodes b,
+      JOIN 
+        edges c
+        nodes a
+      ON
+        |check_edge c a b|
+        |check_node a|
+      WHERE 
+        |check_node b|
+      |sort_clause|
+      |offset_clause|
+      |limit_clause|
+    """,
+
+  q("*a>-c1->b>-!c2->a", "a b c1"): """
+      SELECT 
+        |select_fields|
+      FROM
+        nodes a
+      JOIN 
+        edges c1,
+        nodes b
+      ON
+        |check_edge c1 a b|
+        AND
+        NOT EXISTS |exists_edge c2 a b|
+      WHERE 
+        |a.conds|
+      |sort_clause|
+      |offset_clause|
+      |limit_clause|
+""",
 }
-
-discard """
-  SELECT 
-    p
-  FROM 
-    nodes p
-  JOIN 
-    edges a,
-    edges c,
-    nodes t
-  ON
-    a.tag    == 'assigned_to'  AND
-    a.source == p.id           AND
-    a.target == t.id           
-    AND
-    c.tag    == 'completed_by' AND
-    c.source == t.id           AND
-    c.target != m.id           
-  WHERE 
-    p.id     == |id|
-"""
 
 func matches(pattern, query: string): bool = 
   false
 
-proc goGql(q: string) = 
-  for (p, a) in predefinedQueryPatterns:
-    if matches(p, q):
-      discard
+func resolve(q: GqlNode, ctx: JsonNode): GqlNode= 
+  discard
+
+proc toSql(q: GqlNode): SqlQuery = 
+  for (p, a) in queryStrategies:
+    discard
+    # if matches(p, q):
+      # return p.resolve q
+
+  raise newException(ValueError, "such pattern is not defined")
 
 when isMainModule:
-  echo parseGql readFile "./play.sql"
+  let 
+    parsedQl = parseGql readFile "./test/sakila/get.gql"
+    # mname = "ACADEMY DINOSAUR"
+    # ctx   = %*{"movie": {"title": mname}} 
+    # nq    = parsedQl.resolve ctx
+  
+  # echo tosql parseGql
