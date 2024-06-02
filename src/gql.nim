@@ -1,4 +1,4 @@
-import std/[strutils, json, nre]
+import std/[strutils, json, nre, strutils]
 import db_connector/db_sqlite
 import ./utils
 import pretty # debug print
@@ -97,7 +97,8 @@ type
     
     of apkNode:
       ident: string
-      starred: bool
+      negate: bool  # !
+      notion: Option[char] ## special prefix
     
     of apkArrow:
       dir: ArrowDir
@@ -106,6 +107,11 @@ type
     ask: seq[AskPatNode]
     selectable: seq[string]
 
+const notionChars = {
+  '0', '1', '2', '3', 
+  '4', '5', '6', '7', 
+  '8', '9', '*', '$',
+  '^'}
 
 func `$`(s: SqlQuery): string = 
   s.string
@@ -120,6 +126,38 @@ func cmd(ind: int, line: string): string =
     .get
     .match
     .toUpper
+
+proc parseComment(line: string): GqlNode = 
+  GqlNode(kind: gkComment, sval: line.substr 2)
+
+proc parseString(line: string): GqlNode = 
+  assert line[0] == '"' 
+  assert line[^1] == '"'
+  GqlNode(kind: gkStrLit, sval: line[1 .. ^2])
+
+proc parseNumber(line: string): GqlNode = 
+  GqlNode(kind: gkIntLit, ival: parseint line)
+
+proc parseIdent(line: string): GqlNode = 
+  GqlNode(kind: gkIdent, sval: line)
+
+proc parseInfixOp(line: string): GqlNode = 
+  GqlNode(
+    kind: gkInfix, 
+    children: @[parseIdent line])
+
+proc parseAsk(line: string): GqlNode = 
+  discard
+
+proc parseTake(line: string): GqlNode = 
+  discard
+
+
+proc parseDefHeader(line: string): GqlNode = 
+  assert line[0] == '#'
+  GqlNode(
+    kind: gkDef, 
+    children: @[parseIdent line.substr 1])
 
 proc parseGql(content: string): GqlNode = 
   result = GqlNode(kind: gkWrapper)
@@ -145,20 +183,20 @@ proc parseGql(content: string): GqlNode =
       let 
         ind     = indentation line
         key     = cmd(ind, line)
+        lineee  = strip line
         parent  = getParent ind
-        # tokens = 
         n = 
           case key
-          of "--":             parseComment
-          of "\"":             parseString
+          of "--":             parseComment lineee
+          of "\"":             parseString  lineee
           of "0", "1", "2", 
              "3", "4", "5", 
              "6", "7", "8", 
-             "9"             : parseNumber
-          of "#":              parseDefHeader
+             "9"             : parseNumber    lineee
+          of "#":              parseDefHeader lineee
           of "<", "<=", "==", 
-              "!=", ">=", ">",
-              "AND", "OR"    : parseInfix
+             "!=", ">=", ">",
+             "AND", "OR"    : parseInfixOp lineee
           of "ASK", "FROM":    parseAsk
           of "TAKE", "SELECT": parseSelect
           else: raise newException(ValueError, key)
@@ -166,9 +204,10 @@ proc parseGql(content: string): GqlNode =
       parent.children.add n
       nested         .add (n, ind)
 
+
 func q(askedPattern, selectables: string): PatObj  = 
   result.selectable = split selectables
-  for kw in askedPattern.findAll re"\*?\w+|[-<>]{2}":
+  for kw in askedPattern.findAll re"[0-9$%^*]?\w+|[-<>]{2}": # TODO do not use regex
     result.ask.add:
       case kw
       of ">-": AskPatNode(kind: apkArrow, dir: headL2R)
@@ -176,14 +215,17 @@ func q(askedPattern, selectables: string): PatObj  =
       of "-<": AskPatNode(kind: apkArrow, dir: headR2L)
       of "<-": AskPatNode(kind: apkArrow, dir: tailR2L)
       else:
-        let (starred, id) = 
-          if kw[0] == '*': (true,  kw.substr 1)
-          else:            (false, kw)
+        let (notion, negate, id) = 
+          case kw[0]
+          of notionChars: (some kw[0], false, kw.substr 1)
+          of '!':         (none char,  true,  kw)
+          else  :         (none char,  false, kw)
 
         AskPatNode(
           kind: apkNode, 
           ident: id, 
-          starred: starred)
+          negate: negate,
+          notion: notion)
 
 # pattern : what can be taken as result 
 # * means primary i.e. where query starts
@@ -207,7 +249,7 @@ let queryStrategies = {
       |limit_clause|
     """,
 
-  q("a>-*c->b",          "a b c"): dedent """
+  q("a>-*c->b", "a b c"): dedent """
       SELECT 
         |select_fields|
       FROM
@@ -236,7 +278,7 @@ let queryStrategies = {
       ON
         |check_edge c a b|
         |check_node a|
-      WHERE 
+      WHERE
         |check_node b|
       |sort_clause|
       |offset_clause|
