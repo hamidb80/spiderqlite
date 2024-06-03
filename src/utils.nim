@@ -1,3 +1,6 @@
+import std/[tables, sequtils]
+
+
 func last*[T](s: openArray[T]): T = 
   s[^1]
 
@@ -13,8 +16,15 @@ template raisee*(reason): untyped =
   raise newException(ValueError, reason)
   
   
-func isSubOf*(a, b: seq): bool =
+
+func isSubsetOf[T](a, b: seq[T]): bool =
   for c in a:
     if c notin b:
       return false
   true
+
+func `<=`*[T](a, b: seq[T]): bool =
+  isSubsetOf a, b
+
+func map*[A, B](s: seq[A], t: Table[A, B]): seq[B] =
+  s.mapit t[it]
