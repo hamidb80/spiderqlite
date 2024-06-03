@@ -1,4 +1,4 @@
-import std/[strutils, sequtils, tables, json, nre, tables]
+import std/[strutils, sequtils, tables, json, nre, tables, sugar, strformat]
 import db_connector/db_sqlite
 import ./utils
 
@@ -104,10 +104,10 @@ type
     apkArrow
 
   ArrowDir     = enum
-    headL2R # >-
-    tailL2R # ->
-    headR2L # -<
-    tailR2L # <-
+    headL2R = ">-"
+    tailL2R = "->"
+    headR2L = "-<"
+    tailR2L = "<-"
 
   IdentMap     = Table[string, string]
 
@@ -134,6 +134,7 @@ type
       content: string
 
     of sqkCommand:
+      cmd: string
       args: seq[string]
 
   QueryStrategy = object
@@ -151,6 +152,21 @@ const notionChars = {
 
 func `$`(s: SqlQuery): string =
   s.string
+
+func `$`(qc: QueryChain): string = 
+  for p in qc:
+    case p.kind
+    of apkNode:
+      if p.negate:
+        result.add '!'
+      
+      if m =? p.mark:
+        result.add m
+      
+      result.add p.ident
+      
+    of apkArrow: 
+      result.add $p.dir  
 
 
 func cmd(ind: int, line: string): string =
@@ -284,8 +300,11 @@ func preProcessRawSql(s: string): seq[SqlPatSep] =
   let parts = s.split '|'
   for i, part in parts:
     result.add:
-      if i mod 2 == 0: SqlPatSep(kind: sqkStr, content: part)
-      else: SqlPatSep(kind: sqkCommand, args: splitWhitespace strip part)
+      if i mod 2 == 0: 
+        SqlPatSep(kind: sqkStr, content: part)
+      else: 
+        let tmp = splitWhitespace strip part
+        SqlPatSep(kind: sqkCommand, cmd: tmp[0], args: tmp[1..^1])
 
 func parseQueryChain(patt: string): QueryChain =
   for kw in patt.findAll re"[0-9$%^*]?\w+|[-<>]{2}": # TODO do not use regex
@@ -327,10 +346,6 @@ func parseQueryStrategies(tv: TomlValueRef): seq[QueryStrategy] =
   tv["q"].getElems.map parseQueryStrategy
 
 
-func resolve(sqlPat: seq[SqlPatSep], imap: IdentMap, g: GqlNode,
-    ctx: JsonNode): SqlQuery =
-  discard
-
 func matches(pattern, query: QueryChain): Option[IdentMap] =
   var temp: IdentMap
 
@@ -363,7 +378,7 @@ func askedQuery(g: GqlNode): QueryChain =
   for ch in g.children:
     case ch.kind
     of gkAsk: return parseQueryChain ch.children[0].sval
-    else: discard
+    else:     discard
 
   raisee "ask query not found"
 
@@ -375,14 +390,48 @@ func selects(g: GqlNode): seq[string] =
 
   raisee "ask query not found"
 
-proc toSql(g: GqlNode, queryStrategies: seq[QueryStrategy],
-    ctx: JsonNode): SqlQuery =
+func resolve(sqlPat: seq[SqlPatSep], imap: IdentMap, g: GqlNode, ctx: JsonNode): string =
+  let 
+    s = g.selects.map imap
+    a = g.askedQuery 
+
+  var acc =  ""
+
+  for p in sqlPat:
+    acc.add:
+      case p.kind
+      of sqkStr:            
+        p.content
+      
+      of sqkCommand: 
+        case toUpper p.cmd
+        of "SELECT_FIELDS": 
+          s.map(it => 
+            fmt"{it}.data")
+            .join ", "
+        
+        of "CHECK_EDGE"   : ""
+          # c.source = a.id
+          # c.target = a.id
+
+        of "CHECK_NODE"   : ""
+          # b.conds
+        
+        of "SORT_CLAUSE"  : ""
+        of "OFFSET_CLAUSE": ""
+        of "LIMIT_CLAUSE" : ""
+        else: raisee "invalid gql pattern: " & $p
+
+  acc
+
+proc toSql(g: GqlNode, queryStrategies: seq[QueryStrategy], ctx: JsonNode): SqlQuery =
   for qs in queryStrategies:
-    if
-      identMap =? matches(qs.pattern, g.askedQuery) and
-      (g.selects.map identMap) <= qs.selectable
-    :
-      return resolve(qs.sqlPattern, identMap, g, ctx)
+    if identMap =? matches(g.askedQuery, qs.pattern):
+      print identMap
+      echo qs.pattern
+
+      if (g.selects.map identMap) <= qs.selectable:
+        return sql resolve(qs.sqlPattern, identMap, g, ctx)
 
   raisee "no pattern was found"
 
@@ -396,5 +445,5 @@ when isMainModule:
     ctx = %*{"mtitle": mname}
 
   # print queryStrategies[0]
-  print parsedGql
-  print tosql(parsedGql, queryStrategies, ctx)
+  # print parsedGql
+  echo tosql(parsedGql, queryStrategies, ctx)
