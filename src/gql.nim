@@ -148,38 +148,39 @@ func cmd(ind: int, line: string): string =
     .match
     .toUpper
 
-proc parseComment(line: string): GqlNode = 
+
+proc parseComment    (line: string): GqlNode = 
   GqlNode(
     kind: gkComment, 
     sval: line.substr 2)
 
-proc parseString(line: string): GqlNode = 
+proc parseString     (line: string): GqlNode = 
   assert line[ 0] == '"' 
   assert line[^1] == '"'
   GqlNode(
     kind: gkStrLit, 
     sval: line[1 .. ^2])
 
-proc parseNumber(line: string): GqlNode = 
+proc parseNumber     (line: string): GqlNode = 
   GqlNode(
     kind: gkIntLit, 
     ival: parseint line)
 
-proc parseIdent(line: string): GqlNode = 
+proc parseIdent      (line: string): GqlNode = 
   GqlNode(
     kind: gkIdent, 
     sval: line)
 
-proc parseInfixOp(line: string): GqlNode = 
+proc parseInfixOp    (line: string): GqlNode = 
   GqlNode(
     kind: gkInfix, 
     children: @[parseIdent line])
 
-proc parseAsk(line: string): GqlNode = 
+proc parseAsk        (line: string): GqlNode = 
   GqlNode(
     kind: gkAsk)
 
-proc parseTake(line: string): GqlNode = 
+proc parseTake       (line: string): GqlNode = 
   GqlNode(
     kind: gkTake)
 
@@ -189,8 +190,7 @@ proc parseFieldAccess(line: string): GqlNode =
     kind: gkFieldAccess,
     children: @[parseIdent line.substr 1])
 
-
-proc parseDefHeader(line: string): GqlNode = 
+proc parseDefHeader  (line: string): GqlNode = 
   assert line[0] == '#'
   let ll = splitWhitespace line.substr 1
   GqlNode(
@@ -200,7 +200,7 @@ proc parseDefHeader(line: string): GqlNode =
       parseIdent ll[1],
       ])
 
-proc parseGql(content: string): GqlNode = 
+proc parseGql        (content: string): GqlNode = 
   result = GqlNode(kind: gkWrapper)
 
   type
@@ -380,10 +380,10 @@ when isMainModule:
         """,
     }
 
-    parsedQl = parseGql readFile "./test/sakila/get.gql"
+    parsedQl        = parseGql readFile "./test/sakila/get.gql"
     
-    mname = "ACADEMY DINOSAUR"
-    ctx   = %*{"movie": {"title": mname}} 
+    mname           = "ACADEMY DINOSAUR"
+    ctx             = %*{"movie": {"title": mname}} 
 
   print parsedQl
   echo tosql(parseGql, queryStrategies, ctx)
