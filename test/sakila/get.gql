@@ -2,7 +2,11 @@
 #person   p  
 #acted_in a  
 #movie    m
-  == .title "ACADEMY DINOSAUR"
+  == 
+    .title 
+    "ACADEMY DINOSAUR"
 
-ask  p>-a->*m
-take p
+ask  
+  p>-a->*m
+take 
+  p

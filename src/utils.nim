@@ -6,3 +6,10 @@ func empty*[T: string or seq](s: T): bool =
 
 func prune*(s: var seq) = 
   s.del s.high
+
+
+template raisee*(reason): untyped =
+  ## raise [e]rror -- just a convention
+  raise newException(ValueError, reason)
+  
+  

@@ -4,7 +4,7 @@ import ./utils
 import pretty # debug print
 
 type
-  GqlOperator = enum
+  GqlOperator* = enum
     goLess  # <
     goLessEq # <=
     goEq # = 
@@ -27,7 +27,7 @@ type
     goSubtract # subtract
     goGroup # (a b c)
 
-  GqlKind = enum
+  GqlKind* = enum
     gkDef # #tag
     gkFieldPred # inside def
     gkAsk # ask [limit] [offset] query
@@ -53,6 +53,7 @@ type
 
     gkIdent # name
     gkIntLit # 13
+    gkFloatLit # 3.14
     gkStrLit # "salam"
     gkChain # 1-:->p
 
@@ -78,9 +79,21 @@ type
     
     gkWrapper
 
-  GqlNode = ref object
-    kind: GqlKind
-    children: seq[GqlNode]
+  GqlNode* = ref object
+    children*: seq[GqlNode]
+
+    case kind*: GqlKind
+    of gkIdent, gkStrLit, gkComment:
+      sval*: string
+    
+    of gkIntLit:
+      ival*: int
+
+    of gkFloatLit:
+      fval*: float
+
+    else:
+      discard
 
   AskPatKind = enum
     apkNode
@@ -107,6 +120,7 @@ type
     ask: seq[AskPatNode]
     selectable: seq[string]
 
+
 const notionChars = {
   '0', '1', '2', '3', 
   '4', '5', '6', '7', 
@@ -128,18 +142,26 @@ func cmd(ind: int, line: string): string =
     .toUpper
 
 proc parseComment(line: string): GqlNode = 
-  GqlNode(kind: gkComment, sval: line.substr 2)
+  GqlNode(
+    kind: gkComment, 
+    sval: line.substr 2)
 
 proc parseString(line: string): GqlNode = 
   assert line[0] == '"' 
   assert line[^1] == '"'
-  GqlNode(kind: gkStrLit, sval: line[1 .. ^2])
+  GqlNode(
+    kind: gkStrLit, 
+    sval: line[1 .. ^2])
 
 proc parseNumber(line: string): GqlNode = 
-  GqlNode(kind: gkIntLit, ival: parseint line)
+  GqlNode(
+    kind: gkIntLit, 
+    ival: parseint line)
 
 proc parseIdent(line: string): GqlNode = 
-  GqlNode(kind: gkIdent, sval: line)
+  GqlNode(
+    kind: gkIdent, 
+    sval: line)
 
 proc parseInfixOp(line: string): GqlNode = 
   GqlNode(
@@ -147,17 +169,29 @@ proc parseInfixOp(line: string): GqlNode =
     children: @[parseIdent line])
 
 proc parseAsk(line: string): GqlNode = 
-  discard
+  GqlNode(
+    kind: gkAsk)
 
 proc parseTake(line: string): GqlNode = 
-  discard
+  GqlNode(
+    kind: gkTake)
+
+proc parseFieldAccess(line: string): GqlNode = 
+  assert line[0] == '.'
+  GqlNode(
+    kind: gkFieldAccess,
+    children: @[parseIdent line.substr 1])
 
 
 proc parseDefHeader(line: string): GqlNode = 
   assert line[0] == '#'
+  let ll = splitWhitespace line.substr 1
   GqlNode(
     kind: gkDef, 
-    children: @[parseIdent line.substr 1])
+    children: @[
+      parseIdent ll[0],
+      parseIdent ll[1],
+      ])
 
 proc parseGql(content: string): GqlNode = 
   result = GqlNode(kind: gkWrapper)
@@ -185,21 +219,28 @@ proc parseGql(content: string): GqlNode =
         key     = cmd(ind, line)
         lineee  = strip line
         parent  = getParent ind
-        n = 
+        n       = 
           case key
-          of "--":             parseComment lineee
-          of "\"":             parseString  lineee
-          of "0", "1", "2", 
-             "3", "4", "5", 
-             "6", "7", "8", 
-             "9"             : parseNumber    lineee
-          of "#":              parseDefHeader lineee
+          of "--":             parseComment     lineee
+          of "." :             parseFieldAccess lineee
+          of "\"":             parseString      lineee
+          of "#" :             parseDefHeader   lineee
           of "<", "<=", "==", 
              "!=", ">=", ">",
-             "AND", "OR"    : parseInfixOp lineee
-          of "ASK", "FROM":    parseAsk
-          of "TAKE", "SELECT": parseSelect
-          else: raise newException(ValueError, key)
+             "AND",   "NAND",
+             "NOR",   "OR"  ,
+             "EQ" ,   "NEQ",
+             "GT" ,   "GTE",
+             "LT" ,   "LTE",
+             "NOTIN", "IN",
+             "XOR"           : parseInfixOp    lineee
+          of "ASK", "FROM"   : parseAsk        lineee
+          of "TAKE", "SELECT": parseTake       lineee
+          
+          elif key[0] in '0'..'9': parseNumber lineee
+          elif key[0] in 'A'..'Z': parseIdent  lineee
+          
+          else                   : raisee key
 
       parent.children.add n
       nested         .add (n, ind)
