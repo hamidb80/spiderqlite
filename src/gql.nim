@@ -1,10 +1,10 @@
-import std/[strutils, tables, json, nre]
+import std/[strutils, sequtils, tables, json, nre]
 import db_connector/db_sqlite
 import ./utils
 
 import pretty # for debugging
 import questionable
-import yanyl
+import parsetoml
 
 
 type
@@ -124,12 +124,10 @@ type
     of apkArrow:
       dir: ArrowDir
 
-  PatObj       = object
-    ask:        QueryChain
+  QueryStrategy       = object
+    pattern:    QueryChain
     selectable: seq[string]
     query:      seq[string]
-
-  QueryStrategies = seq[(PatObj, string)]
 
 
 const notionChars = {
@@ -273,25 +271,25 @@ func matches(pattern, query: QueryChain): Option[IdentMap] =
   if pattern.len == query.len:
     discard
 
-proc toSql(g: GqlNode, qps: QueryStrategies, ctx: JsonNode): SqlQuery = 
-  for qs, rawSql in queryStrategies:
-    if 
-      identMap =? matches(qs.ask, g) and
-      (q.requestedEntites.conv identMap).isSubOf qs.selectable
-    :
-      return resolve(rawSql, identMap, g, ctx)
+proc toSql(g: GqlNode, queryStrategies: seq[QueryStrategy], ctx: JsonNode): SqlQuery = 
+  discard
+  # for qs in queryStrategies:
+    # if 
+    #   identMap =? matches(qs.pattern, g) and
+    #   (g.requestedEntites.conv identMap).isSubOf qs.selectable
+    # :
+    #   return resolve(qs.query, identMap, g, ctx)
 
-  raisee "no pattern was found"
+  # raisee "no pattern was found"
 
 
 
 func preProcessRawSql(s: string): seq[string] = 
-  discard
+  @[s]
 
-func q(askedPattern, selectables: string): PatObj  = 
-  result.selectable = split selectables
-  for kw in askedPattern.findAll re"[0-9$%^*]?\w+|[-<>]{2}": # TODO do not use regex
-    result.ask.add:
+func queryChain(patt: string): QueryChain  = 
+  for kw in patt.findAll re"[0-9$%^*]?\w+|[-<>]{2}": # TODO do not use regex
+    result.add:
       case kw
       of ">-": AskPatNode(kind: apkArrow, dir: headL2R)
       of "->": AskPatNode(kind: apkArrow, dir: tailL2R)
@@ -310,18 +308,34 @@ func q(askedPattern, selectables: string): PatObj  =
           negate: negate,
           notion: notion)
 
-proc parseQueryStrategies(yn: YNode): seq[PatObj] = 
-  discard
 
+func parseQueryStrategy(pattern, selectable, query: string): QueryStrategy = 
+  QueryStrategy(
+    pattern:     queryChain       pattern,
+    selectable:  splitWhitespace  selectable,
+    query:       preProcessRawSql query)
+
+func parseQueryStrategy(tv: TomlValueRef): QueryStrategy = 
+  parseQueryStrategy(
+           getStr tv["pattern"],
+           getStr tv["selectable"],
+    dedent getStr tv["query"])
+
+proc parseToml(s: string): TomlValueRef =
+  parseToml.parseString s
+
+func parseQueryStrategies(tv: TomlValueRef): seq[QueryStrategy] = 
+  tv["q"].getElems.map parseQueryStrategy
 
 when isMainModule:
   # TODO load from .json or ...
   let 
-    queryStrategies = parseQueryStrategies loadNode readfile "./qs.yaml"
-    parsedGql       = parseGql                      readFile "./test/sakila/get.gql"
+    queryStrategies = parseQueryStrategies parseToml readfile "./src/qs.toml"
+    parsedGql       = parseGql                       readFile "./test/sakila/get.gql"
     
     mname           = "ACADEMY DINOSAUR"
     ctx             = %*{"movie": {"title": mname}} 
 
+  echo queryStrategies[0].query[0]
   print parsedGql
-  echo tosql(parseGql, queryStrategies, ctx)
+  # echo tosql(parseGql, queryStrategies, ctx)

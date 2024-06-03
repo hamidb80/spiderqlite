@@ -1,0 +1,85 @@
+
+[[q]]
+pattern    = "*a>-c->b"
+selectable = "a b c"
+query      = '''
+  SELECT 
+    |select_fields|
+  FROM
+    nodes a,
+  JOIN 
+    edges c,
+    nodes b
+  ON
+    |check_edge c a b| AND 
+    |check_node b|
+  WHERE 
+    |check_node a|
+  |sort_clause|
+  |offset_clause|
+  |limit_clause|
+'''
+
+[[q]]
+pattern    = "a>-*c->b"
+selectable = "a b c"
+query      = '''
+  SELECT 
+    |select_fields|
+  FROM
+    edges c
+  JOIN 
+    nodes a,
+    nodes b
+  ON
+    |check_node a| AND
+    |check_node b|
+  WHERE 
+    |check_edge c a b|
+  |sort_clause|
+  |offset_clause|
+  |limit_clause|
+'''
+
+[[q]]
+pattern    = "a>-c->*b"
+selectable = "a b c"
+query      = '''
+  SELECT 
+    |select_fields|
+  FROM
+    nodes b,
+  JOIN 
+    edges c
+    nodes a
+  ON
+    |check_edge c a b|
+    |check_node a|
+  WHERE
+    |check_node b|
+  |sort_clause|
+  |offset_clause|
+  |limit_clause|
+'''
+
+[[q]]
+pattern    = "*a>-c1->b>-!c2->a"
+selectable = "a b c1"
+query      = '''
+  SELECT 
+    |select_fields|
+  FROM
+    nodes a
+  JOIN 
+    edges c1,
+    nodes b
+  ON
+    |check_edge c1 a b|
+    AND
+    NOT EXISTS |exists_edge c2 a b|
+  WHERE 
+    |conds a|
+  |sort_clause|
+  |offset_clause|
+  |limit_clause|
+'''
