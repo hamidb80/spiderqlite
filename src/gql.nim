@@ -119,15 +119,27 @@ type
     of apkNode:
       ident: string
       negate: bool  # !
-      notion: Option[char] ## special prefix
+      mark: Option[char] ## special prefix
     
     of apkArrow:
       dir: ArrowDir
 
+  SqlPatKind = enum
+    sqkStr
+    sqkCommand
+
+  SqlPatSep = object
+    case kind: SqlPatKind
+    of sqkStr:
+      content: string
+
+    of sqkCommand:
+      args: seq[string]
+
   QueryStrategy       = object
     pattern:    QueryChain
     selectable: seq[string]
-    query:      seq[string]
+    query:      seq[SqlPatSep]
 
 
 const notionChars = {
@@ -284,8 +296,13 @@ proc toSql(g: GqlNode, queryStrategies: seq[QueryStrategy], ctx: JsonNode): SqlQ
 
 
 
-func preProcessRawSql(s: string): seq[string] = 
-  @[s]
+func preProcessRawSql(s: string): seq[SqlPatSep] = 
+  let parts = s.split '|'
+  for i, part in parts:
+    result.add:
+      if i mod 2 == 0: SqlPatSep(kind: sqkStr,     content:                    part)
+      else:            SqlPatSep(kind: sqkCommand, args: splitWhitespace strip part)
+
 
 func queryChain(patt: string): QueryChain  = 
   for kw in patt.findAll re"[0-9$%^*]?\w+|[-<>]{2}": # TODO do not use regex
@@ -296,7 +313,7 @@ func queryChain(patt: string): QueryChain  =
       of "-<": AskPatNode(kind: apkArrow, dir: headR2L)
       of "<-": AskPatNode(kind: apkArrow, dir: tailR2L)
       else:
-        let (notion, negate, id) = 
+        let (mark, negate, id) = 
           case kw[0]
           of notionChars: (some kw[0], false, kw.substr 1)
           of '!':         (none char,  true,  kw)
@@ -306,7 +323,7 @@ func queryChain(patt: string): QueryChain  =
           kind: apkNode, 
           ident: id, 
           negate: negate,
-          notion: notion)
+          mark: mark)
 
 
 func parseQueryStrategy(pattern, selectable, query: string): QueryStrategy = 
@@ -336,6 +353,6 @@ when isMainModule:
     mname           = "ACADEMY DINOSAUR"
     ctx             = %*{"movie": {"title": mname}} 
 
-  echo queryStrategies[0].query[0]
+  print queryStrategies[0]
   print parsedGql
   # echo tosql(parseGql, queryStrategies, ctx)
