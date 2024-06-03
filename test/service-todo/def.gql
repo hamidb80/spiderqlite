@@ -23,7 +23,9 @@ namespace user
     #completed_by c
     #assigned_to  a
     #person       p  
-      @|id|
+      ==
+        .id 
+        |id|
 
     select t
     from   *p>-a->t>-!c->p

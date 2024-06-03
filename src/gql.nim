@@ -147,7 +147,7 @@ proc parseComment(line: string): GqlNode =
     sval: line.substr 2)
 
 proc parseString(line: string): GqlNode = 
-  assert line[0] == '"' 
+  assert line[ 0] == '"' 
   assert line[^1] == '"'
   GqlNode(
     kind: gkStrLit, 
@@ -222,6 +222,15 @@ proc parseGql(content: string): GqlNode =
         n       = 
           case key
           of "--":             parseComment     lineee
+          # of "DATABASE":         parseDatabase    lineee
+          # of "SCHEMA", "TABLE":  parseSchema      lineee
+          # of "REFERENCES":       parseReferences  lineee
+          # of "NAMESPACE":        parseNamespace  lineee
+          # of "PROC":       parseProc  lineee
+          # of "LIMIT":       parseLimit  lineee
+          # of "ORDER":       parseOrder  lineee # DESC or ASC
+          
+          
           of "." :             parseFieldAccess lineee
           of "\"":             parseString      lineee
           of "#" :             parseDefHeader   lineee
@@ -268,11 +277,10 @@ func q(askedPattern, selectables: string): PatObj  =
           negate: negate,
           notion: notion)
 
+# TODO load from .json or ...
 # pattern : what can be taken as result 
-# * means primary i.e. where query starts
 let queryStrategies = {
-
-    q("*a>-c->b", "a b c"): dedent """
+  q("*a>-c->b",          "a b c"):  dedent """
       SELECT 
         |select_fields|
       FROM
@@ -290,7 +298,7 @@ let queryStrategies = {
       |limit_clause|
     """,
 
-  q("a>-*c->b", "a b c"): dedent """
+  q("a>-*c->b",          "a b c"):  dedent """
       SELECT 
         |select_fields|
       FROM
@@ -308,7 +316,7 @@ let queryStrategies = {
       |limit_clause|
     """,
   
-  q("a>-c->*b", "a b c"): dedent """
+  q("a>-c->*b",          "a b c"):  dedent """
       SELECT 
         |select_fields|
       FROM
@@ -326,7 +334,7 @@ let queryStrategies = {
       |limit_clause|
     """,
 
-  q("*a>-c1->b>-!c2->a", "a b c1"): """
+  q("*a>-c1->b>-!c2->a", "a b c1"): dedent """
       SELECT 
         |select_fields|
       FROM
@@ -343,7 +351,7 @@ let queryStrategies = {
       |sort_clause|
       |offset_clause|
       |limit_clause|
-""",
+    """,
 }
 
 func matches(pattern, query: string): bool = 
@@ -358,7 +366,7 @@ proc toSql(q: GqlNode): SqlQuery =
     # if matches(p, q):
       # return p.resolve q
 
-  raise newException(ValueError, "such pattern is not defined")
+  raisee "such pattern is not defined"
 
 
 when isMainModule:

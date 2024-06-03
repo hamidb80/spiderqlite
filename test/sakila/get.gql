@@ -1,4 +1,5 @@
--- or can be #: p -- since it does not matter
+-- or can be #: p, since it doesn't matter
+
 #person   p  
 #acted_in a  
 #movie    m
@@ -8,5 +9,6 @@
 
 ask  
   p>-a->*m
+
 take 
   p
