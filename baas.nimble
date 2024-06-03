@@ -14,3 +14,5 @@ requires "nim >= 2.0.0"
 
 requires "db_connector"
 requires "iterrr"
+requires "questionable"
+

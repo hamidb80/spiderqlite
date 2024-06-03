@@ -13,3 +13,8 @@ template raisee*(reason): untyped =
   raise newException(ValueError, reason)
   
   
+func isSubOf*(a, b: seq): bool =
+  for c in a:
+    if c notin b:
+      return false
+  true

@@ -1,7 +1,10 @@
-import std/[strutils, json, nre, strutils]
+import std/[strutils, tables, json, nre]
 import db_connector/db_sqlite
 import ./utils
-import pretty # debug print
+
+import pretty # for debugging
+import questionable
+
 
 type
   GqlOperator* = enum
@@ -27,7 +30,7 @@ type
     goSubtract # subtract
     goGroup # (a b c)
 
-  GqlKind* = enum
+  GqlKind*     = enum
     gkDef # #tag
     gkFieldPred # inside def
     gkAsk # ask [limit] [offset] query
@@ -79,7 +82,7 @@ type
     
     gkWrapper
 
-  GqlNode* = ref object
+  GqlNode*     = ref object
     children*: seq[GqlNode]
 
     case kind*: GqlKind
@@ -95,17 +98,21 @@ type
     else:
       discard
 
-  AskPatKind = enum
+  AskPatKind   = enum
     apkNode
     apkArrow
 
-  ArrowDir = enum
+  ArrowDir     = enum
     headL2R # >-
     tailL2R # ->
     headR2L # -<
     tailR2L # <-
 
-  AskPatNode = object
+  IdentMap     = Table[string, string]
+
+  QueryChain   = seq[AskPatNode]
+
+  AskPatNode   = object
     case kind: AskPatKind
     
     of apkNode:
@@ -116,8 +123,8 @@ type
     of apkArrow:
       dir: ArrowDir
 
-  PatObj = object
-    ask: seq[AskPatNode]
+  PatObj       = object
+    ask:        QueryChain
     selectable: seq[string]
 
 
@@ -277,104 +284,106 @@ func q(askedPattern, selectables: string): PatObj  =
           negate: negate,
           notion: notion)
 
-# TODO load from .json or ...
-# pattern : what can be taken as result 
-let queryStrategies = {
-  q("*a>-c->b",          "a b c"):  dedent """
-      SELECT 
-        |select_fields|
-      FROM
-        nodes a,
-      JOIN 
-        edges c
-        nodes b
-      ON
-        |check_edge c a b|
-        |check_node b|
-      WHERE 
-        |check_node a|
-      |sort_clause|
-      |offset_clause|
-      |limit_clause|
-    """,
-
-  q("a>-*c->b",          "a b c"):  dedent """
-      SELECT 
-        |select_fields|
-      FROM
-        edges c
-      JOIN 
-        nodes a,
-        nodes b
-      ON
-        |check_node a|
-        |check_node b|
-      WHERE 
-        |check_edge c a b|
-      |sort_clause|
-      |offset_clause|
-      |limit_clause|
-    """,
-  
-  q("a>-c->*b",          "a b c"):  dedent """
-      SELECT 
-        |select_fields|
-      FROM
-        nodes b,
-      JOIN 
-        edges c
-        nodes a
-      ON
-        |check_edge c a b|
-        |check_node a|
-      WHERE
-        |check_node b|
-      |sort_clause|
-      |offset_clause|
-      |limit_clause|
-    """,
-
-  q("*a>-c1->b>-!c2->a", "a b c1"): dedent """
-      SELECT 
-        |select_fields|
-      FROM
-        nodes a
-      JOIN 
-        edges c1,
-        nodes b
-      ON
-        |check_edge c1 a b|
-        AND
-        NOT EXISTS |exists_edge c2 a b|
-      WHERE 
-        |a.conds|
-      |sort_clause|
-      |offset_clause|
-      |limit_clause|
-    """,
-}
-
-func matches(pattern, query: string): bool = 
-  false
-
-func resolve(q: GqlNode, ctx: JsonNode): GqlNode= 
+func resolve(rawSql: string, identMap: IdentMap, q: GqlNode, ctx: JsonNode): SqlQuery = 
   discard
 
-proc toSql(q: GqlNode): SqlQuery = 
-  for (p, a) in queryStrategies:
+func matches(pattern, query: QueryChain): Option[IdentMap] = 
+  if pattern.len == query.len:
     discard
-    # if matches(p, q):
-      # return p.resolve q
 
-  raisee "such pattern is not defined"
+proc toSql(g: GqlNode, queryStrategies: seq[(PatObj, string)], ctx: JsonNode): SqlQuery = 
+  for qs, rawSql in queryStrategies:
+    if 
+      identMap =? matches(qs.ask, g) and
+      (q.requestedEntites.conv identMap).isSubOf qs.selectable
+    :
+      return resolve(rawSql, identMap, g, ctx)
+
+  raisee "no pattern was found"
 
 
 when isMainModule:
-  let
+  # TODO load from .json or ...
+  let 
+    queryStrategies = {
+      q("*a>-c->b",          "a b c"):  dedent """
+          SELECT 
+            |select_fields|
+          FROM
+            nodes a,
+          JOIN 
+            edges c
+            nodes b
+          ON
+            |check_edge c a b|
+            |check_node b|
+          WHERE 
+            |check_node a|
+          |sort_clause|
+          |offset_clause|
+          |limit_clause|
+        """,
+
+      q("a>-*c->b",          "a b c"):  dedent """
+          SELECT 
+            |select_fields|
+          FROM
+            edges c
+          JOIN 
+            nodes a,
+            nodes b
+          ON
+            |check_node a|
+            |check_node b|
+          WHERE 
+            |check_edge c a b|
+          |sort_clause|
+          |offset_clause|
+          |limit_clause|
+        """,
+      
+      q("a>-c->*b",          "a b c"):  dedent """
+          SELECT 
+            |select_fields|
+          FROM
+            nodes b,
+          JOIN 
+            edges c
+            nodes a
+          ON
+            |check_edge c a b|
+            |check_node a|
+          WHERE
+            |check_node b|
+          |sort_clause|
+          |offset_clause|
+          |limit_clause|
+        """,
+
+      q("*a>-c1->b>-!c2->a", "a b c1"): dedent """
+          SELECT 
+            |select_fields|
+          FROM
+            nodes a
+          JOIN 
+            edges c1,
+            nodes b
+          ON
+            |check_edge c1 a b|
+            AND
+            NOT EXISTS |exists_edge c2 a b|
+          WHERE 
+            |a.conds|
+          |sort_clause|
+          |offset_clause|
+          |limit_clause|
+        """,
+    }
+
     parsedQl = parseGql readFile "./test/sakila/get.gql"
-    # mname = "ACADEMY DINOSAUR"
-    # ctx   = %*{"movie": {"title": mname}} 
-    # nq    = parsedQl.resolve ctx
-  
-  # echo tosql parseGql
+    
+    mname = "ACADEMY DINOSAUR"
+    ctx   = %*{"movie": {"title": mname}} 
+
   print parsedQl
+  echo tosql(parseGql, queryStrategies, ctx)
