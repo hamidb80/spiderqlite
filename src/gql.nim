@@ -4,6 +4,7 @@ import ./utils
 
 import pretty # for debugging
 import questionable
+import yanyl
 
 
 type
@@ -126,6 +127,7 @@ type
   PatObj       = object
     ask:        QueryChain
     selectable: seq[string]
+    query:      seq[string]
 
   QueryStrategies = seq[(PatObj, string)]
 
@@ -264,6 +266,28 @@ proc parseGql        (content: string): GqlNode =
       nested         .add (n, ind)
 
 
+func resolve(rawSql: string, identMap: IdentMap, q: GqlNode, ctx: JsonNode): SqlQuery = 
+  discard
+
+func matches(pattern, query: QueryChain): Option[IdentMap] = 
+  if pattern.len == query.len:
+    discard
+
+proc toSql(g: GqlNode, qps: QueryStrategies, ctx: JsonNode): SqlQuery = 
+  for qs, rawSql in queryStrategies:
+    if 
+      identMap =? matches(qs.ask, g) and
+      (q.requestedEntites.conv identMap).isSubOf qs.selectable
+    :
+      return resolve(rawSql, identMap, g, ctx)
+
+  raisee "no pattern was found"
+
+
+
+func preProcessRawSql(s: string): seq[string] = 
+  discard
+
 func q(askedPattern, selectables: string): PatObj  = 
   result.selectable = split selectables
   for kw in askedPattern.findAll re"[0-9$%^*]?\w+|[-<>]{2}": # TODO do not use regex
@@ -286,106 +310,18 @@ func q(askedPattern, selectables: string): PatObj  =
           negate: negate,
           notion: notion)
 
-func resolve(rawSql: string, identMap: IdentMap, q: GqlNode, ctx: JsonNode): SqlQuery = 
+proc parseQueryStrategies(yn: YNode): seq[PatObj] = 
   discard
-
-func matches(pattern, query: QueryChain): Option[IdentMap] = 
-  if pattern.len == query.len:
-    discard
-
-proc toSql(g: GqlNode, qps: QueryStrategies, ctx: JsonNode): SqlQuery = 
-  for qs, rawSql in queryStrategies:
-    if 
-      identMap =? matches(qs.ask, g) and
-      (q.requestedEntites.conv identMap).isSubOf qs.selectable
-    :
-      return resolve(rawSql, identMap, g, ctx)
-
-  raisee "no pattern was found"
 
 
 when isMainModule:
   # TODO load from .json or ...
   let 
-    queryStrategies = {
-      q("*a>-c->b",          "a b c"):  dedent """
-          SELECT 
-            |select_fields|
-          FROM
-            nodes a,
-          JOIN 
-            edges c
-            nodes b
-          ON
-            |check_edge c a b|
-            |check_node b|
-          WHERE 
-            |check_node a|
-          |sort_clause|
-          |offset_clause|
-          |limit_clause|
-        """,
-
-      q("a>-*c->b",          "a b c"):  dedent """
-          SELECT 
-            |select_fields|
-          FROM
-            edges c
-          JOIN 
-            nodes a,
-            nodes b
-          ON
-            |check_node a|
-            |check_node b|
-          WHERE 
-            |check_edge c a b|
-          |sort_clause|
-          |offset_clause|
-          |limit_clause|
-        """,
-      
-      q("a>-c->*b",          "a b c"):  dedent """
-          SELECT 
-            |select_fields|
-          FROM
-            nodes b,
-          JOIN 
-            edges c
-            nodes a
-          ON
-            |check_edge c a b|
-            |check_node a|
-          WHERE
-            |check_node b|
-          |sort_clause|
-          |offset_clause|
-          |limit_clause|
-        """,
-
-      q("*a>-c1->b>-!c2->a", "a b c1"): dedent """
-          SELECT 
-            |select_fields|
-          FROM
-            nodes a
-          JOIN 
-            edges c1,
-            nodes b
-          ON
-            |check_edge c1 a b|
-            AND
-            NOT EXISTS |exists_edge c2 a b|
-          WHERE 
-            |a.conds|
-          |sort_clause|
-          |offset_clause|
-          |limit_clause|
-        """,
-    }
-
-    parsedQl        = parseGql readFile "./test/sakila/get.gql"
+    queryStrategies = parseQueryStrategies loadNode readfile "./qs.yaml"
+    parsedGql       = parseGql                      readFile "./test/sakila/get.gql"
     
     mname           = "ACADEMY DINOSAUR"
     ctx             = %*{"movie": {"title": mname}} 
 
-  print parsedQl
+  print parsedGql
   echo tosql(parseGql, queryStrategies, ctx)
