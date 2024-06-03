@@ -255,15 +255,17 @@ proc parseGql        (content: string): GqlNode =
           of "." :             parseFieldAccess lineee
           of "\"":             parseString      lineee
           of "#" :             parseDefHeader   lineee
-          of "<", "<=", "==", 
-             "!=", ">=", ">",
+          of "==", "!=", 
+             "<", "<=",
+             ">=", ">",
              "AND",   "NAND",
-             "NOR",   "OR"  ,
+             "OR" ,   "NOR",
              "EQ" ,   "NEQ",
              "GT" ,   "GTE",
              "LT" ,   "LTE",
-             "NOTIN", "IN",
-             "XOR"           : parseInfixOp    lineee
+             "XOR", "IS", "ISNOT",
+             "NOTIN", "IN", "HAS", 
+             "BETWEEN", "CONTAINS" : parseInfixOp    lineee
           of "ASK", "FROM"   : parseAsk        lineee
           of "TAKE", "SELECT": parseTake       lineee
           
