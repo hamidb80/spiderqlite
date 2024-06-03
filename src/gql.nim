@@ -127,6 +127,8 @@ type
     ask:        QueryChain
     selectable: seq[string]
 
+  QueryStrategies = seq[(PatObj, string)]
+
 
 const notionChars = {
   '0', '1', '2', '3', 
@@ -291,7 +293,7 @@ func matches(pattern, query: QueryChain): Option[IdentMap] =
   if pattern.len == query.len:
     discard
 
-proc toSql(g: GqlNode, queryStrategies: seq[(PatObj, string)], ctx: JsonNode): SqlQuery = 
+proc toSql(g: GqlNode, qps: QueryStrategies, ctx: JsonNode): SqlQuery = 
   for qs, rawSql in queryStrategies:
     if 
       identMap =? matches(qs.ask, g) and
