@@ -1,3 +1,18 @@
+[[q]]
+pattern    = "a"
+selectable = "a"
+query      = '''
+  SELECT 
+    |select_fields|
+  FROM
+    nodes a
+  WHERE 
+    |check_node a|
+  |sort_clause|
+  |offset_clause|
+  |limit_clause|
+'''
+
 
 [[q]]
 pattern    = "*a>-c->b"
@@ -6,7 +21,7 @@ query      = '''
   SELECT 
     |select_fields|
   FROM
-    nodes a,
+    nodes a
   JOIN 
     edges c,
     nodes b

@@ -5,7 +5,7 @@
 #movie    m
   == 
     .title 
-    "ACADEMY DINOSAUR"
+    |get mtitle|
 
 ask  
   p>-a->*m

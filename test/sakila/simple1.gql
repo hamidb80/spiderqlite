@@ -1,0 +1,8 @@
+#movie    m
+  == 
+    .title 
+    "ACADEMY DINOSAUR"
+ask  
+  m
+take 
+  m

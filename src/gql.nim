@@ -1,7 +1,7 @@
-import std/[strutils, sequtils, tables, json, nre, tables, sugar, strformat]
-import db_connector/db_sqlite
+import std/[strutils, sequtils, tables, json, nre, sugar, strformat]
 import ./utils
 
+import db_connector/db_sqlite
 import pretty # for debugging
 import questionable
 import parsetoml
@@ -58,14 +58,14 @@ type
     gkIdent       # name
     gkIntLit      # 13
     gkFloatLit    # 3.14
+    gkBool        # true false
     gkStrLit      # "salam"
-    gkChain       # 1-:->p
 
     gkNull        # :
-    gkBool        # true false
     gkInf         # inf
 
     gkVar         # |var|
+    gkChain       # 1-:->p
 
     gkTake        # select take
 
@@ -73,7 +73,7 @@ type
     gkDataBase    # database
     gkStructure   # structure, struct, table, object, obj
     gkRelation    # references, ref, rel, relation
-    gkProcedure   # procedure, proc
+    gkProcedure   # procedure, func
     gkFrom        # from
     gkLimit       # limit
     gkComment     # --
@@ -95,6 +95,9 @@ type
 
     of gkFloatLit:
       fval*: float
+
+    of gkBool:
+      bval*: bool
 
     else:
       discard
@@ -150,10 +153,10 @@ const notionChars = {
   '^'}
 
 
-proc `$`(s: SqlQuery): string =
+func `$`*(s: SqlQuery): string =
   s.string
 
-proc `$`(qc: QueryChain): string =
+func `$`(qc: QueryChain): string =
   for p in qc:
     case p.kind
     of apkNode:
@@ -180,48 +183,48 @@ proc cmd(ind: int, line: string): string =
     .toUpper
 
 
-proc parseComment (line: string): GqlNode =
+func parseComment (line: string): GqlNode =
   GqlNode(
     kind: gkComment,
     sval: line.substr 2)
 
-proc parseString (line: string): GqlNode =
+func parseString  (line: string): GqlNode =
   assert line[0] == '"'
   assert line[^1] == '"'
   GqlNode(
     kind: gkStrLit,
     sval: line[1 .. ^2])
 
-proc parseNumber (line: string): GqlNode =
+func parseNumber  (line: string): GqlNode =
   GqlNode(
     kind: gkIntLit,
     ival: parseint line)
 
-proc parseIdent (line: string): GqlNode =
+func parseIdent   (line: string): GqlNode =
   GqlNode(
     kind: gkIdent,
     sval: line)
 
-proc parseInfixOp (line: string): GqlNode =
+func parseInfixOp (line: string): GqlNode =
   GqlNode(
     kind: gkInfix,
     children: @[parseIdent line])
 
-proc parseAsk (line: string): GqlNode =
+func parseAsk     (line: string): GqlNode =
   GqlNode(
     kind: gkAsk)
 
-proc parseTake (line: string): GqlNode =
+func parseTake    (line: string): GqlNode =
   GqlNode(
     kind: gkTake)
 
-proc parseFieldAccess(line: string): GqlNode =
+func parseFieldAccess(line: string): GqlNode =
   assert line[0] == '.'
   GqlNode(
     kind: gkFieldAccess,
     children: @[parseIdent line.substr 1])
 
-proc parseDefHeader (line: string): GqlNode =
+func parseDefHeader  (line: string): GqlNode =
   assert line[0] == '#'
   let ll = splitWhitespace line.substr 1
   GqlNode(
@@ -231,7 +234,7 @@ proc parseDefHeader (line: string): GqlNode =
       parseIdent ll[1],
     ])
 
-proc parseGql (content: string): GqlNode =
+func parseGql*(content: string): GqlNode =
   result = GqlNode(kind: gkWrapper)
 
   type
@@ -242,7 +245,7 @@ proc parseGql (content: string): GqlNode =
   var
     nested: seq[Temp] = @[(result, -1)]
 
-  proc getParent(indent: Natural): GqlNode =
+  func getParent(indent: Natural): GqlNode =
     while not empty nested:
       let p = nested.last
       if p.indentLevel >= indent:
@@ -296,7 +299,7 @@ proc parseGql (content: string): GqlNode =
 
 
 
-proc preProcessRawSql(s: string): seq[SqlPatSep] =
+func preProcessRawSql(s: string): seq[SqlPatSep] =
   let parts = s.split '|'
   for i, part in parts:
     result.add:
@@ -306,7 +309,7 @@ proc preProcessRawSql(s: string): seq[SqlPatSep] =
         let tmp = splitWhitespace strip part
         SqlPatSep(kind: sqkCommand, cmd: tmp[0], args: tmp[1..^1])
 
-proc parseQueryChain(patt: string): QueryChain =
+func parseQueryChain(patt: string): QueryChain =
   for kw in patt.findAll re"[0-9$%^*]?\w+|[-<>]{2}": # TODO do not use regex
     result.add:
       case kw
@@ -327,26 +330,26 @@ proc parseQueryChain(patt: string): QueryChain =
           negate: negate,
           mark: mark)
 
-proc parseQueryStrategy(pattern, selectable, query: string): QueryStrategy =
+func parseQueryStrategy(pattern, selectable, query: string): QueryStrategy =
   QueryStrategy(
     pattern: parseQueryChain pattern,
     selectable: splitWhitespace selectable,
     sqlPattern: preProcessRawSql query)
 
-proc parseQueryStrategy(tv: TomlValueRef): QueryStrategy =
+func parseQueryStrategy(tv: TomlValueRef): QueryStrategy =
   parseQueryStrategy(
            getStr tv["pattern"],
            getStr tv["selectable"],
     dedent getStr tv["query"])
 
-proc parseToml(s: string): TomlValueRef =
+proc parseToml*(s: string): TomlValueRef =
   parseToml.parseString s
 
-proc parseQueryStrategies(tv: TomlValueRef): seq[QueryStrategy] =
+func parseQueryStrategies*(tv: TomlValueRef): seq[QueryStrategy] =
   tv["q"].getElems.map parseQueryStrategy
 
 
-proc matches(pattern, query: QueryChain): Option[IdentMap] =
+func matches(pattern, query: QueryChain): Option[IdentMap] =
   var temp: IdentMap
 
   if pattern.len == query.len:
@@ -374,7 +377,7 @@ proc matches(pattern, query: QueryChain): Option[IdentMap] =
 
     return some temp
 
-proc askedQuery(g: GqlNode): QueryChain =
+func askedQuery(g: GqlNode): QueryChain =
   for ch in g.children:
     case ch.kind
     of gkAsk: return parseQueryChain ch.children[0].sval
@@ -382,7 +385,7 @@ proc askedQuery(g: GqlNode): QueryChain =
 
   raisee "ask query not found"
 
-proc selects(g: GqlNode): seq[string] =
+func selects(g: GqlNode): seq[string] =
   for ch in g.children:
     case ch.kind
     of gkTake: return ch.children.mapit it.sval
@@ -390,10 +393,36 @@ proc selects(g: GqlNode): seq[string] =
 
   raisee "ask query not found"
 
-proc resolveFilter(g: GqlNode, item: string): string = 
-  "1"
 
-proc sqlCondsOfNode(g: GqlNode, imap: IdentMap, node: string): string =
+func resolveSqlImpl(node: GqlNode, name: string): string = 
+  case node.kind
+  of gkInfix:       [
+    resolveSqlImpl(node.children[1], name), 
+    resolveSqlImpl(node.children[0], name), 
+    resolveSqlImpl(node.children[2], name)].join " "
+
+  of gkPrefix:     [
+    resolveSqlImpl(node.children[0], name), 
+    resolveSqlImpl(node.children[1], name)].join " "
+
+  of gkStrLit: ["'", node.sval, "'"].join ""
+  of gkIntLit: $node.ival
+  of gkFloatLit: $node.fval
+  of gkInf: "INF"
+  of gkNull: "NULL"
+  of gkBool: $node.bval
+
+  of gkIdent: node.sval
+
+  of gkFieldAccess:
+      let f = resolveSqlImpl(node.children[0], name)
+      fmt"json_extract({name}.data, '$.{f}')"
+  else: raisee fmt"cannot convert the node type {node.kind} to SQL condition"
+
+func resolveSql(condNode: GqlNode, name: string): string = 
+  resolveSqlImpl condNode, name
+
+func sqlCondsOfNode(g: GqlNode, imap: IdentMap, node: string): string =
   let inode = imap[node]
 
   for n in g.children:
@@ -409,7 +438,7 @@ proc sqlCondsOfNode(g: GqlNode, imap: IdentMap, node: string): string =
         result.add fmt"{inode}.tag == '{tag}'"
         
         if hasConds:
-          result.add fmt" AND ({resolveFilter(n.children[2], inode)})"
+          result.add fmt" AND ({resolveSql(n.children[2], inode)})"
 
         result.add ")"
         return
@@ -417,7 +446,7 @@ proc sqlCondsOfNode(g: GqlNode, imap: IdentMap, node: string): string =
     else: discard
   raisee fmt"the node '{node}' not found in query"
 
-proc sqlCondsOfEdge(g: GqlNode, imap: IdentMap, edge, source, target: string): string =
+func sqlCondsOfEdge(g: GqlNode, imap: IdentMap, edge, source, target: string): string =
   let
     iedge = imap[edge]
     isrc  = imap[source]
@@ -436,7 +465,7 @@ proc sqlCondsOfEdge(g: GqlNode, imap: IdentMap, edge, source, target: string): s
         result.add fmt"{iedge}.tag == '{tag}' AND {iedge}.source={isrc}.id AND {iedge}.target={itar}.id"
         
         if hasConds:
-          result.add fmt" AND ({resolveFilter(n.children[2], iedge)})"
+          result.add fmt" AND ({resolveSql(n.children[2], iedge)})"
 
         result.add ")"
         return
@@ -445,10 +474,19 @@ proc sqlCondsOfEdge(g: GqlNode, imap: IdentMap, edge, source, target: string): s
   raisee fmt"the node '{edge}' not found in query"
 
 
-proc resolve(sqlPat: seq[SqlPatSep], imap: IdentMap, g: GqlNode, ctx: JsonNode): string =
+func toGqn(j: JsonNode): GqlNode = 
+  case j.kind
+  of JInt:    GqlNode(kind: gkIntLit,   ival: j.getInt)
+  of JFloat:  GqlNode(kind: gkFloatLit, fval: j.getFloat)
+  of JString: GqlNode(kind: gkStrLit,   sval: j.getStr)
+  of JBool:   GqlNode(kind: gkBool,     bval: j.getBool)
+  of JNull:   GqlNode(kind: gkNull)
+  else: raisee fmt"invalid json type: {j.kind}"
+
+func resolve(sqlPat: seq[SqlPatSep], imap: IdentMap, g: GqlNode, ctx: JsonNode): string =
   let
     s = g.selects.map imap
-    a = g.askedQuery
+    # a = g.askedQuery
     revmap = rev imap
 
   var acc = ""
@@ -477,6 +515,9 @@ proc resolve(sqlPat: seq[SqlPatSep], imap: IdentMap, g: GqlNode, ctx: JsonNode):
           sqlCondsOfEdge(g, imap,
             revmap[p.args[0]], revmap[p.args[1]], revmap[p.args[2]])
 
+        of "GET":
+           resolveSql toGqn ctx[p.args[0]], "__"
+
         of "SORT_CLAUSE":   ""
         of "OFFSET_CLAUSE": ""
         of "LIMIT_CLAUSE":  ""
@@ -484,13 +525,9 @@ proc resolve(sqlPat: seq[SqlPatSep], imap: IdentMap, g: GqlNode, ctx: JsonNode):
 
   acc
 
-proc toSql(g: GqlNode, queryStrategies: seq[QueryStrategy],
-    ctx: JsonNode): SqlQuery =
+func toSql*(g: GqlNode, queryStrategies: seq[QueryStrategy], ctx: JsonNode): SqlQuery =
   for qs in queryStrategies:
     if identMap =? matches(g.askedQuery, qs.pattern):
-      print identMap
-      echo qs.pattern
-
       if (g.selects.map identMap) <= qs.selectable:
         return sql resolve(qs.sqlPattern, identMap, g, ctx)
 
@@ -500,11 +537,17 @@ proc toSql(g: GqlNode, queryStrategies: seq[QueryStrategy],
 when isMainModule:
   let
     queryStrategies = parseQueryStrategies parseToml readfile "./src/qs.toml"
-    parsedGql = parseGql readFile "./test/sakila/get.gql"
+    parsedGql       =                      parseGql  readFile "./test/sakila/simple1.gql"
+    # parsedGql       =                      parseGql  readFile "./test/sakila/get.gql"
 
     mname = "ACADEMY DINOSAUR"
     ctx = %*{"mtitle": mname}
 
+    sql = tosql(parsedGql, queryStrategies, ctx)
+    graphDB = open("graph.db", "", "", "")
+
   # print queryStrategies[0]
-  print parsedGql
-  echo tosql(parsedGql, queryStrategies, ctx)
+  # print parsedGql
+  echo   sql
+  for row in graphDB.getAllRows(sql):
+    echo row[0].parseJson.pretty 4

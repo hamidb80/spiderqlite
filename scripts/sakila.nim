@@ -19,6 +19,12 @@ when isMainModule:
     sakilaDB = open("sakila.db", "", "", "")
     graphDB  = open("graph.db", "", "", "")
 
+    schemeQuery = readFile "./sql/schema.sql"
+
+  for q in schemeQuery.split ";":
+    if not isEmptyOrWhitespace q:
+      graphDB.exec sql q
+
   echo "films"
   for x in sakilaDB.fastRows sql"SELECT * FROM film f":
     let 
