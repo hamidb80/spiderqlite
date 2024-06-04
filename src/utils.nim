@@ -28,3 +28,7 @@ func `<=`*[T](a, b: seq[T]): bool =
 
 func map*[A, B](s: seq[A], t: Table[A, B]): seq[B] =
   s.mapit t[it]
+
+func rev*[A, B](tab: Table[A, B]): Table[B, A] = 
+  for k, v in tab:
+    result[v] = k

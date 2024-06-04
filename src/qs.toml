@@ -48,9 +48,9 @@ query      = '''
   SELECT 
     |select_fields|
   FROM
-    nodes b,
+    nodes b
   JOIN 
-    edges c
+    edges c,
     nodes a
   ON
     |check_edge c a b|
@@ -78,7 +78,7 @@ query      = '''
     AND
     NOT EXISTS |exists_edge c2 a b|
   WHERE 
-    |conds a|
+    |check_node a|
   |sort_clause|
   |offset_clause|
   |limit_clause|
