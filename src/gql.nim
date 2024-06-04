@@ -501,10 +501,6 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
         p.content
 
       of sqkCommand:
-        # let
-        #   source = sqlPat[i-1].ident
-        #   target = sqlPat[i+1].ident
-
         case toUpper p.cmd
         of "SELECT_FIELDS":
           s.map(it =>
@@ -518,6 +514,10 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
           sqlCondsOfEdge(gn, imap,
             revmap[p.args[0]], revmap[p.args[1]], revmap[p.args[2]], varResolver)
 
+        of "EXISTS_EDGE": 
+          # TODO probably should use CHECK_EDGE
+          raisee "NOT IMPLEMENED: " & p.cmd
+
         of "GET":
           varResolver p.args[0]
 
@@ -528,7 +528,7 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
 
   acc
 
-func toSql*(gn;queryStrategies: seq[QueryStrategy], varResolver): SqlQuery {.effectsOf: varResolver.} =
+func toSql*(gn; queryStrategies: seq[QueryStrategy], varResolver): SqlQuery {.effectsOf: varResolver.} =
   for qs in queryStrategies:
     if identMap =? matches(gn.askedQuery, qs.pattern):
       if (gn.selects.map identMap) <= qs.selectable:

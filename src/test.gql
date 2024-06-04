@@ -1,49 +1,9 @@
-#movie m
-  .title = "CHICAGO NORTH"
-
-#person p
-  .born >= 2000
-  -- or
-    --   and
-    --     .sex == 'm' 
-    --     .xp   > |min_xp|
-    --   .sex == 'f'  
-  
-#acted_in a
-#directed_by d
-
-ask 10 2 -- limit offset: query
-  p-a->m 
-
-ask 
-  p-a->m -- p->d->m & m->c->p
-ask
-  and
-    m-d->p
-    p-a->m
-
-ask 
-  union
-    m-d->p
-    p-a->m
-
-  subtract
-    m-d->p
-    p-a->m
-
-return m p a? d?
 
 ask p-(p&q)->m
 ask p-(p|q)->m
 
-#task t
-#person p
-#person p1
-  .name = "ali"
-#completed c
-
-ask t<-(!c) 10 2
-ask t<-c->p 10 2
+ask t<-(!c)
+ask t<-c->p
 
 #device      d
 #utilized    u
@@ -82,15 +42,14 @@ update -- {data: ..} is in body
 
 -- insert data is sent in body as {m: ...}, {p: ...}
 
-#movie    m
+#movie    m 
 #person   p
-#acted_in r 
+#acted_in a
 
-insert node m
-insert node p
-insert edge r m p -- the relation is m-r-p
-insert edge r _ p -- : means null here
-return m p
+insert p
+insert m
+insert p>-r->m
+
 
 create index for nodes on data.title named what
 -- create index what on nodes(json_extract(data, '$.title'))
@@ -102,4 +61,3 @@ types nodes -- list unique types of nodes
 
 delete index of nodes named what
 structure #person name age ...
-guard len(#person.name) > 0
