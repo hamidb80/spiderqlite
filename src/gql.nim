@@ -390,45 +390,66 @@ proc selects(g: GqlNode): seq[string] =
 
   raisee "ask query not found"
 
+proc resolveFilter(g: GqlNode, item: string): string = 
+  "1"
 
 proc sqlCondsOfNode(g: GqlNode, imap: IdentMap, node: string): string =
+  let inode = imap[node]
+
   for n in g.children:
     case n.kind
     of gkDef:
-      if n.children[1].sval == node:
-        case n.children.len
-        of 2: return fmt"[node.tag {imap[node]}]"
-        of 3: return fmt"[node.tag + node.cond {imap[node]}]"
-        else:
-          print n
-          raisee "cannot def conds cannot be more than 2 nodes"
+      let
+        tag      = n.children[0].sval
+        alias    = n.children[1].sval
+        hasConds = n.children.len > 2
+      
+      if alias == node:
+        result.add "("
+        result.add fmt"{inode}.tag == '{tag}'"
+        
+        if hasConds:
+          result.add fmt" AND ({resolveFilter(n.children[2], inode)})"
+
+        result.add ")"
+        return
 
     else: discard
   raisee fmt"the node '{node}' not found in query"
 
 proc sqlCondsOfEdge(g: GqlNode, imap: IdentMap, edge, source, target: string): string =
+  let
+    iedge = imap[edge]
+    isrc  = imap[source]
+    itar  = imap[target]
+
   for n in g.children:
     case n.kind
     of gkDef:
-      if n.children[1].sval == edge:
-        case n.children.len
-        of 2: return fmt"[edge.tag ({imap[edge]}) source={imap[source]} target={imap[target]}]"
-        # of 3: return fmt"[edge.tag ({edge}) source={source} target={target} conds]"
-        else:
-          print n
-          raisee "cannot def conds cannot be more than 2 nodes"
+      let
+        tag      = n.children[0].sval
+        alias    = n.children[1].sval
+        hasConds = n.children.len > 2
+      
+      if alias == edge:
+        result.add "("
+        result.add fmt"{iedge}.tag == '{tag}' AND {iedge}.source={isrc}.id AND {iedge}.target={itar}.id"
+        
+        if hasConds:
+          result.add fmt" AND ({resolveFilter(n.children[2], iedge)})"
+
+        result.add ")"
+        return
 
     else: discard
   raisee fmt"the node '{edge}' not found in query"
 
 
-proc resolve(sqlPat: seq[SqlPatSep], imap: IdentMap, g: GqlNode,
-    ctx: JsonNode): string =
+proc resolve(sqlPat: seq[SqlPatSep], imap: IdentMap, g: GqlNode, ctx: JsonNode): string =
   let
     s = g.selects.map imap
     a = g.askedQuery
     revmap = rev imap
-
 
   var acc = ""
 

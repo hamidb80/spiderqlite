@@ -11,8 +11,8 @@ query      = '''
     edges c,
     nodes b
   ON
-    |check_edge c a b| AND 
-    |check_node b|
+    |check_node b| AND
+    |check_edge c a b|
   WHERE 
     |check_node a|
   |sort_clause|
@@ -53,8 +53,8 @@ query      = '''
     edges c,
     nodes a
   ON
+    |check_node a| AND
     |check_edge c a b|
-    |check_node a|
   WHERE
     |check_node b|
   |sort_clause|
