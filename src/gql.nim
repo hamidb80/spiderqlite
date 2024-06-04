@@ -87,7 +87,7 @@ type
     children*: seq[GqlNode]
 
     case kind*: GqlKind
-    of gkIdent, gkStrLit, gkComment:
+    of gkIdent, gkStrLit, gkComment, gkVar:
       sval*: string
 
     of gkIntLit:
@@ -175,7 +175,7 @@ func `$`(qc: QueryChain): string =
 proc cmd(ind: int, line: string): string =
   line
     .match(
-      re "[\".#=<>!%*+-/^$?]+|\\d+|\\w+",
+      re "[\".#=<>!%*+-/^$?|]+|\\d+|\\w+",
       ind,
       line.high)
     .get
@@ -217,6 +217,11 @@ func parseAsk     (line: string): GqlNode =
 func parseTake    (line: string): GqlNode =
   GqlNode(
     kind: gkTake)
+
+func parseVar (line: string): GqlNode =
+  GqlNode(
+    kind: gkVar, 
+    sval: line.strip(chars = {'|'}))
 
 func parseFieldAccess(line: string): GqlNode =
   assert line[0] == '.'
@@ -286,11 +291,13 @@ func parseGql*(content: string): GqlNode =
              "XOR", "IS", "ISNOT",
              "NOTIN", "IN", "HAS",
              "BETWEEN", "CONTAINS": parseInfixOp lineee
-          of "ASK", "FROM": parseAsk lineee
-          of "TAKE", "SELECT": parseTake lineee
+          of "ASK", "FROM":         parseAsk     lineee
+          of "TAKE", "SELECT":      parseTake    lineee
+
+          of "|":                   parseVar     lineee
 
           elif key[0] in '0'..'9': parseNumber lineee
-          elif key[0] in 'A'..'Z': parseIdent lineee
+          elif key[0] in 'A'..'Z': parseIdent  lineee
 
           else: raisee key
 
@@ -394,35 +401,38 @@ func selects(g: GqlNode): seq[string] =
   raisee "ask query not found"
 
 
-func resolveSqlImpl(node: GqlNode, name: string): string = 
+func resolveSqlImpl(node: GqlNode, name: string, varResolver: proc(s: string): string): string {.effectsOf: varResolver.} = 
   case node.kind
   of gkInfix:       [
-    resolveSqlImpl(node.children[1], name), 
-    resolveSqlImpl(node.children[0], name), 
-    resolveSqlImpl(node.children[2], name)].join " "
+    resolveSqlImpl(node.children[1], name, varResolver), 
+    resolveSqlImpl(node.children[0], name, varResolver), 
+    resolveSqlImpl(node.children[2], name, varResolver)].join " "
 
   of gkPrefix:     [
-    resolveSqlImpl(node.children[0], name), 
-    resolveSqlImpl(node.children[1], name)].join " "
+    resolveSqlImpl(node.children[0], name, varResolver), 
+    resolveSqlImpl(node.children[1], name, varResolver)].join " "
 
-  of gkStrLit: ["'", node.sval, "'"].join ""
-  of gkIntLit: $node.ival
+  of gkStrLit:   ["'", node.sval, "'"].join ""
+  of gkIntLit:   $node.ival
   of gkFloatLit: $node.fval
-  of gkInf: "INF"
-  of gkNull: "NULL"
-  of gkBool: $node.bval
+  of gkInf:      "INF"
+  of gkNull:     "NULL"
+  of gkBool:     $node.bval
+  of gkIdent:     node.sval
 
-  of gkIdent: node.sval
+  of gkVar: varResolver node.sval
 
   of gkFieldAccess:
-      let f = resolveSqlImpl(node.children[0], name)
+      let f = resolveSqlImpl(node.children[0], name, varResolver)
       fmt"json_extract({name}.data, '$.{f}')"
-  else: raisee fmt"cannot convert the node type {node.kind} to SQL condition"
 
-func resolveSql(condNode: GqlNode, name: string): string = 
-  resolveSqlImpl condNode, name
+  else: 
+    raisee fmt"cannot convert the node type {node.kind} to SQL condition"
 
-func sqlCondsOfNode(g: GqlNode, imap: IdentMap, node: string): string =
+func resolveSql(condNode: GqlNode, name: string, varResolver: proc(s: string): string): string {.effectsOf: varResolver.} = 
+  resolveSqlImpl condNode, name, varResolver
+
+func sqlCondsOfNode(g: GqlNode, imap: IdentMap, node: string, varResolver: proc(s: string): string): string {.effectsOf: varResolver.} =
   let inode = imap[node]
 
   for n in g.children:
@@ -434,11 +444,10 @@ func sqlCondsOfNode(g: GqlNode, imap: IdentMap, node: string): string =
         hasConds = n.children.len > 2
       
       if alias == node:
-        result.add "("
-        result.add fmt"{inode}.tag == '{tag}'"
+        result.add fmt"({inode}.tag == '{tag}'"
         
         if hasConds:
-          result.add fmt" AND ({resolveSql(n.children[2], inode)})"
+          result.add " AND (" & resolveSql(n.children[2], inode, varResolver) & ")"
 
         result.add ")"
         return
@@ -446,7 +455,7 @@ func sqlCondsOfNode(g: GqlNode, imap: IdentMap, node: string): string =
     else: discard
   raisee fmt"the node '{node}' not found in query"
 
-func sqlCondsOfEdge(g: GqlNode, imap: IdentMap, edge, source, target: string): string =
+func sqlCondsOfEdge(g: GqlNode, imap: IdentMap, edge, source, target: string, varResolver: proc(s: string): string): string {.effectsOf: varResolver.} =
   let
     iedge = imap[edge]
     isrc  = imap[source]
@@ -461,11 +470,10 @@ func sqlCondsOfEdge(g: GqlNode, imap: IdentMap, edge, source, target: string): s
         hasConds = n.children.len > 2
       
       if alias == edge:
-        result.add "("
-        result.add fmt"{iedge}.tag == '{tag}' AND {iedge}.source={isrc}.id AND {iedge}.target={itar}.id"
+        result.add fmt"({iedge}.tag == '{tag}' AND {iedge}.source={isrc}.id AND {iedge}.target={itar}.id"
         
         if hasConds:
-          result.add fmt" AND ({resolveSql(n.children[2], iedge)})"
+          result.add fmt" AND ({resolveSql(n.children[2], iedge, varResolver)})"
 
         result.add ")"
         return
@@ -485,9 +493,10 @@ func toGqn(j: JsonNode): GqlNode =
 
 func resolve(sqlPat: seq[SqlPatSep], imap: IdentMap, g: GqlNode, ctx: JsonNode): string =
   let
-    s = g.selects.map imap
+    s           = g.selects.map imap
     # a = g.askedQuery
-    revmap = rev imap
+    revmap      = rev imap
+    varResolver = (s: string) => $ctx[s]
 
   var acc = ""
 
@@ -509,14 +518,14 @@ func resolve(sqlPat: seq[SqlPatSep], imap: IdentMap, g: GqlNode, ctx: JsonNode):
             .join ", "
 
         of "CHECK_NODE":
-          sqlCondsOfNode(g, imap, revmap[p.args[0]])
+          sqlCondsOfNode(g, imap, revmap[p.args[0]], varResolver)
 
         of "CHECK_EDGE":
           sqlCondsOfEdge(g, imap,
-            revmap[p.args[0]], revmap[p.args[1]], revmap[p.args[2]])
+            revmap[p.args[0]], revmap[p.args[1]], revmap[p.args[2]], varResolver)
 
         of "GET":
-           resolveSql toGqn ctx[p.args[0]], "__"
+           resolveSql toGqn ctx[p.args[0]], "__", varResolver
 
         of "SORT_CLAUSE":   ""
         of "OFFSET_CLAUSE": ""
@@ -541,7 +550,7 @@ when isMainModule:
     # parsedGql       =                      parseGql  readFile "./test/sakila/get.gql"
 
     mname = "ACADEMY DINOSAUR"
-    ctx = %*{"mtitle": mname}
+    ctx = %*{"mtitle.": mname}
 
     sql = tosql(parsedGql, queryStrategies, ctx)
     graphDB = open("graph.db", "", "", "")
