@@ -153,6 +153,12 @@ const notionChars = {
   '^'}
 
 
+using 
+  gn:          GqlNode
+  imap:        IdentMap
+  varResolver: string -> string
+
+
 func `$`*(s: SqlQuery): string =
   s.string
 
@@ -183,42 +189,42 @@ proc cmd(ind: int, line: string): string =
     .toUpper
 
 
-func parseComment (line: string): GqlNode =
+func parseComment    (line: string): GqlNode =
   GqlNode(
     kind: gkComment,
     sval: line.substr 2)
 
-func parseString  (line: string): GqlNode =
+func parseString     (line: string): GqlNode =
   assert line[0] == '"'
   assert line[^1] == '"'
   GqlNode(
     kind: gkStrLit,
     sval: line[1 .. ^2])
 
-func parseNumber  (line: string): GqlNode =
+func parseNumber     (line: string): GqlNode =
   GqlNode(
     kind: gkIntLit,
     ival: parseint line)
 
-func parseIdent   (line: string): GqlNode =
+func parseIdent      (line: string): GqlNode =
   GqlNode(
     kind: gkIdent,
     sval: line)
 
-func parseInfixOp (line: string): GqlNode =
+func parseInfixOp    (line: string): GqlNode =
   GqlNode(
     kind: gkInfix,
     children: @[parseIdent line])
 
-func parseAsk     (line: string): GqlNode =
+func parseAsk        (line: string): GqlNode =
   GqlNode(
     kind: gkAsk)
 
-func parseTake    (line: string): GqlNode =
+func parseTake       (line: string): GqlNode =
   GqlNode(
     kind: gkTake)
 
-func parseVar (line: string): GqlNode =
+func parseVar        (line: string): GqlNode =
   GqlNode(
     kind: gkVar, 
     sval: line.strip(chars = {'|'}))
@@ -384,24 +390,23 @@ func matches(pattern, query: QueryChain): Option[IdentMap] =
 
     return some temp
 
-func askedQuery(g: GqlNode): QueryChain =
-  for ch in g.children:
+func askedQuery(gn): QueryChain =
+  for ch in gn.children:
     case ch.kind
     of gkAsk: return parseQueryChain ch.children[0].sval
     else: discard
 
   raisee "ask query not found"
 
-func selects(g: GqlNode): seq[string] =
-  for ch in g.children:
+func selects(gn): seq[string] =
+  for ch in gn.children:
     case ch.kind
     of gkTake: return ch.children.mapit it.sval
     else: discard
 
   raisee "ask query not found"
 
-
-func resolveSqlImpl(node: GqlNode, name: string, varResolver: proc(s: string): string): string {.effectsOf: varResolver.} = 
+func resolveSqlImpl(node: GqlNode, name: string, varResolver): string {.effectsOf: varResolver.} = 
   case node.kind
   of gkInfix:       [
     resolveSqlImpl(node.children[1], name, varResolver), 
@@ -429,13 +434,13 @@ func resolveSqlImpl(node: GqlNode, name: string, varResolver: proc(s: string): s
   else: 
     raisee fmt"cannot convert the node type {node.kind} to SQL condition"
 
-func resolveSql(condNode: GqlNode, name: string, varResolver: proc(s: string): string): string {.effectsOf: varResolver.} = 
+func resolveSql(condNode: GqlNode, name: string, varResolver): string {.effectsOf: varResolver.} = 
   resolveSqlImpl condNode, name, varResolver
 
-func sqlCondsOfNode(g: GqlNode, imap: IdentMap, node: string, varResolver: proc(s: string): string): string {.effectsOf: varResolver.} =
+func sqlCondsOfNode(gn; imap; node: string, varResolver): string {.effectsOf: varResolver.} =
   let inode = imap[node]
 
-  for n in g.children:
+  for n in gn.children:
     case n.kind
     of gkDef:
       let
@@ -455,13 +460,13 @@ func sqlCondsOfNode(g: GqlNode, imap: IdentMap, node: string, varResolver: proc(
     else: discard
   raisee fmt"the node '{node}' not found in query"
 
-func sqlCondsOfEdge(g: GqlNode, imap: IdentMap, edge, source, target: string, varResolver: proc(s: string): string): string {.effectsOf: varResolver.} =
+func sqlCondsOfEdge(gn; imap; edge, source, target: string, varResolver): string {.effectsOf: varResolver.} =
   let
     iedge = imap[edge]
     isrc  = imap[source]
     itar  = imap[target]
 
-  for n in g.children:
+  for n in gn.children:
     case n.kind
     of gkDef:
       let
@@ -481,20 +486,10 @@ func sqlCondsOfEdge(g: GqlNode, imap: IdentMap, edge, source, target: string, va
     else: discard
   raisee fmt"the node '{edge}' not found in query"
 
-
-func toGqn(j: JsonNode): GqlNode = 
-  case j.kind
-  of JInt:    GqlNode(kind: gkIntLit,   ival: j.getInt)
-  of JFloat:  GqlNode(kind: gkFloatLit, fval: j.getFloat)
-  of JString: GqlNode(kind: gkStrLit,   sval: j.getStr)
-  of JBool:   GqlNode(kind: gkBool,     bval: j.getBool)
-  of JNull:   GqlNode(kind: gkNull)
-  else: raisee fmt"invalid json type: {j.kind}"
-
-func resolve(sqlPat: seq[SqlPatSep], imap: IdentMap, g: GqlNode,  varResolver: proc(s: string): string): string {.effectsOf: varResolver.} =
+func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf: varResolver.} =
   let
-    s           = g.selects.map imap
-    # a = g.askedQuery
+    s           = gn.selects.map imap
+    # a = gn.askedQuery
     revmap      = rev imap
 
   var acc = ""
@@ -517,10 +512,10 @@ func resolve(sqlPat: seq[SqlPatSep], imap: IdentMap, g: GqlNode,  varResolver: p
             .join ", "
 
         of "CHECK_NODE":
-          sqlCondsOfNode(g, imap, revmap[p.args[0]], varResolver)
+          sqlCondsOfNode(gn, imap, revmap[p.args[0]], varResolver)
 
         of "CHECK_EDGE":
-          sqlCondsOfEdge(g, imap,
+          sqlCondsOfEdge(gn, imap,
             revmap[p.args[0]], revmap[p.args[1]], revmap[p.args[2]], varResolver)
 
         of "GET":
@@ -533,11 +528,11 @@ func resolve(sqlPat: seq[SqlPatSep], imap: IdentMap, g: GqlNode,  varResolver: p
 
   acc
 
-func toSql*(g: GqlNode, queryStrategies: seq[QueryStrategy], varResolver: proc(s: string): string): SqlQuery {.effectsOf: varResolver.} =
+func toSql*(gn;queryStrategies: seq[QueryStrategy], varResolver): SqlQuery {.effectsOf: varResolver.} =
   for qs in queryStrategies:
-    if identMap =? matches(g.askedQuery, qs.pattern):
-      if (g.selects.map identMap) <= qs.selectable:
-        return sql resolve(qs.sqlPattern, identMap, g, varResolver)
+    if identMap =? matches(gn.askedQuery, qs.pattern):
+      if (gn.selects.map identMap) <= qs.selectable:
+        return sql resolve(qs.sqlPattern, identMap, gn, varResolver)
 
   raisee "no pattern was found"
 
@@ -545,7 +540,6 @@ func toSql*(g: GqlNode, queryStrategies: seq[QueryStrategy], varResolver: proc(s
 when isMainModule:
   let
     queryStrategies = parseQueryStrategies parseToml readfile "./src/qs.toml"
-    # parsedGql       =                      parseGql  readFile "./test/sakila/simple1.gql"
     parsedGql       =                      parseGql  readFile "./test/sakila/get.gql"
 
     mname = "ACADEMY DINOSAUR"
