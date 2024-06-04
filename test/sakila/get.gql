@@ -5,7 +5,7 @@
 #movie    m
   == 
     .title 
-    |get mtitle|
+    |mtitle|
 
 ask  
   p>-a->*m

@@ -491,12 +491,11 @@ func toGqn(j: JsonNode): GqlNode =
   of JNull:   GqlNode(kind: gkNull)
   else: raisee fmt"invalid json type: {j.kind}"
 
-func resolve(sqlPat: seq[SqlPatSep], imap: IdentMap, g: GqlNode, ctx: JsonNode): string =
+func resolve(sqlPat: seq[SqlPatSep], imap: IdentMap, g: GqlNode,  varResolver: proc(s: string): string): string {.effectsOf: varResolver.} =
   let
     s           = g.selects.map imap
     # a = g.askedQuery
     revmap      = rev imap
-    varResolver = (s: string) => $ctx[s]
 
   var acc = ""
 
@@ -525,7 +524,7 @@ func resolve(sqlPat: seq[SqlPatSep], imap: IdentMap, g: GqlNode, ctx: JsonNode):
             revmap[p.args[0]], revmap[p.args[1]], revmap[p.args[2]], varResolver)
 
         of "GET":
-           resolveSql toGqn ctx[p.args[0]], "__", varResolver
+          varResolver p.args[0]
 
         of "SORT_CLAUSE":   ""
         of "OFFSET_CLAUSE": ""
@@ -534,11 +533,11 @@ func resolve(sqlPat: seq[SqlPatSep], imap: IdentMap, g: GqlNode, ctx: JsonNode):
 
   acc
 
-func toSql*(g: GqlNode, queryStrategies: seq[QueryStrategy], ctx: JsonNode): SqlQuery =
+func toSql*(g: GqlNode, queryStrategies: seq[QueryStrategy], varResolver: proc(s: string): string): SqlQuery {.effectsOf: varResolver.} =
   for qs in queryStrategies:
     if identMap =? matches(g.askedQuery, qs.pattern):
       if (g.selects.map identMap) <= qs.selectable:
-        return sql resolve(qs.sqlPattern, identMap, g, ctx)
+        return sql resolve(qs.sqlPattern, identMap, g, varResolver)
 
   raisee "no pattern was found"
 
@@ -546,13 +545,13 @@ func toSql*(g: GqlNode, queryStrategies: seq[QueryStrategy], ctx: JsonNode): Sql
 when isMainModule:
   let
     queryStrategies = parseQueryStrategies parseToml readfile "./src/qs.toml"
-    parsedGql       =                      parseGql  readFile "./test/sakila/simple1.gql"
-    # parsedGql       =                      parseGql  readFile "./test/sakila/get.gql"
+    # parsedGql       =                      parseGql  readFile "./test/sakila/simple1.gql"
+    parsedGql       =                      parseGql  readFile "./test/sakila/get.gql"
 
     mname = "ACADEMY DINOSAUR"
-    ctx = %*{"mtitle.": mname}
+    ctx = %*{"mtitle": mname}
 
-    sql = tosql(parsedGql, queryStrategies, ctx)
+    sql = tosql(parsedGql, queryStrategies, s => $ctx[s])
     graphDB = open("graph.db", "", "", "")
 
   # print queryStrategies[0]
