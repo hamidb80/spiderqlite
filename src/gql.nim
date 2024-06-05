@@ -486,6 +486,11 @@ func sqlCondsOfEdge(gn; imap; edge, source, target: string, varResolver): string
     else: discard
   raisee fmt"the node '{edge}' not found in query"
 
+func join_select_data_json(s: string): string = 
+  """ ('{ "id"  :' || """ & s & """.id   ||     """ &
+  """  ', "tag" :"'|| """ & s & """.tag  ||     """ &
+  """ '", "data":' || """ & s & """.data || '}')"""
+
 func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf: varResolver.} =
   let
     s           = gn.selects.map imap
@@ -503,9 +508,7 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
       of sqkCommand:
         case toUpper p.cmd
         of "SELECT_FIELDS":
-          s.map(it =>
-            fmt"{it}.data")
-            .join ", "
+          s.map(join_select_data_json).join ", "
 
         of "CHECK_NODE":
           sqlCondsOfNode(gn, imap, revmap[p.args[0]], varResolver)
@@ -544,12 +547,12 @@ when isMainModule:
 
     mname = "ACADEMY DINOSAUR"
     ctx = %*{"mtitle": mname}
-
+    
     sql = tosql(parsedGql, queryStrategies, s => $ctx[s])
     graphDB = open("graph.db", "", "", "")
 
   # print queryStrategies[0]
-  # print parsedGql
+  print parsedGql
   echo   sql
   for row in graphDB.getAllRows(sql):
     echo row[0].parseJson.pretty 4

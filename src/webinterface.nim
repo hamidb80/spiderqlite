@@ -26,12 +26,26 @@ when isMainModule:
   with router:
     get  "/",          interactiveApp
     get  "/dist/",     staticFiles
-    post "/api/gql/",  gqlService
-    post "/api/data/",  gqlService
+
+    get  "/api/users/list/",   apiDatabasesOfUser
+    get  "/api/users/login/",  apiDatabasesOfUser
+    get  "/api/users/signup/", apiDatabasesOfUser
+    
+    get  "/api/users/<username>/stats/",  apiDatabasesOfUser
+    
+    get  "/api/users/<username>/databases/all/",        apiDatabasesOfUser
+    get  "/api/users/<username>/databases/<db>/stats/",  gqlService
+    post "/api/users/<username>/databases/<db>/query/",  gqlService
+    
+    get  "/api/users/<username>/databases/<db>/index/list/",   gqlService
+    post "/api/users/<username>/databases/<db>/index/new/",    gqlService
+    post "/api/users/<username>/databases/<db>/index/delete/", gqlService
+
+
 
   let 
     app  = newServer router
     port = 5000 
 
   echo fmt"Serving on http://localhost:{port}"
-  app.serve Port port
+  app.serve Port portw
