@@ -4,21 +4,28 @@
 -- references: relation
 
 database
-  table #device d 
-    program
+  table 
+    #device d 
+      program
 
-  table #person p
-    name
+    #person p
+      name
 
-  table #task t
+    #task t
 
-  references #owner        p>-.->d -- owner edge connects person `p` to device `d`
-  references #assigned_to  p>-.->t
-  references #completed_by t>-.->p
+  references 
+    #owner        o
+      p>-.->d 
+
+    #assigned_to  a
+      p>-.->t
+
+    #completed_by c 
+      t>-.->p
 
 
-namespace user
-  proc get_uncompleted_tasks_of_user (id)
+proc 
+  get_uncompleted_tasks_of_user
     #task         t
     #completed_by c
     #assigned_to  a
