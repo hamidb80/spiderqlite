@@ -11,7 +11,8 @@ ask t<-c->p
 #customer    b
 #ordered     o
 
-sort t.timestamp DESC
+sort 
+  t.timestamp DESC
 ask 
   :-!c->*t-a->p -- * means start query from here
   d-u->*t
@@ -49,6 +50,7 @@ update -- {data: ..} is in body
 insert p
 insert m
 insert p>-r->m
+insert 12>-r->18
 
 
 create index for nodes on data.title named what

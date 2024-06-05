@@ -323,7 +323,7 @@ func preProcessRawSql(s: string): seq[SqlPatSep] =
         SqlPatSep(kind: sqkCommand, cmd: tmp[0], args: tmp[1..^1])
 
 func parseQueryChain(patt: string): QueryChain =
-  for kw in patt.findAll re"[0-9$%^*]?\w+|[-<>]{2}": # TODO do not use regex
+  for kw in patt.findAll re"!?[0-9$%^*]?\w+|[-<>]{2}": # TODO do not use regex
     result.add:
       case kw
       of ">-": AskPatNode(kind: apkArrow, dir: headL2R)
