@@ -32,10 +32,13 @@ proc
     #person       p  
       ==
         .id 
-        |id|
+        |user_id|
 
-    select t
-    from   *p>-a->t>-!c->p
-    sort   t.timestamp
-    limit  10
+    limit 10
+    match *p>-a->t>-!c->p
+    take  t
+    -- group by
+    order by 
+      t
+        .timestamp
   
