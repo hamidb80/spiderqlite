@@ -636,8 +636,7 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
           sqlCondsOfNode(gn, imap, revmap[p.args[0]], varResolver)
 
         of "CHECK_EDGE":
-          sqlCondsOfEdge(gn, imap,
-            revmap[p.args[0]], revmap[p.args[1]], revmap[p.args[2]], varResolver)
+          sqlCondsOfEdge(gn, imap, revmap[p.args[0]], revmap[p.args[1]], revmap[p.args[2]], varResolver)
 
         of "EXISTS_EDGE": 
           # TODO probably should use CHECK_EDGE
