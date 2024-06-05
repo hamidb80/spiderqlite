@@ -30,11 +30,10 @@ when isMainModule:
     let 
       oldid = parseint x[0]
       data = %*{
-        "id": oldid,
         "title": x[1],
       }
       newid = graphDB.insertID(
-        sql"INSERT INTO nodes (tag, data) VALUES ('movie',?)", 
+        sql"INSERT INTO nodes (tag, doc) VALUES ('movie',?)", 
         $data)
     vritualId[(nfilm, oldid)] = newid
     
@@ -43,11 +42,10 @@ when isMainModule:
     let
       oldid = parseint x[0]
       data = %*{
-        "id": oldid,
         "name": x[1] & ' ' & x[2],
       }
       newid = graphDB.insertID(
-        sql"INSERT INTO nodes (tag, data) VALUES ('person', ?)",
+        sql"INSERT INTO nodes (tag, doc) VALUES ('person', ?)",
         $data)
 
     vritualId[(nActor, oldid)] = newid
@@ -59,7 +57,7 @@ when isMainModule:
       filmid = parseint x[1]
       
     graphDB.exec(
-      sql"INSERT INTO edges (tag, source, target, data) VALUES ('acted_in', ?, ?, '{}')", 
+      sql"INSERT INTO edges (tag, source, target, doc) VALUES ('acted_in', ?, ?, '{}')", 
       vritualId[(nActor, actorid)], 
       vritualId[(nFilm , filmid)]
     )

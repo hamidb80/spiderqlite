@@ -72,6 +72,8 @@ query      = '''
     |check_edge c a b|
   WHERE
     |check_node b|
+  GROUP BY
+    |group_clause|
   |sort_clause|
   |offset_clause|
   |limit_clause|

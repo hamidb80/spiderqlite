@@ -7,8 +7,8 @@
     .title 
     |mtitle|
 
-ask  
+match  
   p>-a->*m
 
-take 
+return
   p

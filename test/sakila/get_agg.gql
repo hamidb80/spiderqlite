@@ -1,0 +1,21 @@
+#person   p  
+#acted_in a  
+#movie    m
+
+match  
+  p>-a->*m
+
+GROUP 
+  m
+    .id
+
+return
+  {}
+    "movie_title"
+    m
+      .title
+
+    "actors"
+    []. 
+      p
+        .name

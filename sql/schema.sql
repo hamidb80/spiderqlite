@@ -5,13 +5,13 @@ PRAGMA encoding="UTF-8";
 CREATE TABLE IF NOT EXISTS nodes (
     id          INTEGER PRIMARY KEY,
     tag         TEXT,
-    data        JSON NOT NULL
+    doc         JSON NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS edges (
     id          INTEGER PRIMARY KEY,
     tag         TEXT,
-    data        JSON    NOT NULL,
+    doc         JSON    DEFAULT '{}',
     source      INTEGER,
     target      INTEGER,
 

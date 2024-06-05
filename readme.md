@@ -8,3 +8,6 @@
 
 
 - https://github.com/webbery/gqlite
+- https://neo4j.com/docs/cypher-manual/current/functions/aggregating/
+- https://dbschema.com/2023/06/11/sqlite/functions/
+- https://sqlite.org/json1.html

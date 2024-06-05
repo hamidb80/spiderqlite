@@ -32,3 +32,11 @@ func map*[A, B](s: seq[A], t: Table[A, B]): seq[B] =
 func rev*[A, B](tab: Table[A, B]): Table[B, A] = 
   for k, v in tab:
     result[v] = k
+
+
+iterator rest*[T](s: seq[T]): T = 
+  for i in 1..s.high:
+    yield s[i]
+
+func rest*(s: seq): seq = 
+  s[1..^1]
