@@ -648,6 +648,9 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
         of "GET":
           varResolver p.args[0]
 
+
+
+        # FIXME make it optional
         of "GROUP_CLAUSE":  
           let g = gn.getGroup
           
@@ -657,9 +660,11 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
           .mapIt(it.resolveSql("???", s => "!!!"))
           .join ", "
 
+        # TODO
         of "SORT_CLAUSE":   ""
         of "OFFSET_CLAUSE": ""
         of "LIMIT_CLAUSE":  ""
+        of "HAVING_CLAUSE": ""
         else: raisee "invalid gql pattern: " & $p
 
 func toSql*(gn; queryStrategies: seq[QueryStrategy], varResolver): SqlQuery {.effectsOf: varResolver.} =
