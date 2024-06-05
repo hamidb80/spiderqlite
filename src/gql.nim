@@ -189,7 +189,7 @@ proc cmd(ind: int, line: string): string =
       line.high)
     .get
     .match
-    .toUpper
+    .toUpperAscii
 
 
 func parseComment    (line: string): GqlNode =
@@ -610,13 +610,11 @@ func toSqlSelect(take: GqlNode, imap): string =
     .map(toSqlSelectImpl)
     .join ", "
 
-func getGroup(gn): GqlNode = 
+func getGroup(gn): Option[GqlNode] = 
   for ch in gn.children:
     case ch.kind
-    of gkGroup: return ch
+    of gkGroup: return some ch
     else:       discard
-  
-  raisee "could not find GROUP"
 
 func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf: varResolver.} =
   let
@@ -630,7 +628,7 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
         p.content
 
       of sqkCommand:
-        case toUpper p.cmd
+        case toUpperAscii p.cmd
         of "SELECT_FIELDS":
           toSqlSelect takes, imap
           
@@ -648,23 +646,23 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
         of "GET":
           varResolver p.args[0]
 
+        of "GROUP_STATEMENT":  
+          if g =? gn.getGroup:
+            deepIdentReplace g, imap
 
+            let temp = 
+              g
+              .children
+              .mapIt(it.resolveSql("???", s => "!!!"))
+              .join ", "
+            
+            "GROUP BY " & temp
 
-        # FIXME make it optional
-        of "GROUP_CLAUSE":  
-          let g = gn.getGroup
-          
-          deepIdentReplace g, imap
-          g
-          .children
-          .mapIt(it.resolveSql("???", s => "!!!"))
-          .join ", "
+          else: ""
 
-        # TODO
-        of "SORT_CLAUSE":   ""
-        of "OFFSET_CLAUSE": ""
-        of "LIMIT_CLAUSE":  ""
-        of "HAVING_CLAUSE": ""
+        of "SORT_STATEMENT":   ""
+        of "LIMIT_STATEMENT":  ""
+        of "HAVING_STATEMENT": ""
         else: raisee "invalid gql pattern: " & $p
 
 func toSql*(gn; queryStrategies: seq[QueryStrategy], varResolver): SqlQuery {.effectsOf: varResolver.} =
@@ -688,9 +686,8 @@ when isMainModule:
     graphDB = open("graph.db", "", "", "")
 
   echo   sql
-  print  parsedGql
-  # sleep 4000
+  # print  parsedGql
+
   for row in graphDB.getAllRows sql:
     for cell in row:
       echo cell.parseJson.pretty 4
-    break

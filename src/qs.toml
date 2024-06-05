@@ -8,9 +8,9 @@ query      = '''
     nodes a
   WHERE 
     |check_node a|
-  |sort_clause|
-  |offset_clause|
-  |limit_clause|
+  |group_statement|
+  |sort_statement|
+  |limit_statement|
 '''
 
 
@@ -30,9 +30,9 @@ query      = '''
     |check_edge c a b|
   WHERE 
     |check_node a|
-  |sort_clause|
-  |offset_clause|
-  |limit_clause|
+  |group_statement|
+  |sort_statement|
+  |limit_statement|
 '''
 
 [[q]]
@@ -51,9 +51,9 @@ query      = '''
     |check_node b|
   WHERE 
     |check_edge c a b|
-  |sort_clause|
-  |offset_clause|
-  |limit_clause|
+  |group_statement|
+  |sort_statement|
+  |limit_statement|
 '''
 
 [[q]]
@@ -72,11 +72,9 @@ query      = '''
     |check_edge c a b|
   WHERE
     |check_node b|
-  GROUP BY
-    |group_clause|
-  |sort_clause|
-  |offset_clause|
-  |limit_clause|
+  |group_statement|
+  |sort_statement|
+  |limit_statement|
 '''
 
 [[q]]
@@ -96,7 +94,7 @@ query      = '''
     NOT EXISTS |exists_edge c2 a b|
   WHERE 
     |check_node a|
-  |sort_clause|
-  |offset_clause|
-  |limit_clause|
+  |group_statement|
+  |sort_statement|
+  |limit_statement|
 '''
