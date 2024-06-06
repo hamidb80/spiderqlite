@@ -12,6 +12,7 @@ query      = '''
   |having_statement|
   |order_statement|
   |limit_statement|
+  |offset_statement|
 '''
 
 
@@ -35,6 +36,7 @@ query      = '''
   |having_statement|
   |order_statement|
   |limit_statement|
+  |offset_statement|
 '''
 
 [[q]]
@@ -57,6 +59,7 @@ query      = '''
   |having_statement|
   |order_statement|
   |limit_statement|
+  |offset_statement|
 '''
 
 [[q]]
@@ -79,6 +82,7 @@ query      = '''
   |having_statement|
   |order_statement|
   |limit_statement|
+  |offset_statement|
 '''
 
 [[q]]
@@ -102,4 +106,5 @@ query      = '''
   |having_statement|
   |order_statement|
   |limit_statement|
+  |offset_statement|
 '''

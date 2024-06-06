@@ -680,22 +680,41 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
           if g =? gn.findNode gkOrderBy:
             deepIdentReplace g, imap
 
-            let temp = 
-              g
-              .children
-              .mapIt(it.resolveSql("???", s => "!!!"))
-              .join ", "
+            var acc: seq[string]
+            let s = 
+              if ss =? gn.findNode gkSort:
+                some ss.children.mapit it.sval
+              else:
+                none seq[string]
+            
+
+            for i, ch in g.children:
+              var temp = ch.resolveSql("???", s => "!!!")
+              if issome s:
+                temp.add ' '
+                temp.add s.get[i]
+              acc.add temp
             
             # TODO SORT DESC, SORT ASC, SORT DESC ASC
-            "ORDER BY " & temp
+            "ORDER BY " & acc.join ", "
 
           else: ""
 
 
         of "LIMIT_STATEMENT":  
-          ""
+          if g =? gn.findNode gkLimit:
+            "LIMIT " & $g.children[0].ival
+          else:
+            ""
 
-        else: raisee "invalid gql pattern: " & $p
+        of "OFFSET_STATEMENT":  
+          if g =? gn.findNode gkOffset:
+            "OFFSET " & $g.children[0].ival
+          else:
+            ""
+
+        else: 
+          raisee "invalid gql pattern: " & $p
 
 
 func replaceDeepImpl(father: GqlNode, index: int, gn; lookup: AliasLookup) = 
