@@ -7,16 +7,18 @@ An abstraction layer over sqlite.
 </p>
 
 
+## History
+
+I wanted a BaaS (Backend as a service) but I've given up on that.
+
+
 ## Useful links
 - https://www.delphitools.info/2021/06/17/sqlite-as-a-no-sql-database/
-
-- https://github.com/dpapathanasiou/simple-graph
-- https://github.com/arturo-lang/grafito/
-- https://asprunner.com/forums/topic/28408-Trying-to-limit-an-outer-join-to-return-just-1-result-per-customer
-
-
-- https://github.com/webbery/gqlite
+- https://stackoverflow.com/questions/12526194/mysql-inner-join-select-only-one-row-from-second-table
 - https://neo4j.com/docs/cypher-manual/current/functions/aggregating/
-- https://dbschema.com/2023/06/11/sqlite/functions/
 - https://sqlite.org/json1.html
 
+## Inspirations
+- https://github.com/arturo-lang/grafito/
+- https://github.com/webbery/gqlite
+- https://github.com/dpapathanasiou/simple-graph
