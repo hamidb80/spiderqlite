@@ -45,3 +45,12 @@ iterator rest*[T](s: seq[T]): T =
 
 func rest*(s: seq): seq = 
   s[1..^1]
+
+
+template ignore*(body): untyped {.dirty.} =
+  {.cast(nosideeffect).}:
+    body
+
+# template inspect*(a): untyped =
+#   debugecho a
+#   a

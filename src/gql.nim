@@ -152,6 +152,7 @@ type
     selectable: seq[string]
     sqlPattern: seq[SqlPatSep]
 
+  AliasLookup = Table[string, GqlNode]
 
 const notionChars = {
   '0', '1', '2', '3',
@@ -617,7 +618,6 @@ func getGroup(gn): Option[GqlNode] =
   findNode gn, gkGroupBy
 
 
-# TODO replace alias expressions
 
 func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf: varResolver.} =
   let
@@ -666,9 +666,6 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
           if g =? gn.findNode gkHaving:
             deepIdentReplace g, imap
 
-            {.cast(nosideeffect).}:
-              print g
-
             let temp = 
               g
               .children[0]
@@ -700,11 +697,42 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
 
         else: raisee "invalid gql pattern: " & $p
 
+
+func replaceDeepImpl(father: GqlNode, index: int, gn; lookup: AliasLookup) = 
+  case gn.kind
+  of gkIdent: 
+    let id = gn.sval
+    if  id in lookup:
+      father.children[index] = deepCopy lookup[id]
+
+  of gkAlias: discard
+  else:
+    for i, ch in gn.children:
+      replaceDeepImpl gn, i, ch, lookup
+
+func replaceDeep(gn; lookup: AliasLookup) = 
+  replaceDeepImpl gn, 0, gn, lookup
+
+func replLookup(gn): AliasLookup = 
+  assert gn.kind == gkAlias
+  
+  for i in countup(0, gn.children.high, 2):
+    let ch = gn.children[i]
+    assert ch.kind == gkIdent
+    result[ch.sval] = gn.children[i+1]
+
+func replaceAliases(gn) = 
+  if gAlias =? gn.findNode gkAlias:
+    replaceDeep gn, replLookup gAlias
+
 func toSql*(gn; queryStrategies: seq[QueryStrategy], varResolver): SqlQuery {.effectsOf: varResolver.} =
+  replaceAliases gn
+
   for qs in queryStrategies:
     if identMap =? matches(gn.askedQuery, qs.pattern):
       if (gn.getTake.selects.map identMap) <= qs.selectable:
-        return sql resolve(qs.sqlPattern, identMap, gn, varResolver)
+        result = sql resolve(qs.sqlPattern, identMap, gn, varResolver)
+        return
 
   raisee "no pattern was found"
 
