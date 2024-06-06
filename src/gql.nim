@@ -756,6 +756,8 @@ func toSql*(gn; queryStrategies: seq[QueryStrategy], varResolver): SqlQuery {.ef
   raisee "no pattern was found"
 
 
+# TODO add IF, CASE
+
 when isMainModule:
   let
     queryStrategies = parseQueryStrategies parseToml readfile "./src/qs.toml"
