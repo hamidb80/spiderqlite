@@ -642,8 +642,10 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
           # TODO probably should use CHECK_EDGE
           raisee "NOT IMPLEMENED: " & p.cmd
 
+
         of "GET":
           varResolver p.args[0]
+
 
         of "SELECT_FIELDS":
           toSqlSelect takes, imap
@@ -675,7 +677,6 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
 
           else: ""
 
-
         of "ORDER_STATEMENT":   
           if g =? gn.findNode gkOrderBy:
             deepIdentReplace g, imap
@@ -695,11 +696,9 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
                 temp.add s.get[i]
               acc.add temp
             
-            # TODO SORT DESC, SORT ASC, SORT DESC ASC
             "ORDER BY " & acc.join ", "
 
           else: ""
-
 
         of "LIMIT_STATEMENT":  
           if g =? gn.findNode gkLimit:
@@ -712,6 +711,7 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
             "OFFSET " & $g.children[0].ival
           else:
             ""
+
 
         else: 
           raisee "invalid gql pattern: " & $p
