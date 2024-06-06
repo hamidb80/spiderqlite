@@ -34,9 +34,12 @@ proc
         .id 
         |user_id|
 
-    limit 10
-    match *p>-a->t>-!c->p
-    take  t
+    match 
+      *p>-a->t>-!c->p
+    take  
+      t
+    limit 
+      10
     -- group by
     order by 
       t

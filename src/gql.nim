@@ -68,8 +68,11 @@ type
     gkVar         # |var|
     gkChain       # 1-:->p
 
-    gkGroup       # select take
+    gkGroupBy     # GROUP BY
     gkTake        # select take
+    gkHaving      # HAVING
+    gkOrderBy     # ORDER BY
+    gkLimit       # LIMIT
     gkCall        # count(a)
 
     gkNameSpace   # namespace
@@ -78,7 +81,6 @@ type
     gkRelation    # references, ref, rel, relation
     gkProcedure   # procedure, func
     gkFrom        # from
-    gkLimit       # limit
     gkComment     # --
 
     gkIdSpecifier # @ID
@@ -234,7 +236,11 @@ func parseTake       (line: string): GqlNode =
 
 func parseGroup      (line: string): GqlNode =
   GqlNode(
-    kind: gkGroup)
+    kind: gkGroupBy)
+
+func parseHaving     (line: string): GqlNode =
+  GqlNode(
+    kind: gkHaving)
 
 func parseCall       (line: string): GqlNode =
   GqlNode(
@@ -338,6 +344,8 @@ func parseGql*(content: string): GqlNode =
              "==", "!=",
              "<", "<=",
              ">=", ">",
+             "+" , "-",
+             "*", "/",
              "AND", "NAND",
              "OR", "NOR",
              "EQ", "NEQ",
@@ -393,7 +401,7 @@ func parseQueryChain(patt: string): QueryChain =
           case kw[0]
           of notionChars: (some kw[0], false, kw.substr 1)
           of '!': (none char, true, kw)
-          else: (none char, false, kw)
+          else:   (none char, false, kw)
 
         AskPatNode(
           kind: apkNode,
@@ -452,14 +460,6 @@ func askedQuery(gn): QueryChain =
   for ch in gn.children:
     case ch.kind
     of gkAsk: return parseQueryChain ch.children[0].sval
-    else: discard
-
-  raisee "ask query not found"
-
-func getTake(gn): GqlNode =
-  for ch in gn.children:
-    case ch.kind
-    of gkTake: return ch
     else: discard
 
   raisee "ask query not found"
@@ -590,7 +590,7 @@ func deepIdentReplace(gn; imap) =
     for ch in rest gn.children:
       deepIdentReplace ch, imap
 
-  of gkTake, gkGroup, gkWrapper:
+  of gkTake, gkGroupBy, gkWrapper:
     for ch in gn.children:
       deepIdentReplace ch, imap
 
@@ -610,11 +610,19 @@ func toSqlSelect(take: GqlNode, imap): string =
     .map(toSqlSelectImpl)
     .join ", "
 
-func getGroup(gn): Option[GqlNode] = 
+
+func findNode(gn; kind: GqlKind): Option[GqlNode] = 
   for ch in gn.children:
-    case ch.kind
-    of gkGroup: return some ch
-    else:       discard
+    if ch.kind == kind: 
+      return some ch
+
+func getTake(gn): GqlNode =
+  get:
+    findNode gn, gkTake
+
+func getGroup(gn): Option[GqlNode] = 
+  findNode gn, gkGroupBy
+
 
 func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf: varResolver.} =
   let

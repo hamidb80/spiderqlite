@@ -5,9 +5,16 @@
 match  
   p>-a->*m
 
-GROUP 
+GROUP BY
   m
     .id
+
+HAVING
+  <= 
+    4
+    ()
+      COUNT
+      p
 
 return
   {}
@@ -19,3 +26,6 @@ return
     []. 
       p
         .name
+
+LIMIT 
+  10
