@@ -1,5 +1,13 @@
-# Backend as a Service
+# SpiderQlite
 
+An abstraction layer over sqlite.
+
+<p align="center">
+  <img src="./assets/logo.png" alt="spiderQlite Logo" width="300px">
+</p>
+
+
+## Useful links
 - https://www.delphitools.info/2021/06/17/sqlite-as-a-no-sql-database/
 
 - https://github.com/dpapathanasiou/simple-graph
@@ -11,3 +19,4 @@
 - https://neo4j.com/docs/cypher-manual/current/functions/aggregating/
 - https://dbschema.com/2023/06/11/sqlite/functions/
 - https://sqlite.org/json1.html
+
