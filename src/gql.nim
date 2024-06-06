@@ -1,8 +1,8 @@
-import std/[strutils, sequtils, tables, json, nre, sugar, strformat, os]
+import std/[strutils, sequtils, tables, json, nre, sugar, strformat]
 import ./utils
 
 import db_connector/db_sqlite
-import pretty # for debugging
+import pretty
 import questionable
 import parsetoml
 
@@ -70,21 +70,23 @@ type
 
     gkGroupBy     # GROUP BY
     gkTake        # select take
+    gkFrom        # from
     gkHaving      # HAVING
     gkOrderBy     # ORDER BY
     gkLimit       # LIMIT
+    gkOffset      # OFFSET
+    gkAlias       # AS; named expressions
     gkCall        # count(a)
 
     gkNameSpace   # namespace
     gkDataBase    # database
-    gkStructure   # structure, struct, table, object, obj
+    gkTable       # table
     gkRelation    # references, ref, rel, relation
     gkProcedure   # procedure, func
-    gkFrom        # from
+    
     gkComment     # --
 
-    gkIdSpecifier # @ID
-    gkFieldAccess # table.field
+    gkFieldAccess # .field
 
     gkWrapper
 
@@ -164,10 +166,7 @@ using
   varResolver: string -> string
 
 
-func `$`*(s: SqlQuery): string =
-  s.string
-
-func `$`(qc: QueryChain): string =
+func `$`(qc: QueryChain): string {.used.} =
   for p in qc:
     case p.kind
     of apkNode:
@@ -183,7 +182,7 @@ func `$`(qc: QueryChain): string =
       result.add $p.dir
 
 
-proc cmd(ind: int, line: string): string =
+func cmd(ind: int, line: string): string =
   line
     .match(
       re "[$\"|.#=<>!%*+-/^$?(){}\\[\\]]+|\\d+|\\w+",
@@ -193,6 +192,9 @@ proc cmd(ind: int, line: string): string =
     .match
     .toUpperAscii
 
+
+func gNode(k: GqlKind): GqlNode =
+  GqlNode(kind: k)
 
 func parseComment    (line: string): GqlNode =
   GqlNode(
@@ -207,9 +209,14 @@ func parseString     (line: string): GqlNode =
     sval: line[1 .. ^2])
 
 func parseNumber     (line: string): GqlNode =
-  GqlNode(
-    kind: gkIntLit,
-    ival: parseint line)
+  try:
+    GqlNode(
+      kind: gkIntLit,
+      ival: parseint line)
+  except ValueError:
+    GqlNode(
+      kind: gkFloatLit,
+      fval: parseFloat line)
 
 func parseIdent      (line: string): GqlNode =
   GqlNode(
@@ -226,51 +233,31 @@ func parsePrefix     (line: string): GqlNode =
     kind: gkPrefix,
     children: @[parseIdent line])
 
-func parseAsk        (line: string): GqlNode =
-  GqlNode(
-    kind: gkAsk)
-
-func parseTake       (line: string): GqlNode =
-  GqlNode(
-    kind: gkTake)
-
-func parseGroup      (line: string): GqlNode =
-  GqlNode(
-    kind: gkGroupBy)
-
-func parseHaving     (line: string): GqlNode =
-  GqlNode(
-    kind: gkHaving)
-
-func parseCall       (line: string): GqlNode =
-  GqlNode(
-    kind: gkCall)
-
-func parseCallToJson (line: string): GqlNode =
+func parseCallToJson           (): GqlNode =
   GqlNode(
     kind: gkCall, 
     children: @[
       GqlNode(kind: gkIdent, sval: "json")])
 
-func parseCallToJsonObject    (line: string): GqlNode =
+func parseCallToJsonObject     (): GqlNode =
   GqlNode(
     kind: gkCall, 
     children: @[
       GqlNode(kind: gkIdent, sval: "json_object")])
 
-func parseCallToJsonObjectGroup(line: string): GqlNode =
+func parseCallToJsonObjectGroup(): GqlNode =
   GqlNode(
     kind: gkCall, 
     children: @[
       GqlNode(kind: gkIdent, sval: "json_group_object")])
 
-func parseCallToJsonArray     (line: string): GqlNode =
+func parseCallToJsonArray      (): GqlNode =
   GqlNode(
     kind: gkCall, 
     children: @[
       GqlNode(kind: gkIdent, sval: "json_array")])
 
-func parseCallToJsonArrayGroup(line: string): GqlNode =
+func parseCallToJsonArrayGroup (): GqlNode =
   GqlNode(
     kind: gkCall, 
     children: @[
@@ -320,26 +307,39 @@ func parseGql*(content: string): GqlNode =
   for line in splitLines content:
     if not isEmptyOrWhitespace line:
       let
-        ind = indentation line
-        key = cmd(ind, line)
+        ind    = indentation line
+        key    = cmd(ind, line)
         lineee = strip line
         parent = getParent ind
-        n =
+        n      =
           case key
-          of "--": parseComment lineee
-          # of "DATABASE":         parseDatabase    lineee
-          # of "SCHEMA", "TABLE":  parseSchema      lineee
-          # of "REFERENCES":       parseReferences  lineee
-          # of "NAMESPACE":        parseNamespace  lineee
-          # of "PROC":       parseProc  lineee
-          # of "LIMIT":       parseLimit  lineee
-          # of "ORDER":       parseOrder  lineee # DESC or ASC
+          of "--":                             parseComment lineee
 
-          of "$", "NOT":   parsePrefix      lineee          
+          of "DATABASE":                       gNode gkDataBase
+          of "SCHEMA", "TABLE":                gNode gkTable
+          of "REFERENCES":                     gNode gkRelation
+          of "NAMESPACE":                      gNode gkNameSpace
+          of "PROC":                           gNode gkProcedure
 
-          of ".":          parseFieldAccess lineee
-          of "\"", "\"\"": parseString      lineee
-          of "#":          parseDefHeader   lineee
+          of "ASK", "FROM", "MATCH":           gNode gkAsk
+          of "TAKE", "SELECT", "RETURN":       gNode gkTake
+
+          of "GROUP":                          gNode gkGroupBy
+          of "ORDER":                          gNode gkOrderBy
+          of "SORT":                           gNode gkSort
+          of "HAVING":                         gNode gkHaving
+          of "LIMIT":                          gNode gkLimit
+          of "OFFSET":                         gNode gkOffset
+          of "AS":                             gNode gkAlias
+
+          of "()":                             gNode gkCall
+          # special calls
+          of ">>":                             parseCallToJson()
+          of "{}":                             parseCallToJsonObject()
+          of "{}.":                            parseCallToJsonObjectGroup()
+          of "[]":                             parseCallToJsonArray()
+          of "[].":                            parseCallToJsonArrayGroup()
+
           of "||", 
              "==", "!=",
              "<", "<=",
@@ -353,23 +353,16 @@ func parseGql*(content: string): GqlNode =
              "LT", "LTE",
              "XOR", "IS", "ISNOT",
              "NOTIN", "IN", "HAS",
-             "BETWEEN", "CONTAINS":      parseInfix lineee
-          of "ASK", "FROM", "MATCH":     parseAsk     lineee
-          of "TAKE", "SELECT", "RETURN": parseTake    lineee
+             "BETWEEN", "CONTAINS":            parseInfix lineee
 
-          of "GROUP":                    parseGroup   lineee
+          of "$", "NOT":                       parsePrefix      lineee          
+          of ".":                              parseFieldAccess lineee
+          of "\"", "\"\"":                     parseString      lineee
+          of "#":                              parseDefHeader   lineee
 
-          of "()":                             parseCall                  lineee
-          # special calls
-          of ">>":                             parseCallToJson            lineee
-          of "{}":                             parseCallToJsonObject      lineee
-          of "{}.":                            parseCallToJsonObjectGroup lineee
-          of "[]":                             parseCallToJsonArray       lineee
-          of "[].":                            parseCallToJsonArrayGroup  lineee
-          
-          of "|":                              parseVar                  lineee
-          elif key[0] in '0'..'9':             parseNumber               lineee
-          elif key[0] in {'A'..'Z', '*', '!'}: parseIdent                lineee
+          of "|":                              parseVar         lineee
+          elif key[0] in '0'..'9':             parseNumber      lineee
+          elif key[0] in 'A'..'Z':             parseIdent       lineee
 
           else: raisee key
 
@@ -590,7 +583,7 @@ func deepIdentReplace(gn; imap) =
     for ch in rest gn.children:
       deepIdentReplace ch, imap
 
-  of gkTake, gkGroupBy, gkWrapper:
+  of gkWrapper, gkTake, gkGroupBy, gkHaving, gkOrderBy:
     for ch in gn.children:
       deepIdentReplace ch, imap
 
@@ -624,6 +617,8 @@ func getGroup(gn): Option[GqlNode] =
   findNode gn, gkGroupBy
 
 
+# TODO replace alias expressions
+
 func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf: varResolver.} =
   let
     takes       = gn.getTake
@@ -636,10 +631,7 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
         p.content
 
       of sqkCommand:
-        case toUpperAscii p.cmd
-        of "SELECT_FIELDS":
-          toSqlSelect takes, imap
-          
+        case toUpperAscii p.cmd         
         of "CHECK_NODE":
           sqlCondsOfNode(gn, imap, revmap[p.args[0]], varResolver)
 
@@ -652,6 +644,9 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
 
         of "GET":
           varResolver p.args[0]
+
+        of "SELECT_FIELDS":
+          toSqlSelect takes, imap
 
         of "GROUP_STATEMENT":  
           if g =? gn.getGroup:
@@ -667,9 +662,42 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
 
           else: ""
 
-        of "SORT_STATEMENT":   ""
-        of "LIMIT_STATEMENT":  ""
-        of "HAVING_STATEMENT": ""
+        of "HAVING_STATEMENT": 
+          if g =? gn.findNode gkHaving:
+            deepIdentReplace g, imap
+
+            {.cast(nosideeffect).}:
+              print g
+
+            let temp = 
+              g
+              .children[0]
+              .resolveSql("???", s => "!!!")
+            
+            "HAVING " & temp
+
+          else: ""
+
+
+        of "ORDER_STATEMENT":   
+          if g =? gn.findNode gkOrderBy:
+            deepIdentReplace g, imap
+
+            let temp = 
+              g
+              .children
+              .mapIt(it.resolveSql("???", s => "!!!"))
+              .join ", "
+            
+            # TODO SORT DESC, SORT ASC, SORT DESC ASC
+            "ORDER BY " & temp
+
+          else: ""
+
+
+        of "LIMIT_STATEMENT":  
+          ""
+
         else: raisee "invalid gql pattern: " & $p
 
 func toSql*(gn; queryStrategies: seq[QueryStrategy], varResolver): SqlQuery {.effectsOf: varResolver.} =

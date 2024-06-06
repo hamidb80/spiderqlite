@@ -11,21 +11,40 @@ GROUP BY
 
 HAVING
   <= 
-    4
-    ()
-      COUNT
-      p
+    10
+    len_actors
 
+AS
+  len_actors
+  ()
+    COUNT
+    p
+      .id
+
+  collected_actor_names
+  [].
+    p
+      .name
+
+    
 return
   {}
     "movie_title"
     m
       .title
 
+    "number_of_actors"
+    len_actors
+
     "actors"
-    []. 
-      p
-        .name
+    collected_actor_names
+
 
 LIMIT 
   10
+
+ORDER BY
+  len_actors
+
+SORT 
+  DESC

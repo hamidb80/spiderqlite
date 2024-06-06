@@ -1,4 +1,9 @@
 import std/[tables, sequtils]
+import db_connector/db_sqlite
+
+
+func `$`*(s: SqlQuery): string =
+  s.string
 
 
 func last*[T](s: openArray[T]): T = 
