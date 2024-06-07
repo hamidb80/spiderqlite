@@ -17,6 +17,16 @@ AS
     p
       .name
 
+  is_12
+  CASE
+    when 
+      ==
+        len_actors
+        12
+      "YES"
+    else
+      "NO"
+
 GROUP BY
   m
     .id
@@ -27,7 +37,7 @@ HAVING
     len_actors
 
 LIMIT 
-  5
+  10
 OFFSET 
   1
 
@@ -36,12 +46,14 @@ ORDER BY
 SORT 
   DESC
 
-    
 return
   {}
     "movie_title"
     m
       .title
+
+    "has 12 actors"
+    is_12
 
     "number_of_actors"
     len_actors

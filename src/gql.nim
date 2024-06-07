@@ -40,6 +40,10 @@ type
     gkUpdate      # update
     gkDelete      # delete
 
+    gkCase
+    gkWhen
+    gkElse
+
     gkUnique      # unique
 
     gkTypes       # types
@@ -331,6 +335,10 @@ func parseGql*(content: string): GqlNode =
           of "OFFSET":                         gNode gkOffset
           of "AS":                             gNode gkAlias
 
+          of "CASE":                           gNode gkCase
+          of "WHEN":                           gNode gkWhen
+          of "ELSE":                           gNode gkElse
+
           of "()":                             gNode gkCall
           # special calls
           of ">>":                             parseCallToJson()
@@ -339,7 +347,7 @@ func parseGql*(content: string): GqlNode =
           of "[]":                             parseCallToJsonArray()
           of "[].":                            parseCallToJsonArrayGroup()
 
-          of "||", 
+          of "||", "%",
              "==", "!=",
              "<", "<=",
              ">=", ">",
@@ -473,7 +481,7 @@ func resolveSql(node: GqlNode, name: string, varResolver): string {.effectsOf: v
       resolveSql(node.children[0], name, varResolver), 
       resolveSql(node.children[1], name, varResolver)].join " "
 
-  of gkStrLit:   ["'", node.sval, "'"].join ""
+  of gkStrLit:   ["'", node.sval, "'"].join "" #FIXME SQL injection
   of gkIntLit:   $node.ival
   of gkFloatLit: $node.fval
   of gkInf:      "INF"
@@ -499,6 +507,21 @@ func resolveSql(node: GqlNode, name: string, varResolver): string {.effectsOf: v
       case f
       of "id", "tag", "doc": fmt"{name}.{f}"
       else:                  fmt"json_extract({name}.doc, '$.{f}')"
+
+  of gkCase:
+    "CASE " & 
+    node.children.mapIt(resolveSql(it, name, varResolver)).join(" ") & 
+    " END"
+
+  of gkWhen:
+    "WHEN " & 
+    resolveSql(node.children[0], name, varResolver) & 
+    " THEN " &
+    resolveSql(node.children[1], name, varResolver)
+
+  of gkElse:
+    "ELSE " & 
+    resolveSql(node.children[0], name, varResolver)
 
   else: 
     raisee fmt"cannot convert the node type {node.kind} to SQL code"
@@ -582,7 +605,7 @@ func deepIdentReplace(gn; imap) =
     for ch in rest gn.children:
       deepIdentReplace ch, imap
 
-  of gkWrapper, gkTake, gkGroupBy, gkHaving, gkOrderBy:
+  of gkWrapper, gkTake, gkGroupBy, gkHaving, gkOrderBy, gkCase, gkElse, gkWhen:
     for ch in gn.children:
       deepIdentReplace ch, imap
 
@@ -591,9 +614,10 @@ func deepIdentReplace(gn; imap) =
   
   
 func toSqlSelectImpl(gn): string = 
-  case gn.kind
-  of gkIdent: sqlJsonExpr gn.sval
-  else:       resolveSql gn, "???", s => "!!!"
+  if gn.kind == gkIdent and gn.children.len == 0: 
+    sqlJsonExpr gn.sval
+  else:       
+    resolveSql gn, "???", s => "!!!"
 
 func toSqlSelect(take: GqlNode, imap): string = 
   deepIdentReplace take, imap
@@ -722,7 +746,10 @@ func replaceDeepImpl(father: GqlNode, index: int, gn; lookup: AliasLookup) =
     if  id in lookup:
       father.children[index] = deepCopy lookup[id]
 
-  of gkAlias: discard
+  of gkAlias: # replace inside of AS block
+    for i in countup(1, gn.children.high, 2):
+      replaceDeepImpl gn, i, gn.children[i], lookup
+
   else:
     for i, ch in gn.children:
       replaceDeepImpl gn, i, ch, lookup
@@ -742,7 +769,7 @@ func replaceAliases(gn) =
   if gAlias =? gn.findNode gkAlias:
     replaceDeep gn, replLookup gAlias
 
-func toSqlSelect*(gn; queryStrategies: seq[QueryStrategy], varResolver): SqlQuery {.effectsOf: varResolver.} =
+func toSql*(gn; queryStrategies: seq[QueryStrategy], varResolver): SqlQuery {.effectsOf: varResolver.} =
   replaceAliases gn
 
   for qs in queryStrategies:
@@ -753,7 +780,6 @@ func toSqlSelect*(gn; queryStrategies: seq[QueryStrategy], varResolver): SqlQuer
 
   raisee "no pattern was found"
 
-# TODO add IF, CASE
 
 when isMainModule:
   let
@@ -764,11 +790,13 @@ when isMainModule:
 
     ctx = %*{"mtitle": "ZORRO ARK"}
     graphDB = open("graph.db", "", "", "")
-    sql     =  toSqlSelect(parsedGql, queryStrategies, s => $ctx[s])
+    sql     = toSql(parsedGql, queryStrategies, s => $ctx[s])
 
   echo   sql
   # print  parsedGql
 
   for row in graphDB.getAllRows sql:
     for cell in row:
-      echo cell.parseJson.pretty 4
+      stdout.write  cell.parseJson.pretty 4
+      stdout.write ", "
+    stdout.write "\n"

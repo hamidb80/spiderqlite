@@ -103,13 +103,34 @@ query      = '''
     type = 'index'
 '''
 
+[create_nodes_index]
+query      = '''
+  CREATE 
+  |UNIQUE?|
+  INDEX 
+    |name| 
+  ON 
+    nodes
+    (|index_expressions|);
+'''
+
+[create_edges_index]
+query      = '''
+  CREATE 
+  |UNIQUE?|
+  INDEX 
+    |name| 
+  ON 
+    edges
+    (|index_expressions|);
+'''
 
 [delete_indexes]
 query      = '''
   DROP 
   INDEX 
   IF EXISTS
-    |name|
+  |name|
 '''
 
 

@@ -54,3 +54,9 @@ template ignore*(body): untyped {.dirty.} =
 # template inspect*(a): untyped =
 #   debugecho a
 #   a
+
+
+template iff*(cond, iftrue, iffalse): untyped =
+  if cond: iftrue
+  else   : iffalse
+  
