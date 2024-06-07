@@ -2,8 +2,7 @@
 ask p-(p&q)->m
 ask p-(p|q)->m
 
-ask t<-(!c)
-ask t<-c->p
+ask t<-(!c)<-.
 
 #device      d
 #utilized    u
@@ -14,52 +13,23 @@ ask t<-c->p
 sort 
   t.timestamp DESC
 ask 
-  :-!c->*t-a->p -- * means start query from here
-  d-u->*t
-  b-o->*t
+  :>-!c->*t>-a->p -- * means start query from here
+  d>-u->*t
+  b>-o->*t
   
 return
-  t p d b
+  t p d b?
 
-#device d
+#device        d
 #check_program cp
 
 ask -- return all check programs of all devices
-  d<-cp<-:
+  d<-cp<-.
 
-return d cp
+return 
+  d 
+  cp
 
 
 ask p1-c->t 10 2
 select t c
-
--- select p.name
--- delete 
-
-update -- {data: ..} is in body
-  .age   = .age + 1
-  .state = |data|
-
-
--- insert data is sent in body as {m: ...}, {p: ...}
-
-#movie    m 
-#person   p
-#acted_in a
-
-insert p
-insert m
-insert p>-r->m
-insert 12>-r->18
-
-
-create index for nodes on data.title named what
--- create index what on nodes(json_extract(data, '$.title'))
-list   indexes
-fields #people
-
-types edges -- list unique types of edges
-types nodes -- list unique types of nodes
-
-delete index of nodes named what
-structure #person name age ...

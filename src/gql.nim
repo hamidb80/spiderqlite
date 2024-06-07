@@ -45,8 +45,7 @@ type
     gkTypes       # types
     gkSort        # sort
 
-    gkInsertNode  # insert node
-    gkInsertEdge  # insert edge
+    gkInsert      # insert node
 
     gkDeleteIndex # delete index
     gkCreateIndex # create index
@@ -62,11 +61,11 @@ type
     gkBool        # true false
     gkStrLit      # "salam"
 
-    gkNull        # :
+    gkNull        # .
     gkInf         # inf
 
     gkVar         # |var|
-    gkChain       # 1-:->p
+    gkChain       # 1-r->p
 
     gkGroupBy     # GROUP BY
     gkTake        # select take
@@ -154,18 +153,17 @@ type
 
   AliasLookup = Table[string, GqlNode]
 
-const notionChars = {
-  '0', '1', '2', '3',
-  '4', '5', '6', '7',
-  '8', '9', '*', '$',
-  '^'}
-
-
 using 
   gn:          GqlNode
   imap:        IdentMap
   varResolver: string -> string
 
+
+const notionChars = {
+  '0', '1', '2', '3',
+  '4', '5', '6', '7',
+  '8', '9', '*', '$',
+  '^'}
 
 func `$`(qc: QueryChain): string {.used.} =
   for p in qc:
@@ -383,7 +381,7 @@ func preProcessRawSql(s: string): seq[SqlPatSep] =
         SqlPatSep(kind: sqkCommand, cmd: tmp[0], args: rest tmp)
 
 func parseQueryChain(patt: string): QueryChain =
-  for kw in patt.findAll re"!?[0-9$%^*]?\w+|[-<>]{2}": # TODO do not use regex
+  for kw in patt.findAll re"!?[0-9$%^*]?[\w.]+|[-<>]{2}": # TODO do not use regex
     result.add:
       case kw
       of ">-": AskPatNode(kind: apkArrow, dir: headL2R)
@@ -744,7 +742,7 @@ func replaceAliases(gn) =
   if gAlias =? gn.findNode gkAlias:
     replaceDeep gn, replLookup gAlias
 
-func toSql*(gn; queryStrategies: seq[QueryStrategy], varResolver): SqlQuery {.effectsOf: varResolver.} =
+func toSqlSelect*(gn; queryStrategies: seq[QueryStrategy], varResolver): SqlQuery {.effectsOf: varResolver.} =
   replaceAliases gn
 
   for qs in queryStrategies:
@@ -754,7 +752,6 @@ func toSql*(gn; queryStrategies: seq[QueryStrategy], varResolver): SqlQuery {.ef
         return
 
   raisee "no pattern was found"
-
 
 # TODO add IF, CASE
 
@@ -766,8 +763,8 @@ when isMainModule:
     # parsedGql       =                      parseGql  readFile "./test/sakila/simple1.gql"
 
     ctx = %*{"mtitle": "ZORRO ARK"}
-    sql     = tosql(parsedGql, queryStrategies, s => $ctx[s])
     graphDB = open("graph.db", "", "", "")
+    sql     =  toSqlSelect(parsedGql, queryStrategies, s => $ctx[s])
 
   echo   sql
   # print  parsedGql

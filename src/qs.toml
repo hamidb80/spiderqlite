@@ -1,3 +1,118 @@
+[schema]
+query      = '''
+  PRAGMA encoding="UTF-8";
+
+  -- tables
+
+  CREATE TABLE IF NOT EXISTS nodes (
+      id          INTEGER PRIMARY KEY,
+      tag         TEXT,
+      doc         JSON NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS edges (
+      id          INTEGER PRIMARY KEY,
+      tag         TEXT,
+      doc         JSON    DEFAULT '{}',
+      source      INTEGER,
+      target      INTEGER,
+
+      FOREIGN KEY (source) REFERENCES nodes(id),
+      FOREIGN KEY (target) REFERENCES nodes(id)
+  );
+
+  -- indexes
+
+  CREATE INDEX IF NOT EXISTS node_index         ON nodes(id);
+  CREATE INDEX IF NOT EXISTS node_tag_index     ON nodes(tag);
+
+  CREATE INDEX IF NOT EXISTS edges_index        ON edges(id);
+  CREATE INDEX IF NOT EXISTS edges_source_index ON edges(source);
+  CREATE INDEX IF NOT EXISTS edges_target_index ON edges(target);
+'''
+
+[insert_node]
+query      = '''
+  INSERT INTO
+    nodes  ( tag,   doc ) 
+    VALUES (|tag|, |doc|)
+'''
+
+[insert_edge]
+query      = '''
+  INSERT INTO
+    edges  ( tag,   source,   target,   doc ) 
+    VALUES (|tag|, |source|, |target|, |doc|)
+'''
+
+[update_node]
+query      = '''
+  UPDATE 
+    nodes
+  SET
+    doc = |doc|
+  WHERE
+    id  = |id|
+'''
+
+[update_edge]
+query      = '''
+  UPDATE 
+    edges
+  SET
+    doc = |doc|
+  WHERE
+    id  = |id|
+'''
+
+[delete_nodes]
+query      = '''
+  DELETE 
+  FROM 
+    nodes
+  WHERE 
+    id in (|nodes_ids|)
+'''
+
+[delete_edges]
+query      = '''
+  DELETE 
+  FROM
+    edges
+  WHERE
+    id in (|edges_ids|)
+'''
+
+[delete_edges_of_nodes]
+query      = '''
+  DELETE
+  FROM
+    edges
+  WHERE
+    source in (|nodes_ids|) OR
+    target in (|nodes_ids|)
+'''
+
+[list_indexes]
+query      = '''
+  SELECT 
+    name 
+  FROM 
+    sqlite_master 
+  WHERE 
+    type = 'index'
+'''
+
+
+[delete_indexes]
+query      = '''
+  DROP 
+  INDEX 
+  IF EXISTS
+    |name|
+'''
+
+
 [[q]]
 pattern    = "a"
 selectable = "a"
