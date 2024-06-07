@@ -1,0 +1,25 @@
+-- or can be #: p, since it doesn't matter
+
+#acted_in a
+#movie    m
+
+match  
+  a->m
+
+GROUP BY
+  m
+    .id
+
+limit
+  10
+
+ORDER BY
+  m
+    .id
+
+SORT
+  DESC
+
+return
+  m
+    .title

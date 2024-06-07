@@ -188,7 +188,7 @@ func `$`(qc: QueryChain): string {.used.} =
 func cmd(ind: int, line: string): string =
   line
     .match(
-      re "[$\"|.#=<>!%*+-/^$?(){}\\[\\]]+|\\d+|\\w+",
+      re "#|[$\"|.=<>!%*+-/^$?(){}\\[\\]]+|\\d+|\\w+",
       ind,
       line.high)
     .get
@@ -371,7 +371,10 @@ func parseGql*(content: string): GqlNode =
           elif key[0] in '0'..'9':             parseNumber      lineee
           elif key[0] in 'A'..'Z':             parseIdent       lineee
 
-          else: raisee key
+          elif parent.kind == gkAsk:           parseIdent       lineee
+
+          else: 
+            raisee key
 
       parent.children.add n
       nested.add (n, ind)
@@ -411,7 +414,7 @@ func parseQueryChain(patt: string): QueryChain =
 
 func parseQueryStrategy(pattern, selectable, query: string): QueryStrategy =
   QueryStrategy(
-    pattern: parseQueryChain pattern,
+    pattern:    parseQueryChain pattern,
     selectable: splitWhitespace selectable,
     sqlPattern: preProcessRawSql query)
 
@@ -428,8 +431,11 @@ func parseQueryStrategies*(tv: TomlValueRef): seq[QueryStrategy] =
   tv["q"].getElems.map parseQueryStrategy
 
 
+func initIdentMap: IdentMap = 
+  result["."] = "."
+
 func matches(pattern, query: QueryChain): Option[IdentMap] =
-  var temp: IdentMap
+  var temp = initIdentMap()
 
   if pattern.len == query.len:
     for i, p in pattern:
@@ -454,6 +460,7 @@ func matches(pattern, query: QueryChain): Option[IdentMap] =
           else:
             return
 
+    debugEcho (pattern, query)
     return some temp
 
 func askedQuery(gn): QueryChain =
@@ -536,7 +543,7 @@ func sqlCondsOfNode(gn; imap; node: string, varResolver): string {.effectsOf: va
         tag      = n.children[0].sval
         alias    = n.children[1].sval
         hasConds = n.children.len > 2
-      
+            
       if alias == node:
         result.add fmt"({inode}.tag == '{tag}'"
         
@@ -545,7 +552,7 @@ func sqlCondsOfNode(gn; imap; node: string, varResolver): string {.effectsOf: va
 
         result.add ")"
         return
-
+      
     else: discard
   raisee fmt"the node '{node}' not found in query"
 
@@ -564,11 +571,19 @@ func sqlCondsOfEdge(gn; imap; edge, source, target: string, varResolver): string
         hasConds = n.children.len > 2
       
       if alias == edge:
-        result.add fmt"({iedge}.tag == '{tag}' AND {iedge}.source={isrc}.id AND {iedge}.target={itar}.id"
+        var acc = @[fmt"{iedge}.tag == '{tag}'"]
+
+        if isrc != ".":
+          acc.add fmt"{iedge}.source={isrc}.id"
+
+        if itar != ".":
+          acc.add fmt"{iedge}.target={itar}.id"
         
         if hasConds:
-          result.add fmt" AND ({resolveSql(n.children[2], iedge, varResolver)})"
+          acc.add fmt"({resolveSql(n.children[2], iedge, varResolver)})"
 
+        result.add "("
+        result.add acc.join " AND "
         result.add ")"
         return
 
@@ -784,7 +799,8 @@ func toSql*(gn; queryStrategies: seq[QueryStrategy], varResolver): SqlQuery {.ef
 when isMainModule:
   let
     queryStrategies = parseQueryStrategies parseToml readfile "./src/qs.toml"
-    parsedGql       =                      parseGql  readFile "./test/sakila/get_agg.gql"
+    parsedGql       =                      parseGql  readFile "./test/sakila/get_ignore.gql"
+    # parsedGql       =                      parseGql  readFile "./test/sakila/get_agg.gql"
     # parsedGql       =                      parseGql  readFile "./test/sakila/get.gql"
     # parsedGql       =                      parseGql  readFile "./test/sakila/simple1.gql"
 
@@ -797,6 +813,10 @@ when isMainModule:
 
   for row in graphDB.getAllRows sql:
     for cell in row:
-      stdout.write  cell.parseJson.pretty 4
+      stdout.write:
+        try:
+          cell.parseJson.pretty 4
+        except:
+          cell
       stdout.write ", "
     stdout.write "\n"
