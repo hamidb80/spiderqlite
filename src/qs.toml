@@ -243,7 +243,7 @@ query      = '''
 '''
 
 [[q]]
-pattern    = "*a>-c1->b>-!c2->a"
+pattern    = "a>-c1->b>-!c2->a"
 selectable = "a b c1"
 query      = '''
   SELECT 
@@ -256,7 +256,14 @@ query      = '''
   ON
     |check_edge c1 a b|
     AND
-    NOT EXISTS |exists_edge c2 a b|
+    NOT EXISTS (
+      SELECT 
+        1
+      FROM 
+        edges c2
+      WHERE
+        |check_edge c2 a b|
+    )
   WHERE 
     |check_node a|
   |group_statement|

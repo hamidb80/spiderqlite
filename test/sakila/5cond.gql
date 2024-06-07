@@ -1,0 +1,10 @@
+#person      p  
+#acted_in    a  
+#directed_by d
+#movie       m
+
+match  
+  p>-a->m>-!e->p
+
+return
+  p

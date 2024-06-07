@@ -403,8 +403,8 @@ func parseQueryChain(patt: string): QueryChain =
         let (mark, negate, id) =
           case kw[0]
           of notionChars: (some kw[0], false, kw.substr 1)
-          of '!': (none char, true, kw)
-          else:   (none char, false, kw)
+          of '!':         (none char,  true,  kw.substr 1)
+          else:           (none char,  false, kw)
 
         AskPatNode(
           kind: apkNode,
@@ -435,6 +435,7 @@ func initIdentMap: IdentMap =
   result["."] = "."
 
 func matches(pattern, query: QueryChain): Option[IdentMap] =
+  debugEcho (pattern, query)
   var temp = initIdentMap()
 
   if pattern.len == query.len:
@@ -799,7 +800,8 @@ func toSql*(gn; queryStrategies: seq[QueryStrategy], varResolver): SqlQuery {.ef
 when isMainModule:
   let
     queryStrategies = parseQueryStrategies parseToml readfile "./src/qs.toml"
-    parsedGql       =                      parseGql  readFile "./test/sakila/get_ignore.gql"
+    parsedGql       =                      parseGql  readFile "./test/sakila/5cond.gql"
+    # parsedGql       =                      parseGql  readFile "./test/sakila/get_ignore.gql"
     # parsedGql       =                      parseGql  readFile "./test/sakila/get_agg.gql"
     # parsedGql       =                      parseGql  readFile "./test/sakila/get.gql"
     # parsedGql       =                      parseGql  readFile "./test/sakila/simple1.gql"
