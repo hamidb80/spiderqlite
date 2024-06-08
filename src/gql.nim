@@ -529,12 +529,14 @@ func resolveSql(node: GqlNode, name: string, varResolver): string {.effectsOf: v
   of gkPrefix:     
     let s = node.children[0].sval
     case s
-    of  "$": [
-      "\"\" || ",
-      resolveSql(node.children[1], name, varResolver)].join 
-    else   : [
-      resolveSql(node.children[0], name, varResolver), 
-      resolveSql(node.children[1], name, varResolver)].join " "
+    of  "$": 
+      "'' || " & 
+      resolveSql(node.children[1], name, varResolver)
+
+    else: 
+      resolveSql(node.children[0], name, varResolver) &
+      " " & 
+      resolveSql(node.children[1], name, varResolver)
 
   of gkStrLit:   ["'", node.sval, "'"].join "" #FIXME SQL injection
   of gkIntLit:   $node.ival
@@ -728,8 +730,7 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
             @[
               SqlPatSep(kind: sqkStr, content: fmt"EXISTS ( SELECT 1 FROM edges {p.args[0]} WHERE "),
               SqlPatSep(kind: sqkCommand, cmd: "CHECK_EDGE", args: p.args),
-              SqlPatSep(kind: sqkStr, content: " )"),
-            ],
+              SqlPatSep(kind: sqkStr, content: " )")],
             imap, 
             gn,
             varResolver
@@ -851,28 +852,34 @@ func toSql*(gn; queryStrategies: seq[QueryStrategy], varResolver): SqlQuery {.ef
   raisee "no pattern was found"
 
 
-when isMainModule:
-  let
-    queryStrategies = parseQueryStrategies parseToml readfile "./src/qs.toml"
-    parsedGql       =                      parseGql  readFile "./test/sakila/5cond.gql"
-    # parsedGql       =                      parseGql  readFile "./test/sakila/get_ignore.gql"
-    # parsedGql       =                      parseGql  readFile "./test/sakila/get_agg.gql"
-    # parsedGql       =                      parseGql  readFile "./test/sakila/get.gql"
-    # parsedGql       =                      parseGql  readFile "./test/sakila/simple1.gql"
-
-    ctx = %*{"mtitle": "ZORRO ARK"}
-    graphDB = open("graph.db", "", "", "")
-    sql     = toSql(parsedGql, queryStrategies, s => $ctx[s])
-
-  echo   sql
-  # print  parsedGql
-
-  for row in graphDB.getAllRows sql:
+proc echoRows(db: DbConn, sql: SqlQuery, fout: File = stdout) = 
+  for row in db.getAllRows sql:
     for cell in row:
-      stdout.write:
+      fout.write:
         try:
           cell.parseJson.pretty 4
         except:
           cell
-      stdout.write ", "
-    stdout.write "\n"
+      fout.write ", "
+    fout.write "\n"
+
+when isMainModule:
+  let
+    queryStrategies = parseQueryStrategies parseToml readfile "./src/qs.toml"
+    ctx             = %*{"mtitle": "ZORRO ARK"}
+
+  for path in [
+    "./test/sakila/5cond.gql",
+    "./test/sakila/get_ignore.gql",
+    "./test/sakila/get_agg.gql",
+    "./test/sakila/get.gql",
+    "./test/sakila/simple1.gql"
+  ]:
+    let
+      parsedGql = parseGql readFile   path
+      graphDB   = open("graph.db", "", "", "")
+      sql       = toSql(parsedGql, queryStrategies, s => $ctx[s])
+
+    echo   sql
+    # print  parsedGql
+    echoRows graphDB, sql
