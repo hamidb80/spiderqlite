@@ -852,6 +852,7 @@ func toSql*(gn; queryStrategies: seq[QueryStrategy], varResolver): SqlQuery {.ef
   raisee "no pattern was found"
 
 
+
 proc echoRows(db: DbConn, sql: SqlQuery, fout: File = stdout) = 
   for row in db.getAllRows sql:
     for cell in row:
@@ -862,6 +863,9 @@ proc echoRows(db: DbConn, sql: SqlQuery, fout: File = stdout) =
           cell
       fout.write ", "
     fout.write "\n"
+
+proc openSqliteDB(path: string): DbConn = 
+  open path, "", "", ""
 
 when isMainModule:
   let
@@ -877,8 +881,11 @@ when isMainModule:
   ]:
     let
       parsedGql = parseGql readFile   path
-      graphDB   = open("graph.db", "", "", "")
-      sql       = toSql(parsedGql, queryStrategies, s => $ctx[s])
+      graphDB   = openSqliteDB        "./graph.db"
+      sql       = toSql(
+        parsedGql, 
+        queryStrategies, 
+        s => $ctx[s])
 
     echo   sql
     # print  parsedGql
