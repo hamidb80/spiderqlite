@@ -260,14 +260,7 @@ query      = '''
   ON
     |check_edge c1 a b|
     AND
-    NOT EXISTS (
-      SELECT 
-        1
-      FROM 
-        edges c2
-      WHERE
-        |check_edge c2 a b|
-    )
+    NOT |exists_edge c2 a b|
   WHERE 
     |check_node a|
   |group_statement|

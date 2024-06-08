@@ -1,6 +1,6 @@
 # SpiderQlite
 
-An abstraction layer over sqlite.
+An abstraction layer over sql and a DBaaS.
 
 <p align="center">
   <img src="./assets/logo.png" alt="spiderQlite Logo" width="300px">

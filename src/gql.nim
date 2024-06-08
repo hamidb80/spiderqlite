@@ -28,9 +28,9 @@ type
 
     goAnd       # and
     goOr        # or
+
     goUnion     # union
     goSubtract  # subtract
-    goGroup     # (a b c)
 
   GqlKind* = enum
     gkDef         # #tag
@@ -724,9 +724,16 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
           sqlCondsOfEdge(gn, imap, revmap[p.args[0]], revmap[p.args[1]], revmap[p.args[2]], varResolver)
 
         of "EXISTS_EDGE": 
-          # TODO probably should use CHECK_EDGE
-          raisee "NOT IMPLEMENED: " & p.cmd
-
+          resolve(
+            @[
+              SqlPatSep(kind: sqkStr, content: fmt"EXISTS ( SELECT 1 FROM edges {p.args[0]} WHERE "),
+              SqlPatSep(kind: sqkCommand, cmd: "CHECK_EDGE", args: p.args),
+              SqlPatSep(kind: sqkStr, content: " )"),
+            ],
+            imap, 
+            gn,
+            varResolver
+          )
 
         of "GET":
           varResolver p.args[0]
