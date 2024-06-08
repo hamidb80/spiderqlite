@@ -434,6 +434,7 @@ func parseQueryStrategies*(tv: TomlValueRef): seq[QueryStrategy] =
 func initIdentMap: IdentMap = 
   result["."] = "."
 
+# FIXME check the graoh not the syntax
 func matches(pattern, query: QueryChain): Option[IdentMap] =
   debugEcho (pattern, query)
   var temp = initIdentMap()

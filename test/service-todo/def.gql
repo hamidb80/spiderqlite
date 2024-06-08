@@ -23,8 +23,12 @@ database
     #completed_by c 
       t>-.->p
 
-
 proc 
+  get_device_programs
+    #device d
+    insert  d
+    
+
   get_uncompleted_tasks_of_user
     #task         t
     #completed_by c
