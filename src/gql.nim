@@ -176,20 +176,18 @@ using
   varResolver: string -> string
 
 
-const notionChars = {
-  '0', '1', '2', '3',
-  '4', '5', '6', '7',
-  '8', '9', '*', '$',
-  '^'}
+const 
+  notionChars      = {'0' .. '9', '^', '*'}
+  invalidIndicator = ' '
 
 func `$`(qc: QueryChain): string {.used.} =
   for p in qc:
     case p.kind
     of apkNode:
-      if p.node.mode != ' ':
+      if p.node.mode != invalidIndicator:
         result.add p.node.mode
 
-      if p.node.mark != ' ':
+      if p.node.mark != invalidIndicator:
         result.add p.node.mark
 
       result.add p.node.ident
@@ -422,13 +420,15 @@ func kexQueryImpl(str: string, i: var int): AskPatNode =
   elif str.canMatch("-<", i): toArrow headR2L
   elif str.canMatch("<-", i): toArrow tailR2L
   else:
-    var node = QueryNode(mode: ' ', mark: ' ')
+    var node = QueryNode(
+      mode: invalidIndicator, 
+      mark: invalidIndicator)
     
     if str[i] in {'!', '?'}:
       node.mode = str[i]
       inc i
 
-    if str[i] in {'0'..'9', '^', '*'}:
+    if str[i] in notionChars:
       node.mark = str[i]
       inc i
     
