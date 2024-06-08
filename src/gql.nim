@@ -126,13 +126,26 @@ type
 
   QueryChain = seq[AskPatNode]
 
+  Index = Natural
+
+  GraphEdge  = object ## a>-c->b : travels from node(a) to node(b) with condition(c)
+    a, b, c: Index
+
+  QueryGraph = object
+    nodes: seq[QueryNode]
+    edges: seq[GraphEdge]
+
+  QueryNode  = object
+    ident:  string
+    mode:   char   ## nothing, !, ?
+    mark:   char   ## special prefix, is used to differentiate
+
+
   AskPatNode = object
     case kind: AskPatKind
 
     of apkNode:
-      ident: string
-      negate: bool       # !
-      mark: Option[char] ## special prefix
+      node: QueryNode
 
     of apkArrow:
       dir: ArrowDir
@@ -151,7 +164,7 @@ type
       args: seq[string]
 
   QueryStrategy = object
-    pattern: QueryChain
+    pattern:    QueryGraph
     selectable: seq[string]
     sqlPattern: seq[SqlPatSep]
 
@@ -173,13 +186,13 @@ func `$`(qc: QueryChain): string {.used.} =
   for p in qc:
     case p.kind
     of apkNode:
-      if p.negate:
-        result.add '!'
+      if p.node.mode != ' ':
+        result.add p.node.mode
 
-      if m =? p.mark:
-        result.add m
+      if p.node.mark != ' ':
+        result.add p.node.mark
 
-      result.add p.ident
+      result.add p.node.ident
 
     of apkArrow:
       result.add $p.dir
@@ -391,36 +404,66 @@ func preProcessRawSql(s: string): seq[SqlPatSep] =
         let tmp = splitWhitespace strip part
         SqlPatSep(kind: sqkCommand, cmd: tmp[0], args: rest tmp)
 
-func parseQueryChain(patt: string): QueryChain =
-  for kw in patt.findAll re"!?[0-9$%^*]?[\w.]+|[-<>]{2}": # TODO do not use regex
-    result.add:
-      case kw
-      of ">-": AskPatNode(kind: apkArrow, dir: headL2R)
-      of "->": AskPatNode(kind: apkArrow, dir: tailL2R)
-      of "-<": AskPatNode(kind: apkArrow, dir: headR2L)
-      of "<-": AskPatNode(kind: apkArrow, dir: tailR2L)
+func canMatch(str, pat: string, offset: var int): bool = 
+  if pat.len <= str.len - offset:
+    for i, ch in pat:
+      if ch != str[offset+i]:
+        return false
+
+    offset.inc pat.len
+    return true
+
+func toArrow(d: ArrowDir): AskPatNode = 
+  AskPatNode(kind: apkArrow, dir: d)
+
+func kexQueryImpl(str: string, i: var int): AskPatNode = 
+  if   str.canMatch(">-", i): toArrow headL2R
+  elif str.canMatch("->", i): toArrow tailL2R
+  elif str.canMatch("-<", i): toArrow headR2L
+  elif str.canMatch("<-", i): toArrow tailR2L
+  else:
+    var node = QueryNode(mode: ' ', mark: ' ')
+    
+    if str[i] in {'!', '?'}:
+      node.mode = str[i]
+      inc i
+
+    if str[i] in {'0'..'9', '^', '*'}:
+      node.mark = str[i]
+      inc i
+    
+    while i <= str.high:
+      if isAlphaNumeric str[i]:
+        node.ident.add str[i]
+        inc i
       else:
-        let (mark, negate, id) =
-          case kw[0]
-          of notionChars: (some kw[0], false, kw.substr 1)
-          of '!':         (none char,  true,  kw.substr 1)
-          else:           (none char,  false, kw)
+        break
+    
+    assert node.ident.len != 0
+    AskPatNode(kind: apkNode, node: node)
 
-        AskPatNode(
-          kind: apkNode,
-          ident: id,
-          negate: negate,
-          mark: mark)
+func lexQuery(str: string): QueryChain = 
+  var i = 0
+  while i < str.len:
+    result.add kexQueryImpl(str, i)
 
+func parseQueryGraph(patts: seq[string]): QueryGraph =
+  for p in patts:
+    if not isEmptyOrWhitespace p:
+      # TODO build graph
+      ignore:
+        echo (p, lexQuery p)
+
+      
 func parseQueryStrategy(pattern, selectable, query: string): QueryStrategy =
   QueryStrategy(
-    pattern:    parseQueryChain pattern,
-    selectable: splitWhitespace selectable,
-    sqlPattern: preProcessRawSql query)
+    pattern:    parseQueryGraph  splitLines pattern,
+    selectable: splitWhitespace             selectable,
+    sqlPattern: preProcessRawSql            query)
 
 func parseQueryStrategy(tv: TomlValueRef): QueryStrategy =
   parseQueryStrategy(
-           getStr tv["pattern"],
+    dedent getStr tv["pattern"],
            getStr tv["selectable"],
     dedent getStr tv["query"])
 
@@ -435,40 +478,43 @@ func initIdentMap: IdentMap =
   result["."] = "."
 
 # FIXME check the graoh not the syntax
-func matches(pattern, query: QueryChain): Option[IdentMap] =
-  debugEcho (pattern, query)
+func matches(pattern, query: QueryGraph): Option[IdentMap] =
   var temp = initIdentMap()
+  some temp
+  # if pattern.len == query.len:
+  #   for i, p in pattern:
+  #     let q = query[i]
 
-  if pattern.len == query.len:
-    for i, p in pattern:
-      let q = query[i]
+  #     if p.kind == q.kind:
+  #       case p.kind
+  #       of apkArrow:
+  #         if p.dir != q.dir:
+  #           return
 
-      if p.kind == q.kind:
-        case p.kind
-        of apkArrow:
-          if p.dir != q.dir:
-            return
+  #       of apkNode:
+  #         let 
+  #           pn = p.node
+  #           qn = q.node
+            
+  #         if pn.mode == qn.mode and
+  #            pn.mark == qn.mark:
 
-        of apkNode:
-          if p.negate == q.negate and
-             p.mark == q.mark:
+  #           if pn.ident in temp:
+  #             if temp[pn.ident] != qn.ident:
+  #               return
+  #           else:
+  #             temp[pn.ident] = qn.ident
 
-            if p.ident in temp:
-              if temp[p.ident] != q.ident:
-                return
-            else:
-              temp[p.ident] = q.ident
+  #         else:
+  #           return
 
-          else:
-            return
+  #   debugEcho (pattern, query)
+  #   return some temp
 
-    debugEcho (pattern, query)
-    return some temp
-
-func askedQuery(gn): QueryChain =
+func askedQuery(gn): QueryGraph =
   for ch in gn.children:
     case ch.kind
-    of gkAsk: return parseQueryChain ch.children[0].sval
+    of gkAsk: return parseQueryGraph ch.children.mapIt it.sval
     else: discard
 
   raisee "ask query not found"

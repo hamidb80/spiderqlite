@@ -243,7 +243,11 @@ query      = '''
 '''
 
 [[q]]
-pattern    = "a>-c1->b>-!c2->a"
+# pattern    = "a>-c1->b>-!c2->a"
+pattern    = '''
+  a>-c1->b
+  b>-!c2->a
+'''
 selectable = "a b c1"
 query      = '''
   SELECT 
