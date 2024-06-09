@@ -59,4 +59,7 @@ template ignore*(body): untyped {.dirty.} =
 template iff*(cond, iftrue, iffalse): untyped =
   if cond: iftrue
   else   : iffalse
-  
+
+
+proc openSqliteDB*(path: string): DbConn = 
+  open path, "", "", ""

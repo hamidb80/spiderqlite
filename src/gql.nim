@@ -864,9 +864,6 @@ proc echoRows(db: DbConn, sql: SqlQuery, fout: File = stdout) =
       fout.write ", "
     fout.write "\n"
 
-proc openSqliteDB(path: string): DbConn = 
-  open path, "", "", ""
-
 when isMainModule:
   let
     queryStrategies = parseQueryStrategies parseToml readfile "./src/qs.toml"

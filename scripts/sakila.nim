@@ -5,6 +5,8 @@
 import db_connector/db_sqlite
 import std/[json, tables, strutils]
 
+import ../src/utils
+
 
 when isMainModule:
   type
@@ -16,10 +18,9 @@ when isMainModule:
     vritualId: Table[(Node, int), int]
 
   let 
-    sakilaDB = open("sakila.db", "", "", "")
-    graphDB  = open("graph.db", "", "", "")
-
-    schemeQuery = readFile "./sql/schema.sql"
+    sakilaDB    = openSqliteDB "sakila.db"
+    graphDB     = openSqliteDB "graph.db"
+    schemeQuery = readFile     "./sql/schema.sql"
 
   for q in schemeQuery.split ";":
     if not isEmptyOrWhitespace q:

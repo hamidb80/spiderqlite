@@ -25,3 +25,7 @@ I wanted a BaaS (Backend as a service) but I've given up on that.
 - https://github.com/arturo-lang/grafito/
 - https://github.com/webbery/gqlite
 - https://github.com/dpapathanasiou/simple-graph
+
+## Sample Databases
+- https://www.sqlitetutorial.net/sqlite-sample-database/
+- https://github.com/siara-cc/sakila_sqlite3/
