@@ -122,25 +122,6 @@ type
     headR2L = "-<"
     tailR2L = "<-"
 
-  IdentMap = Table[string, string]
-
-  QueryChain = seq[AskPatNode]
-
-  Index = Natural
-
-  GraphEdge  = object ## a>-c->b : travels from node(a) to node(b) with condition(c)
-    a, b, c: Index
-
-  QueryGraph = object
-    nodes: seq[QueryNode]
-    edges: seq[GraphEdge]
-
-  QueryNode  = object
-    ident:  string
-    mode:   char   ## nothing, !, ?
-    mark:   char   ## special prefix, is used to differentiate
-
-
   AskPatNode = object
     case kind: AskPatKind
 
@@ -149,6 +130,44 @@ type
 
     of apkArrow:
       dir: ArrowDir
+
+  Dir = enum
+    l2r
+    r2l
+
+  IdentMap = Table[string, string]
+
+  QueryChain = seq[AskPatNode]
+
+  # Index = Natural
+
+  Travel[T]  = object ## a>-c->b : travels from node(a) to node(b) with condition(c)
+    a, b, c: T
+
+  QueryPartKind  = enum
+    qpNode
+    qpTravel
+
+  QueryPart = object
+    case kind: QueryPartKind
+    of qpNode:
+      node: QueryNode
+    of qpTravel:
+      travel: Travel[AskPatNode]
+
+  GraphEntityKind = enum
+    geNode
+    geEdge
+
+  QueryGraph = object
+    entities: Table[string, (GraphEntityKind, AskPatNode)]
+    travels:  seq[Travel[string]]
+
+  QueryNode  = object
+    ident:  string
+    mode:   char   ## nothing, !, ?
+    mark:   char   ## special prefix, is used to differentiate
+
 
   SqlPatKind = enum
     sqkStr
@@ -180,22 +199,23 @@ const
   notionChars      = {'0' .. '9', '^', '*'}
   invalidIndicator = ' '
 
+func `$`(p: AskPatNode): string =
+  case p.kind
+  of apkNode:
+    if p.node.mode != invalidIndicator:
+      result.add p.node.mode
+
+    if p.node.mark != invalidIndicator:
+      result.add p.node.mark
+
+    result.add p.node.ident
+
+  of apkArrow:
+    result.add $p.dir
+
 func `$`(qc: QueryChain): string {.used.} =
-  for p in qc:
-    case p.kind
-    of apkNode:
-      if p.node.mode != invalidIndicator:
-        result.add p.node.mode
-
-      if p.node.mark != invalidIndicator:
-        result.add p.node.mark
-
-      result.add p.node.ident
-
-    of apkArrow:
-      result.add $p.dir
-
-
+  join qc
+    
 func cmd(ind: int, line: string): string =
   line
     .match(
@@ -447,10 +467,62 @@ func lexQuery(str: string): QueryChain =
   while i < str.len:
     result.add kexQueryImpl(str, i)
 
+converter conv(ad: ArrowDir): Dir = 
+  case ad
+  of headL2R, tailL2R: l2r
+  of headR2L, tailR2L: r2l
+
+
+func sepTravels(qc: QueryChain): seq[QueryPart] = 
+  # a>-c1->b<-c2-<d :: b<-c2-<d, a>-c1->b
+  # a>-c1->b        :: b<-c2-<d
+  # a               :: a
+
+  let sz = qc.len
+
+  # template firstp: untyped {.dirty.} =
+  #   i == 0
+
+
+  if   sz == 1:
+    << QueryPart(kind: qpNode, node: qc[0].node)
+
+  elif oddp sz:
+    var dir: Dir
+    var qp: QueryPart
+
+    for i, t in qc:
+      case i mod 5
+      of 0: # node
+        discard
+        
+      of 1: # arrow
+        dir = t.dir
+
+      of 2: # edge
+        discard
+
+      of 3: # arrow
+        if dir != t.dir:
+          raisee "edge direction is not consistent"
+
+      of 4: # node
+        discard
+        # add 
+
+  
+  else:
+    raisee "invalid query length: " & $sz
+
+
+  for i, en in qc:
+    case i mod 5
+    of 0: discard
+    of 1 .. 4: discard
+
 func parseQueryGraph(patts: seq[string]): QueryGraph =
   for p in patts:
     if not isEmptyOrWhitespace p:
-      # TODO build graph
       ignore:
         echo (p, lexQuery p)
 
@@ -477,7 +549,6 @@ func parseQueryStrategies*(tv: TomlValueRef): seq[QueryStrategy] =
 func initIdentMap: IdentMap = 
   result["."] = "."
 
-# FIXME check the graoh not the syntax
 func matches(pattern, query: QueryGraph): Option[IdentMap] =
   var temp = initIdentMap()
   some temp
@@ -510,14 +581,6 @@ func matches(pattern, query: QueryGraph): Option[IdentMap] =
 
   #   debugEcho (pattern, query)
   #   return some temp
-
-func askedQuery(gn): QueryGraph =
-  for ch in gn.children:
-    case ch.kind
-    of gkAsk: return parseQueryGraph ch.children.mapIt it.sval
-    else: discard
-
-  raisee "ask query not found"
 
 func resolveSql(node: GqlNode, name: string, varResolver): string {.effectsOf: varResolver.} = 
   case node.kind
@@ -696,6 +759,10 @@ func findNode(gn; kind: GqlKind): Option[GqlNode] =
   for ch in gn.children:
     if ch.kind == kind: 
       return some ch
+
+func askedQuery(gn): QueryGraph =
+  let n = get gn.findNode gkAsk
+  parseQueryGraph n.children.mapIt it.sval
 
 func getTake(gn): GqlNode =
   get:

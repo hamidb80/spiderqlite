@@ -6,6 +6,13 @@ func `$`*(s: SqlQuery): string =
   s.string
 
 
+func evenp*(n: int): bool = 
+  n mod 2 == 0
+
+func oddp*(n: int): bool = 
+  not evenp n
+
+
 func last*[T](s: openArray[T]): T = 
   s[^1]
 
@@ -21,6 +28,9 @@ template raisee*(reason): untyped =
   raise newException(ValueError, reason)
   
   
+
+proc `mod`*[M: static int](n: int, m: type M): range[0 .. M-1] = 
+  n mod m
 
 func isSubsetOf[T](a, b: seq[T]): bool =
   for c in a:
@@ -63,3 +73,7 @@ template iff*(cond, iftrue, iffalse): untyped =
 
 proc openSqliteDB*(path: string): DbConn = 
   open path, "", "", ""
+
+
+template `<<`*(thing): untyped {.dirty.} =
+  add result, thing
