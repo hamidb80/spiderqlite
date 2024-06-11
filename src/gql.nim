@@ -163,6 +163,7 @@ type
     entities: Table[string, (GraphEntityKind, AskPatNode)]
     travels:  seq[Travel[string]]
 
+
   QueryNode  = object
     ident:  string
     mode:   char   ## nothing, !, ?
@@ -494,7 +495,10 @@ func sepTravels(qc: QueryChain): seq[QueryPart] =
     for i, t in qc:
       case i mod 5
       of 0: # node
-        discard
+        if i == 0:
+          discard
+        else:
+          discard
         
       of 1: # arrow
         dir = t.dir
@@ -504,12 +508,11 @@ func sepTravels(qc: QueryChain): seq[QueryPart] =
 
       of 3: # arrow
         if dir != t.dir:
-          raisee "edge direction is not consistent"
+          raisee "edge direction is not consistent, expected same direction as " & $dir & " but got "  & t.dir
 
       of 4: # node
         discard
-        # add 
-
+        # add with respect to dir
   
   else:
     raisee "invalid query length: " & $sz

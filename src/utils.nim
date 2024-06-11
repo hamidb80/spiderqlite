@@ -2,9 +2,14 @@ import std/[tables, sequtils]
 import db_connector/db_sqlite
 
 
+# funcs ----------------------------------------
+
+# ---- convertor
+
 func `$`*(s: SqlQuery): string =
   s.string
 
+# ---- numbers
 
 func evenp*(n: int): bool = 
   n mod 2 == 0
@@ -12,6 +17,10 @@ func evenp*(n: int): bool =
 func oddp*(n: int): bool = 
   not evenp n
 
+func `mod`*[M: static int](n: int, m: type M): range[0 .. M-1] = 
+  n mod m
+
+# ---- seq
 
 func last*[T](s: openArray[T]): T = 
   s[^1]
@@ -22,15 +31,13 @@ func empty*[T: string or seq](s: T): bool =
 func prune*(s: var seq) = 
   s.del s.high
 
+iterator rest*[T](s: seq[T]): T = 
+  for i in 1..s.high:
+    yield s[i]
 
-template raisee*(reason): untyped =
-  ## raise [e]rror -- just a convention
-  raise newException(ValueError, reason)
-  
-  
+func rest*(s: seq): seq = 
+  s[1..^1]
 
-proc `mod`*[M: static int](n: int, m: type M): range[0 .. M-1] = 
-  n mod m
 
 func isSubsetOf[T](a, b: seq[T]): bool =
   for c in a:
@@ -48,32 +55,29 @@ func rev*[A, B](tab: Table[A, B]): Table[B, A] =
   for k, v in tab:
     result[v] = k
 
-
-iterator rest*[T](s: seq[T]): T = 
-  for i in 1..s.high:
-    yield s[i]
-
-func rest*(s: seq): seq = 
-  s[1..^1]
-
-
-template ignore*(body): untyped {.dirty.} =
-  {.cast(nosideeffect).}:
-    body
-
-# template inspect*(a): untyped =
-#   debugecho a
-#   a
-
-
-template iff*(cond, iftrue, iffalse): untyped =
-  if cond: iftrue
-  else   : iffalse
-
+# procs ----------------------------------------
 
 proc openSqliteDB*(path: string): DbConn = 
   open path, "", "", ""
 
+# templates ----------------------------------------
+
+template inspect*(a): untyped =
+  let b = a
+  debugecho b
+  b
+
+template raisee*(reason): untyped =
+  ## raise [e]rror -- just a convention
+  raise newException(ValueError, reason)
+  
+template ignore*(body): untyped {.dirty.} =
+  {.cast(nosideeffect).}:
+    body
 
 template `<<`*(thing): untyped {.dirty.} =
   add result, thing
+  
+template iff*(cond, iftrue, iffalse): untyped =
+  if cond: iftrue
+  else   : iffalse
