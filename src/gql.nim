@@ -428,25 +428,25 @@ func nodeIndex(g: var GraphList, node: GraphNode): int =
   else:
     i
 
-func addNode*(g: var GraphList, node: GraphNode) = 
+func addNode(g: var GraphList, node: GraphNode) = 
   discard g.nodeIndex node
 
 func addEdge(g: var GraphList, a, b, c: GraphNode) = 
   g.rels[g.nodeIndex a.ident, g.nodeIndex b.ident].add c
 
-func addConn*(g: var GraphList, a, b, c: GraphNode) = 
+func addConn(g: var GraphList, a, b, c: GraphNode) = 
   g.addNode a
   g.addNode b
   g.addEdge a, b, c
 
 
-func nodesLen*(g: GraphList): Natural = 
+func nodesLen(g: GraphList): Natural = 
   g.nodes.len
 
-func distinctEdges*(g: GraphList): Natural = 
+func distinctEdges(g: GraphList): Natural = 
   g.rels.len
 
-func allEdges*(g: GraphList): Natural = 
+func allEdges(g: GraphList): Natural = 
   for v in values g.rels:
     result.inc v.len
 
