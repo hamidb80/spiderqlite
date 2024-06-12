@@ -1,5 +1,5 @@
 import std/[strutils, sequtils, tables, json, nre, sugar, strformat]
-import ./utils
+import ./utils/[other, mat]
 
 import db_connector/db_sqlite
 import pretty
@@ -7,35 +7,10 @@ import questionable
 import parsetoml
 
 type
-  GqlOperator* = enum
-    goConcat    # ||
-
-    goLess      # <
-    goLessEq    # <=
-    goEq        # =
-    goNotEq     # !=
-    goMoreEq    # >=
-    goMore      # >
-    goPlus      # +
-    goMinus     # -
-    goMult      # *
-    goDiv       # /
-    goMod       # %
-    goIn        # in
-    goNotIn     # notin
-    goEmpty     # empty?
-    goCheckNull # null?
-
-    goAnd       # and
-    goOr        # or
-
-    goUnion     # union
-    goSubtract  # subtract
-
   GqlKind* = enum
     gkDef         # #tag
     gkFieldPred   # inside def
-    gkAsk         # ask [limit] [offset] query
+    gkAsk         # ask [query]
     gkReturn      # return
     gkUpdate      # update
     gkDelete      # delete
@@ -142,27 +117,18 @@ type
   # Index = Natural
 
   Travel[T]  = object ## a>-c->b : travels from node(a) to node(b) with condition(c)
-    a, b, c: T
+    a, c, b: T
 
   QueryPartKind  = enum
-    qpNode
-    qpTravel
+    qpSingle
+    qpMulti
 
   QueryPart = object
     case kind: QueryPartKind
-    of qpNode:
+    of qpSingle:
       node: QueryNode
-    of qpTravel:
-      travel: Travel[AskPatNode]
-
-  GraphEntityKind = enum
-    geNode
-    geEdge
-
-  QueryGraph = object
-    entities: Table[string, (GraphEntityKind, AskPatNode)]
-    travels:  seq[Travel[string]]
-
+    of qpMulti:
+      travel: Travel[QueryNode]
 
   QueryNode  = object
     ident:  string
@@ -183,6 +149,8 @@ type
       cmd: string
       args: seq[string]
 
+  QueryGraph = GraphOfList[QueryNode]
+
   QueryStrategy = object
     pattern:    QueryGraph
     selectable: seq[string]
@@ -198,7 +166,8 @@ using
 
 const 
   notionChars      = {'0' .. '9', '^', '*'}
-  invalidIndicator = ' '
+  invalidIndicator = '\0'
+
 
 func `$`(p: AskPatNode): string =
   case p.kind
@@ -392,7 +361,7 @@ func parseGql*(content: string): GqlNode =
              "LT", "LTE",
              "XOR", "IS", "ISNOT",
              "NOTIN", "IN", "HAS",
-             "BETWEEN", "CONTAINS":            parseInfix lineee
+             "BETWEEN", "CONTAINS":            parseInfix       lineee
 
           of "$", "NOT":                       parsePrefix      lineee          
           of ".":                              parseFieldAccess lineee
@@ -435,7 +404,7 @@ func canMatch(str, pat: string, offset: var int): bool =
 func toArrow(d: ArrowDir): AskPatNode = 
   AskPatNode(kind: apkArrow, dir: d)
 
-func kexQueryImpl(str: string, i: var int): AskPatNode = 
+func lexQueryImpl(str: string, i: var int): AskPatNode = 
   if   str.canMatch(">-", i): toArrow headL2R
   elif str.canMatch("->", i): toArrow tailL2R
   elif str.canMatch("-<", i): toArrow headR2L
@@ -466,15 +435,17 @@ func kexQueryImpl(str: string, i: var int): AskPatNode =
 func lexQuery(str: string): QueryChain = 
   var i = 0
   while i < str.len:
-    result.add kexQueryImpl(str, i)
+    result.add lexQueryImpl(str, i)
 
 converter conv(ad: ArrowDir): Dir = 
   case ad
   of headL2R, tailL2R: l2r
   of headR2L, tailR2L: r2l
 
+func rev(t: Travel): Travel = 
+  Travel(a: t.b, b: t.a, c: t.c)
 
-func sepTravels(qc: QueryChain): seq[QueryPart] = 
+func sepQuery(qc: QueryChain): seq[QueryPart] = 
   # a>-c1->b<-c2-<d :: b<-c2-<d, a>-c1->b
   # a>-c1->b        :: b<-c2-<d
   # a               :: a
@@ -486,34 +457,38 @@ func sepTravels(qc: QueryChain): seq[QueryPart] =
 
 
   if   sz == 1:
-    << QueryPart(kind: qpNode, node: qc[0].node)
+    << QueryPart(kind: qpSingle, node: qc[0].node)
 
   elif oddp sz:
     var dir: Dir
-    var qp: QueryPart
+    # var qp: QueryPart
+    var tr: Travel[QueryNode]
 
     for i, t in qc:
-      case i mod 5
+      case i mod 4
       of 0: # node
-        if i == 0:
-          discard
-        else:
-          discard
+        if i != 0:
+          tr.b = t.node
+
+          case dir 
+          of l2r:
+            << QueryPart(kind: qpMulti, travel:     tr) 
+          of r2l:
+            << QueryPart(kind: qpMulti, travel: rev tr) 
+
+        tr.a = t.node
         
       of 1: # arrow
         dir = t.dir
 
       of 2: # edge
-        discard
+        tr.c = t.node
 
       of 3: # arrow
         if dir != t.dir:
-          raisee "edge direction is not consistent, expected same direction as " & $dir & " but got "  & t.dir
+          raisee "edge direction is not consistent, expected same direction as " & $dir & " but got "  & $t.dir
 
-      of 4: # node
-        discard
-        # add with respect to dir
-  
+
   else:
     raisee "invalid query length: " & $sz
 
@@ -526,9 +501,13 @@ func sepTravels(qc: QueryChain): seq[QueryPart] =
 func parseQueryGraph(patts: seq[string]): QueryGraph =
   for p in patts:
     if not isEmptyOrWhitespace p:
-      ignore:
-        echo (p, lexQuery p)
+      for t in sepQuery lexQuery p:
+        case t.kind
+        of qpSingle: result.addNode t.node.ident
+        of qpMulti:  result.add t.travel.a.ident, t.travel.b.ident, t.travel.c
 
+  debugEcho patts
+  debugEcho $result
       
 func parseQueryStrategy(pattern, selectable, query: string): QueryStrategy =
   QueryStrategy(
@@ -711,6 +690,7 @@ func sqlJsonExpr(s: string): string =
   """  ', "tag" :"'|| """ & s & """.tag ||     """ &
   """ '", "doc":'  || """ & s & """.doc || '}')"""
 
+
 func findIdents(gn; result: var seq[string]) =
   case gn.kind
   of gkIdent:
@@ -742,21 +722,6 @@ func deepIdentReplace(gn; imap) =
 
   else:
     discard
-  
-  
-func toSqlSelectImpl(gn): string = 
-  if gn.kind == gkIdent and gn.children.len == 0: 
-    sqlJsonExpr gn.sval
-  else:       
-    resolveSql gn, "???", s => "!!!"
-
-func toSqlSelect(take: GqlNode, imap): string = 
-  deepIdentReplace take, imap
-  take
-    .children
-    .map(toSqlSelectImpl)
-    .join ", "
-
 
 func findNode(gn; kind: GqlKind): Option[GqlNode] = 
   for ch in gn.children:
@@ -773,8 +738,20 @@ func getTake(gn): GqlNode =
 
 func getGroup(gn): Option[GqlNode] = 
   findNode gn, gkGroupBy
+  
+  
+func toSqlSelectImpl(gn): string = 
+  if gn.kind == gkIdent and gn.children.len == 0: 
+    sqlJsonExpr gn.sval
+  else:       
+    resolveSql gn, "???", s => "!!!"
 
-
+func toSqlSelect(take: GqlNode, imap): string = 
+  deepIdentReplace take, imap
+  take
+    .children
+    .map(toSqlSelectImpl)
+    .join ", "
 
 func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf: varResolver.} =
   let
@@ -936,7 +913,7 @@ proc echoRows(db: DbConn, sql: SqlQuery, fout: File = stdout) =
 
 when isMainModule:
   let
-    queryStrategies = parseQueryStrategies parseToml readfile "./src/qs.toml"
+    queryStrategies = parseQueryStrategies parseToml readfile "./examples/qs.toml"
     ctx             = %*{"mtitle": "ZORRO ARK"}
 
   for path in [
