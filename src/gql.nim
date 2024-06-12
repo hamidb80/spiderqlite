@@ -101,7 +101,7 @@ type
     case kind: AskPatKind
 
     of apkNode:
-      node: string
+      node: QueryNode
 
     of apkArrow:
       dir: ArrowDir
@@ -126,9 +126,9 @@ type
   QueryPart = object
     case kind: QueryPartKind
     of qpSingle:
-      node: string
+      node: QueryNode
     of qpMulti:
-      travel: Travel[string]
+      travel: Travel[QueryNode]
 
   QueryNode  = object
     ident:  string
@@ -149,7 +149,7 @@ type
       cmd: string
       args: seq[string]
 
-  QueryGraph = GraphOfList[string]
+  QueryGraph = GraphOfList[QueryNode]
 
   QueryStrategy = object
     pattern:    QueryGraph
@@ -172,14 +172,24 @@ const
 func `$`(p: AskPatNode): string =
   case p.kind
   of apkNode:
-    result.add p.node
+    result.add $p.node
 
   of apkArrow:
     result.add $p.dir
 
-func `$`(qc: QueryChain): string {.used.} =
+func `$`(qc: QueryChain): string =
   join qc
     
+func `$`(qn: QueryNode): string = 
+  if qn.mode != invalidIndicator:
+    << qn.mode
+    
+  if qn.mark != invalidIndicator:
+    << qn.mark
+
+  << qn.ident
+
+
 func cmd(ind: int, line: string): string =
   line
     .match(
@@ -389,6 +399,21 @@ func preProcessRawSql(s: string): seq[SqlPatSep] =
 func toArrow(d: ArrowDir): AskPatNode = 
   AskPatNode(kind: apkArrow, dir: d)
 
+func parseQueryNode(s: string): QueryNode = 
+  var i = 0
+  
+  if s[i] in {'!', '?'}:
+    result.mode = s[i]
+    inc i
+
+  if s[i] in notionChars:
+    result.mark = s[i]
+    inc i
+
+  while i < s.len:
+    result.ident.add s[i]
+    inc i
+
 func lexQueryImpl(str: string, i: var int): AskPatNode = 
   let m = str.find(re"[-<>]{2}|[?!]?[0-9^]?\w+", i).get.match
   i.inc m.len
@@ -397,7 +422,7 @@ func lexQueryImpl(str: string, i: var int): AskPatNode =
   of "->": toArrow tailL2R
   of "-<": toArrow headR2L
   of "<-": toArrow tailR2L
-  else: AskPatNode(kind: apkNode, node: m)
+  else: AskPatNode(kind: apkNode, node: parseQueryNode m)
 
 func lexQuery(str: string): QueryChain = 
   var i = 0
@@ -429,7 +454,7 @@ func sepQuery(qc: QueryChain): seq[QueryPart] =
   elif oddp sz:
     var dir: Dir
     # var qp: QueryPart
-    var tr: Travel[string]
+    var tr: Travel[QueryNode]
 
     for i, t in qc:
       case i mod 4
@@ -505,44 +530,42 @@ func matchImpl(pattern, query: QueryGraph, imap: var IdentMap): bool =
   discard
 
 func matches(pattern, query: QueryGraph): Option[IdentMap] =
-  
   if pattern.canMatch query:
     var temp = initIdentMap()
-
-    # matchImpl pattern, query, temp
+    discard matchImpl(pattern, query, temp)
 
     # return some temp
   
+  when false:
+    if pattern.len == query.len:
+      for i, p in pattern:
+        let q = query[i]
 
-  # if pattern.len == query.len:
-  #   for i, p in pattern:
-  #     let q = query[i]
+        if p.kind == q.kind:
+          case p.kind
+          of apkArrow:
+            if p.dir != q.dir:
+              return
 
-  #     if p.kind == q.kind:
-  #       case p.kind
-  #       of apkArrow:
-  #         if p.dir != q.dir:
-  #           return
+          of apkNode:
+            let 
+              pn = p.node
+              qn = q.node
+              
+            if pn.mode == qn.mode and
+              pn.mark == qn.mark:
 
-  #       of apkNode:
-  #         let 
-  #           pn = p.node
-  #           qn = q.node
-            
-  #         if pn.mode == qn.mode and
-  #            pn.mark == qn.mark:
+              if pn.ident in temp:
+                if temp[pn.ident] != qn.ident:
+                  return
+              else:
+                temp[pn.ident] = qn.ident
 
-  #           if pn.ident in temp:
-  #             if temp[pn.ident] != qn.ident:
-  #               return
-  #           else:
-  #             temp[pn.ident] = qn.ident
+            else:
+              return
 
-  #         else:
-  #           return
-
-  #   debugEcho (pattern, query)
-  #   return some temp
+    debugEcho (pattern, query)
+    return some temp
 
 func resolveSql(node: GqlNode, name: string, varResolver): string {.effectsOf: varResolver.} = 
   case node.kind

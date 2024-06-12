@@ -6,7 +6,7 @@ type
   #   data: seq[seq[T]]
 
   GraphOfList*[T]    = object
-    names: seq[string]
+    nodes: seq[string]
     rels:  Table[Slice[string], seq[T]]
 
 
@@ -27,29 +27,30 @@ type
 
 #   m.data[i][j]
 
-func addEdge[T](g: var GraphOfList[T], a, b: string, c: T) {.inline.} = 
-  let key = a .. b
+func addEdge[T](g: var GraphOfList[T], a, b, c: T) {.inline.} = 
+  let key = a.ident .. b.ident
   
   if key notin g.rels:
     g.rels[key] = @[]
   
   g.rels[key].add c
 
-func addNodeIfNotExists(g: var GraphOfList, name: string) {.inline.} = 
-  if name notin g.names:
-    g.names.add name
+func addNodeIfNotExists[T](g: var GraphOfList[T], node: T) {.inline.} = 
+  let i = node.ident
+  if  i notin g.nodes:
+    g.nodes.add i
 
-func addNode*(g: var GraphOfList, name: string) {.inline.} = 
-  g.addNodeIfNotExists name
+func addNode*[T](g: var GraphOfList[T], node: T) {.inline.} = 
+  g.addNodeIfNotExists node
 
-func addConn*[T](g: var GraphOfList[T], a, b: string, c: T) = 
+func addConn*[T](g: var GraphOfList[T], a, b, c: T) = 
   g.addNode a
   g.addNode b
   g.addEdge a, b, c
 
 
 func nodesLen*[T](g: GraphOfList[T]): Natural = 
-  g.names.len
+  g.nodes.len
 
 func distinctEdges*[T](g: GraphOfList[T]): Natural = 
   g.rels.len
@@ -59,25 +60,25 @@ func allEdges*[T](g: GraphOfList[T]): Natural =
     result.inc v.len
 
 func `$`*(g: GraphOfList): string = 
-  let namesLen = g.names.mapit(it.len)
+  let namesLen = g.nodes.mapit(it.len)
   let maxNamesLen = namesLen.max
 
   << '_'.repeat maxNamesLen
   << '|'
   
-  for b in g.names:
+  for b in g.nodes:
     << b
     << ' '.repeat maxNamesLen - b.len
     << '|'
   << '\n'
 
   
-  for a in g.names:
+  for a in g.nodes:
     << a
     << ' '.repeat maxNamesLen - a.len
     << '|'
 
-    for b in g.names:
+    for b in g.nodes:
       let 
         key = a .. b
         n   = g.rels.getOrDefault(key).len
