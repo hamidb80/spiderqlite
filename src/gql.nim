@@ -101,7 +101,7 @@ type
     case kind: AskPatKind
 
     of apkNode:
-      node: QueryNode
+      node: string
 
     of apkArrow:
       dir: ArrowDir
@@ -126,9 +126,9 @@ type
   QueryPart = object
     case kind: QueryPartKind
     of qpSingle:
-      node: QueryNode
+      node: string
     of qpMulti:
-      travel: Travel[QueryNode]
+      travel: Travel[string]
 
   QueryNode  = object
     ident:  string
@@ -149,7 +149,7 @@ type
       cmd: string
       args: seq[string]
 
-  QueryGraph = GraphOfList[QueryNode]
+  QueryGraph = GraphOfList[string]
 
   QueryStrategy = object
     pattern:    QueryGraph
@@ -172,13 +172,7 @@ const
 func `$`(p: AskPatNode): string =
   case p.kind
   of apkNode:
-    if p.node.mode != invalidIndicator:
-      result.add p.node.mode
-
-    if p.node.mark != invalidIndicator:
-      result.add p.node.mark
-
-    result.add p.node.ident
+    result.add p.node
 
   of apkArrow:
     result.add $p.dir
@@ -392,45 +386,18 @@ func preProcessRawSql(s: string): seq[SqlPatSep] =
         let tmp = splitWhitespace strip part
         SqlPatSep(kind: sqkCommand, cmd: tmp[0], args: rest tmp)
 
-func canMatch(str, pat: string, offset: var int): bool = 
-  if pat.len <= str.len - offset:
-    for i, ch in pat:
-      if ch != str[offset+i]:
-        return false
-
-    offset.inc pat.len
-    return true
-
 func toArrow(d: ArrowDir): AskPatNode = 
   AskPatNode(kind: apkArrow, dir: d)
 
 func lexQueryImpl(str: string, i: var int): AskPatNode = 
-  if   str.canMatch(">-", i): toArrow headL2R
-  elif str.canMatch("->", i): toArrow tailL2R
-  elif str.canMatch("-<", i): toArrow headR2L
-  elif str.canMatch("<-", i): toArrow tailR2L
-  else:
-    var node = QueryNode(
-      mode: invalidIndicator, 
-      mark: invalidIndicator)
-    
-    if str[i] in {'!', '?'}:
-      node.mode = str[i]
-      inc i
-
-    if str[i] in notionChars:
-      node.mark = str[i]
-      inc i
-    
-    while i <= str.high:
-      if isAlphaNumeric str[i]:
-        node.ident.add str[i]
-        inc i
-      else:
-        break
-    
-    assert node.ident.len != 0
-    AskPatNode(kind: apkNode, node: node)
+  let m = str.find(re"[-<>]{2}|[?!]?[0-9^]?\w+", i).get.match
+  i.inc m.len
+  case m
+  of ">-": toArrow headL2R
+  of "->": toArrow tailL2R
+  of "-<": toArrow headR2L
+  of "<-": toArrow tailR2L
+  else: AskPatNode(kind: apkNode, node: m)
 
 func lexQuery(str: string): QueryChain = 
   var i = 0
@@ -462,7 +429,7 @@ func sepQuery(qc: QueryChain): seq[QueryPart] =
   elif oddp sz:
     var dir: Dir
     # var qp: QueryPart
-    var tr: Travel[QueryNode]
+    var tr: Travel[string]
 
     for i, t in qc:
       case i mod 4
@@ -470,12 +437,10 @@ func sepQuery(qc: QueryChain): seq[QueryPart] =
         if i != 0:
           tr.b = t.node
 
-          case dir 
-          of l2r:
-            << QueryPart(kind: qpMulti, travel:     tr) 
-          of r2l:
-            << QueryPart(kind: qpMulti, travel: rev tr) 
-
+          << QueryPart(
+            kind: qpMulti, 
+            travel: iff(dir == l2r, tr, rev tr)) 
+                  
         tr.a = t.node
         
       of 1: # arrow
@@ -503,8 +468,8 @@ func parseQueryGraph(patts: seq[string]): QueryGraph =
     if not isEmptyOrWhitespace p:
       for t in sepQuery lexQuery p:
         case t.kind
-        of qpSingle: result.addNode t.node.ident
-        of qpMulti:  result.add t.travel.a.ident, t.travel.b.ident, t.travel.c
+        of qpSingle: result.addNode t.node
+        of qpMulti:  result.addConn t.travel.a, t.travel.b, t.travel.c
 
   debugEcho patts
   debugEcho $result
@@ -529,11 +494,26 @@ func parseQueryStrategies*(tv: TomlValueRef): seq[QueryStrategy] =
 
 
 func initIdentMap: IdentMap = 
-  result["."] = "."
+  toTable {".": "."}
+
+func canMatch(pattern, query: QueryGraph): bool =
+  pattern.nodesLen      == query.nodesLen      and
+  pattern.distinctEdges == query.distinctEdges and
+  pattern.allEdges      == query.allEdges      
+
+func matchImpl(pattern, query: QueryGraph, imap: var IdentMap): bool = 
+  discard
 
 func matches(pattern, query: QueryGraph): Option[IdentMap] =
-  var temp = initIdentMap()
-  some temp
+  
+  if pattern.canMatch query:
+    var temp = initIdentMap()
+
+    # matchImpl pattern, query, temp
+
+    # return some temp
+  
+
   # if pattern.len == query.len:
   #   for i, p in pattern:
   #     let q = query[i]

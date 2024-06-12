@@ -27,10 +27,6 @@ type
 
 #   m.data[i][j]
 
-func addNodeIfNotExists(g: var GraphOfList, name: string) {.inline.} = 
-  if name notin g.names:
-    g.names.add name
-
 func addEdge[T](g: var GraphOfList[T], a, b: string, c: T) {.inline.} = 
   let key = a .. b
   
@@ -39,19 +35,31 @@ func addEdge[T](g: var GraphOfList[T], a, b: string, c: T) {.inline.} =
   
   g.rels[key].add c
 
+func addNodeIfNotExists(g: var GraphOfList, name: string) {.inline.} = 
+  if name notin g.names:
+    g.names.add name
 
 func addNode*(g: var GraphOfList, name: string) {.inline.} = 
   g.addNodeIfNotExists name
 
-func add*[T](g: var GraphOfList, a, b: string, c: T) = 
-  g.addNodeIfNotExists a
-  g.addNodeIfNotExists b
+func addConn*[T](g: var GraphOfList[T], a, b: string, c: T) = 
+  g.addNode a
+  g.addNode b
   g.addEdge a, b, c
 
 
+func nodesLen*[T](g: GraphOfList[T]): Natural = 
+  g.names.len
+
+func distinctEdges*[T](g: GraphOfList[T]): Natural = 
+  g.rels.len
+
+func allEdges*[T](g: GraphOfList[T]): Natural = 
+  for v in values g.rels:
+    result.inc v.len
+
 func `$`*(g: GraphOfList): string = 
   let namesLen = g.names.mapit(it.len)
-  debugEcho namesLen
   let maxNamesLen = namesLen.max
 
   << '_'.repeat maxNamesLen
