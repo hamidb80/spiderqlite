@@ -243,11 +243,7 @@ query      = '''
 '''
 
 [[q]]
-# pattern    = "a>-c1->b>-!c2->a"
-pattern    = '''
-  a>-c1->b
-  b>-!c2->a
-'''
+pattern    = 'b>-c1->a<-!c2-<b'
 selectable = "a b c1"
 query      = '''
   SELECT 
@@ -258,8 +254,8 @@ query      = '''
     edges c1,
     nodes b
   ON
-    |check_edge c1 a b|
-    AND
+        |check_node b|       AND
+        |check_edge c1 a b|  AND
     NOT |exists_edge c2 a b|
   WHERE 
     |check_node a|

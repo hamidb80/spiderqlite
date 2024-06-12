@@ -452,6 +452,12 @@ func allEdges(g: GraphList): Natural =
     for j in 0..<g.rels.width:
       result.inc g.rels[i, j].len
 
+func countEdges(g: GraphList, i: Natural): tuple[input, output: Natural] = 
+  for cell in g.rels.data[i]:
+    result.output.inc cell.len
+
+  for row in g.rels.data:
+    result.input.inc row[i].len
 
 func preProcessRawSql(s: string): seq[SqlPatSep] =
   let parts = s.split '|'
@@ -563,8 +569,8 @@ func parseQueryGraph(patts: seq[string]): QueryGraph =
         of qpSingle: result.addNode t.node
         of qpMulti:  result.addConn t.travel.a, t.travel.b, t.travel.c
 
-  debugEcho patts
-  debugEcho $result
+  # debugEcho patts
+  # debugEcho $result
       
 func parseQueryStrategy(pattern, selectable, query: string): QueryStrategy =
   QueryStrategy(
@@ -589,16 +595,32 @@ func initIdentMap: IdentMap =
   toTable {".": "."}
 
 func canMatch(pattern, query: QueryGraph): bool =
-  pattern.nodesLen      == query.nodesLen  and
-  pattern.allEdges      == query.allEdges      
+  pattern.nodesLen == query.nodesLen  and
+  pattern.allEdges == query.allEdges      
 
-func matchImpl(pattern, query: QueryGraph, imap: var IdentMap): bool = 
+
+func matchImpl(p, q: QueryGraph, i, j: Natural): bool = 
+  let
+    a = p.countEdges i
+    b = q.countEdges j
+  debugEcho a, b, a == b, ' ', i .. j
+  a == b
+
+func matchImpl(p, q: QueryGraph, imap: var IdentMap): bool = 
   ## compute candidates. e.g. a=>{b, c}  b=>{c} c=>{b} 
   
-  for i, n in pattern.nodes:
-    for j, m in query.nodes:
-      discard
+  var candidates: seq[seq[int]] ## Table[int, seq[int]]
 
+  debugEcho p
+  debugEcho q
+      
+  for i, n in p.nodes:
+    candidates.add @[]
+    for j, m in q.nodes:
+      if matchImpl(p, q, i, j):
+        candidates[^1].add j
+
+  debugEcho candidates
 
 func matches(pattern, query: QueryGraph): Option[IdentMap] =
   if pattern.canMatch query:
@@ -990,11 +1012,11 @@ when isMainModule:
     ctx             = %*{"mtitle": "ZORRO ARK"}
 
   for path in [
+    # "./test/sakila/get.gql",
+    # "./test/sakila/get_ignore.gql",
+    # "./test/sakila/get_agg.gql",
+    # "./test/sakila/simple1.gql"
     "./test/sakila/5cond.gql",
-    "./test/sakila/get_ignore.gql",
-    "./test/sakila/get_agg.gql",
-    "./test/sakila/get.gql",
-    "./test/sakila/simple1.gql"
   ]:
     let
       parsedGql = parseGql readFile   path
