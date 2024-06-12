@@ -137,9 +137,9 @@ type
     mode:   char   ## nothing, !, ?
     mark:   char   ## special prefix, is used to differentiate
 
-  GraphList*[T]    = object
-    nodes*: seq[string]
-    rels*:  Mat[seq[T]]
+  GraphList  = object
+    nodes: seq[string]
+    rels:  Mat[seq[QueryNode]]
 
   SqlPatKind = enum
     sqkStr
@@ -154,7 +154,7 @@ type
       cmd: string
       args: seq[string]
 
-  QueryGraph = GraphList[QueryNode]
+  QueryGraph = GraphList
 
   QueryStrategy = object
     pattern:    QueryGraph
@@ -420,7 +420,7 @@ func parseGql*(content: string): GqlNode =
       nested.add (n, ind)
 
 
-func nodeIndex[T](g: var GraphList[T], node: T): int = 
+func nodeIndex(g: var GraphList, node: GraphNode): int = 
   let i = g.nodes.find node.ident
   if  i == notFound:
     g.nodes.add node.ident
@@ -428,25 +428,25 @@ func nodeIndex[T](g: var GraphList[T], node: T): int =
   else:
     i
 
-func addNode*[T](g: var GraphList[T], node: T) = 
+func addNode*(g: var GraphList, node: GraphNode) = 
   discard g.nodeIndex node
 
-func addEdge[T](g: var GraphList[T], a, b, c: T) = 
+func addEdge(g: var GraphList, a, b, c: GraphNode) = 
   g.rels[g.nodeIndex a.ident, g.nodeIndex b.ident].add c
 
-func addConn*[T](g: var GraphList[T], a, b, c: T) = 
+func addConn*(g: var GraphList, a, b, c: GraphNode) = 
   g.addNode a
   g.addNode b
   g.addEdge a, b, c
 
 
-func nodesLen*[T](g: GraphList[T]): Natural = 
+func nodesLen*(g: GraphList): Natural = 
   g.nodes.len
 
-func distinctEdges*[T](g: GraphList[T]): Natural = 
+func distinctEdges*(g: GraphList): Natural = 
   g.rels.len
 
-func allEdges*[T](g: GraphList[T]): Natural = 
+func allEdges*(g: GraphList): Natural = 
   for v in values g.rels:
     result.inc v.len
 
