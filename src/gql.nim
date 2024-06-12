@@ -207,15 +207,14 @@ func `$`*(g: GraphList): string =
   << '\n'
 
   
-  for a in g.nodes:
+  for i, a in g.nodes:
     << a
     << ' '.repeat maxNamesLen - a.len
     << '|'
 
-    for b in g.nodes:
+    for j, b in g.nodes:
       let 
-        key = a .. b
-        n   = g.rels.getOrDefault(key).len
+        n   = g.rels[i,j].len
         s   = $n
 
       << s
@@ -420,21 +419,26 @@ func parseGql*(content: string): GqlNode =
       nested.add (n, ind)
 
 
-func nodeIndex(g: var GraphList, node: GraphNode): int = 
+func nodeIndex(g: var GraphList, node: QueryNode): int = 
   let i = g.nodes.find node.ident
   if  i == notFound:
     g.nodes.add node.ident
+
+    g.rels.addRow    @[]
+    g.rels.addColumn @[]
+
     g.nodes.high
+
   else:
     i
 
-func addNode(g: var GraphList, node: GraphNode) = 
+func addNode(g: var GraphList, node: QueryNode) = 
   discard g.nodeIndex node
 
-func addEdge(g: var GraphList, a, b, c: GraphNode) = 
-  g.rels[g.nodeIndex a.ident, g.nodeIndex b.ident].add c
+func addEdge(g: var GraphList, a, b, c: QueryNode) = 
+  g.rels[g.nodeIndex a, g.nodeIndex b].add c
 
-func addConn(g: var GraphList, a, b, c: GraphNode) = 
+func addConn(g: var GraphList, a, b, c: QueryNode) = 
   g.addNode a
   g.addNode b
   g.addEdge a, b, c
@@ -443,13 +447,10 @@ func addConn(g: var GraphList, a, b, c: GraphNode) =
 func nodesLen(g: GraphList): Natural = 
   g.nodes.len
 
-func distinctEdges(g: GraphList): Natural = 
-  g.rels.len
-
 func allEdges(g: GraphList): Natural = 
-  for v in values g.rels:
-    result.inc v.len
-
+  for i in 0..<g.rels.height:
+    for j in 0..<g.rels.width:
+      result.inc g.rels[i, j].len
 
 
 func preProcessRawSql(s: string): seq[SqlPatSep] =
@@ -588,8 +589,7 @@ func initIdentMap: IdentMap =
   toTable {".": "."}
 
 func canMatch(pattern, query: QueryGraph): bool =
-  pattern.nodesLen      == query.nodesLen      and
-  pattern.distinctEdges == query.distinctEdges and
+  pattern.nodesLen      == query.nodesLen  and
   pattern.allEdges      == query.allEdges      
 
 func matchImpl(pattern, query: QueryGraph, imap: var IdentMap): bool = 
@@ -604,7 +604,7 @@ func matches(pattern, query: QueryGraph): Option[IdentMap] =
   if pattern.canMatch query:
     var temp = initIdentMap()
     if matchImpl(pattern, query, temp):
-      return some temp
+       return some temp
   
   when false:
     if pattern.len == query.len:
