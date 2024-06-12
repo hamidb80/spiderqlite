@@ -1,10 +1,11 @@
-import std/[strutils, sequtils, tables, json, nre, sugar, strformat]
+import std/[strutils, sequtils, tables, json, nre, sugar, strformat, algorithm]
 import ./utils/[other, mat]
 
 import db_connector/db_sqlite
 import pretty
 import questionable
 import parsetoml
+
 
 type
   GqlKind* = enum
@@ -116,7 +117,8 @@ type
 
   # Index = Natural
 
-  Travel[T]  = object ## a>-c->b : travels from node(a) to node(b) with condition(c)
+  Travel[T]  = object 
+    ## a>-c->b : travels from node(a) to node(b) with condition(c)
     a, c, b: T
 
   QueryPartKind  = enum
@@ -135,6 +137,9 @@ type
     mode:   char   ## nothing, !, ?
     mark:   char   ## special prefix, is used to differentiate
 
+  GraphList*[T]    = object
+    nodes*: seq[string]
+    rels*:  Mat[seq[T]]
 
   SqlPatKind = enum
     sqkStr
@@ -149,7 +154,7 @@ type
       cmd: string
       args: seq[string]
 
-  QueryGraph = GraphOfList[QueryNode]
+  QueryGraph = GraphList[QueryNode]
 
   QueryStrategy = object
     pattern:    QueryGraph
@@ -167,7 +172,7 @@ using
 const 
   notionChars      = {'0' .. '9', '^', '*'}
   invalidIndicator = '\0'
-
+  notFound = -1
 
 func `$`(p: AskPatNode): string =
   case p.kind
@@ -188,6 +193,36 @@ func `$`(qn: QueryNode): string =
     << qn.mark
 
   << qn.ident
+
+func `$`*(g: GraphList): string = 
+  let maxNamesLen = max (g.nodes ~> len it)
+
+  << '_'.repeat maxNamesLen
+  << '|'
+  
+  for b in g.nodes:
+    << b
+    << ' '.repeat maxNamesLen - b.len
+    << '|'
+  << '\n'
+
+  
+  for a in g.nodes:
+    << a
+    << ' '.repeat maxNamesLen - a.len
+    << '|'
+
+    for b in g.nodes:
+      let 
+        key = a .. b
+        n   = g.rels.getOrDefault(key).len
+        s   = $n
+
+      << s
+      << ' '.repeat maxNamesLen - s.len
+      << '|'
+
+    << '\n'  
 
 
 func cmd(ind: int, line: string): string =
@@ -385,6 +420,37 @@ func parseGql*(content: string): GqlNode =
       nested.add (n, ind)
 
 
+func nodeIndex[T](g: var GraphList[T], node: T): int = 
+  let i = g.nodes.find node.ident
+  if  i == notFound:
+    g.nodes.add node.ident
+    g.nodes.high
+  else:
+    i
+
+func addNode*[T](g: var GraphList[T], node: T) = 
+  discard g.nodeIndex node
+
+func addEdge[T](g: var GraphList[T], a, b, c: T) = 
+  g.rels[g.nodeIndex a.ident, g.nodeIndex b.ident].add c
+
+func addConn*[T](g: var GraphList[T], a, b, c: T) = 
+  g.addNode a
+  g.addNode b
+  g.addEdge a, b, c
+
+
+func nodesLen*[T](g: GraphList[T]): Natural = 
+  g.nodes.len
+
+func distinctEdges*[T](g: GraphList[T]): Natural = 
+  g.rels.len
+
+func allEdges*[T](g: GraphList[T]): Natural = 
+  for v in values g.rels:
+    result.inc v.len
+
+
 
 func preProcessRawSql(s: string): seq[SqlPatSep] =
   let parts = s.split '|'
@@ -527,14 +593,18 @@ func canMatch(pattern, query: QueryGraph): bool =
   pattern.allEdges      == query.allEdges      
 
 func matchImpl(pattern, query: QueryGraph, imap: var IdentMap): bool = 
-  discard
+  ## compute candidates. e.g. a=>{b, c}  b=>{c} c=>{b} 
+  
+  for i, n in pattern.nodes:
+    for j, m in query.nodes:
+      discard
+
 
 func matches(pattern, query: QueryGraph): Option[IdentMap] =
   if pattern.canMatch query:
     var temp = initIdentMap()
-    discard matchImpl(pattern, query, temp)
-
-    # return some temp
+    if matchImpl(pattern, query, temp):
+      return some temp
   
   when false:
     if pattern.len == query.len:

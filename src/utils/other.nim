@@ -77,6 +77,9 @@ template ignore*(body): untyped {.dirty.} =
 
 template `<<`*(thing): untyped {.dirty.} =
   add result, thing
+
+template `~>`*(lst, op): untyped =
+  thing.mapit op
   
 template iff*(cond, iftrue, iffalse): untyped =
   if cond: iftrue
