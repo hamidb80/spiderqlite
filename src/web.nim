@@ -14,28 +14,28 @@ proc gqlService(req: Request) =
 
 proc initRouter: Router = 
   with result:
-    get    "/",                                     interactiveApp
-    get    "/dist/",                                staticFiles
+    get    "/",                                interactiveApp
+    get    "/dist/",                           staticFiles
 
-    get    "/api/user/list/",                       apiDatabasesOfUser
-    get    "/api/user/login/",                      apiDatabasesOfUser
-    get    "/api/user/signup/",                     apiDatabasesOfUser
+    get    "/api/list_of_users/",                  apiDatabasesOfUser
+    get    "/api/login/",                 apiDatabasesOfUser
+    get    "/api/signup/",                apiDatabasesOfUser
     
-    post   "/api/database/new/",                    apiDatabasesOfUser
-    get    "/api/database/all/",                    apiDatabasesOfUser
-    get    "/api/database/<db>/stats/",             gqlService
-    post   "/api/database/<db>/query/",             gqlService
+    post   "/api/new_database/",                  apiDatabasesOfUser
+    get    "/api/all_databasese/",                  apiDatabasesOfUser
+    get    "/api/database_statistics/",  gqlService
+    post   "/api/query_database/",  gqlService
     
-    post   "/api/database/<db>/new/node/",          gqlService
-    post   "/api/database/<db>/new/edge/",          gqlService
-    put    "/api/database/<db>/edges/",             gqlService
-    put    "/api/database/<db>/nodes/",             gqlService
-    delete "/api/database/<db>/edges/",             gqlService
-    delete "/api/database/<db>/nodes/",             gqlService
+    post   "/api/new_node/",          gqlService
+    post   "/api/new_edge/",          gqlService
+    put    "/api/update_edges/",  gqlService
+    put    "/api/update_nodes/",  gqlService
+    delete "/api/delete_edges/",  gqlService
+    delete "/api/delete_nodes/",  gqlService
 
-    get    "/api/database/<db>/index/list/",        gqlService
-    post   "/api/database/<db>/index/new/",         gqlService
-    delete "/api/database/<db>/index/<indexname>/", gqlService
+    get    "/api/list_of_indexes/",  gqlService
+    post   "/api/new_index/",        gqlService
+    delete "/api/delete_index/"   ,  gqlService
 
 
 when isMainModule:
