@@ -12,30 +12,33 @@ proc gqlService(req: Request) =
   headers["Content-Type"] = "text/plain"
   req.respond(200, headers, "Hello, World!")
 
+
+
 proc initRouter: Router = 
   with result:
-    get    "/",                                interactiveApp
-    get    "/dist/",                           staticFiles
+    get    "/",                       interactiveApp
+    get    "/static/",                staticFiles
 
-    get    "/api/list_of_users/",                  apiDatabasesOfUser
-    get    "/api/login/",                 apiDatabasesOfUser
-    get    "/api/signup/",                apiDatabasesOfUser
+    get    "/api/users/",             apiDatabasesOfUser
+    get    "/api/user/",              apiDatabasesOfUser
+    get    "/api/login/",             apiDatabasesOfUser
+    get    "/api/signup/",            apiDatabasesOfUser
     
-    post   "/api/new_database/",                  apiDatabasesOfUser
-    get    "/api/all_databasese/",                  apiDatabasesOfUser
-    get    "/api/database_statistics/",  gqlService
-    post   "/api/query_database/",  gqlService
+    get    "/api/databases/",         apiDatabasesOfUser
+    post   "/api/database/",          apiDatabasesOfUser
+    get    "/api/database/stats/",    gqlService
+    post   "/api/database/query/",    gqlService
     
-    post   "/api/new_node/",          gqlService
-    post   "/api/new_edge/",          gqlService
-    put    "/api/update_edges/",  gqlService
-    put    "/api/update_nodes/",  gqlService
-    delete "/api/delete_edges/",  gqlService
-    delete "/api/delete_nodes/",  gqlService
+    post   "/api/database/node/",    gqlService
+    post   "/api/database/edge/",    gqlService
+    put    "/api/database/nodes/",    gqlService
+    put    "/api/database/edges/",    gqlService
+    delete "/api/database/nodes/",    gqlService
+    delete "/api/database/edges/",    gqlService
 
-    get    "/api/list_of_indexes/",  gqlService
-    post   "/api/new_index/",        gqlService
-    delete "/api/delete_index/"   ,  gqlService
+    get    "/api/database/indexes/",  gqlService
+    post   "/api/database/index/",    gqlService
+    delete "/api/database/index/",    gqlService
 
 
 when isMainModule:
