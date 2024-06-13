@@ -444,10 +444,7 @@ func addConn(g: var GraphList, a, b, c: QueryNode) =
   g.addEdge a, b, c
 
 
-func nodesLen(g: GraphList): Natural = 
-  g.nodes.len
-
-func allEdges(g: GraphList): Natural = 
+func countEdges(g: GraphList): Natural = 
   for i in 0..<g.rels.height:
     for j in 0..<g.rels.width:
       result.inc g.rels[i, j].len
@@ -595,9 +592,8 @@ func initIdentMap: IdentMap =
   toTable {".": "."}
 
 func canMatch(pattern, query: QueryGraph): bool =
-  pattern.nodesLen == query.nodesLen  and
-  pattern.allEdges == query.allEdges      
-
+  pattern.nodes.len  == query.nodes.len  and
+  pattern.countEdges == query.countEdges      
 
 func matchImpl(p, q: QueryGraph, i, j: Natural): bool = 
   let
@@ -606,6 +602,9 @@ func matchImpl(p, q: QueryGraph, i, j: Natural): bool =
   debugEcho a, b, a == b, ' ', i .. j
   a == b
 
+func selects(candidates: seq[seq[int]]): seq[seq[int]] = 
+  discard
+
 func matchImpl(p, q: QueryGraph, imap: var IdentMap): bool = 
   ## compute candidates. e.g. a=>{b, c}  b=>{c} c=>{b} 
   
@@ -613,7 +612,8 @@ func matchImpl(p, q: QueryGraph, imap: var IdentMap): bool =
 
   debugEcho p
   debugEcho q
-      
+
+  # ----- pre match
   for i, n in p.nodes:
     candidates.add @[]
     for j, m in q.nodes:
@@ -622,43 +622,17 @@ func matchImpl(p, q: QueryGraph, imap: var IdentMap): bool =
 
   debugEcho candidates
 
+  # ----- post match
+  for s in selects candidates:
+    if possible s:
+      return s
+
 func matches(pattern, query: QueryGraph): Option[IdentMap] =
   if pattern.canMatch query:
     var temp = initIdentMap()
     if matchImpl(pattern, query, temp):
        return some temp
   
-  when false:
-    if pattern.len == query.len:
-      for i, p in pattern:
-        let q = query[i]
-
-        if p.kind == q.kind:
-          case p.kind
-          of apkArrow:
-            if p.dir != q.dir:
-              return
-
-          of apkNode:
-            let 
-              pn = p.node
-              qn = q.node
-              
-            if pn.mode == qn.mode and
-              pn.mark == qn.mark:
-
-              if pn.ident in temp:
-                if temp[pn.ident] != qn.ident:
-                  return
-              else:
-                temp[pn.ident] = qn.ident
-
-            else:
-              return
-
-    debugEcho (pattern, query)
-    return some temp
-
 func resolveSql(node: GqlNode, name: string, varResolver): string {.effectsOf: varResolver.} = 
   case node.kind
   of gkInfix:       [
