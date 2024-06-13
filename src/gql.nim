@@ -137,9 +137,11 @@ type
     mode:   char   ## nothing, !, ?
     mark:   char   ## special prefix, is used to differentiate
 
-  GraphList  = object
-    nodes: seq[string]
-    rels:  Mat[seq[QueryNode]]
+  QueryGraph  = object
+    nodes:    seq[string]
+    iocounts: seq[IOcount]
+    rels:     Mat[seq[QueryNode]]
+
 
   SqlPatKind = enum
     sqkStr
@@ -154,14 +156,15 @@ type
       cmd: string
       args: seq[string]
 
-  QueryGraph = GraphList
-
   QueryStrategy = object
     pattern:    QueryGraph
     selectable: seq[string]
     sqlPattern: seq[SqlPatSep]
 
   AliasLookup = Table[string, GqlNode]
+
+  IOcount = tuple
+    inward, outward: Natural
 
 using 
   gn:          GqlNode
@@ -194,7 +197,7 @@ func `$`(qn: QueryNode): string =
 
   << qn.ident
 
-func `$`*(g: GraphList): string = 
+func `$`*(g: QueryGraph): string = 
   let maxNamesLen = max (g.nodes ~> len it)
 
   << '_'.repeat maxNamesLen
@@ -222,6 +225,8 @@ func `$`*(g: GraphList): string =
       << '|'
 
     << '\n'  
+
+  less result
 
 
 func cmd(ind: int, line: string): string =
@@ -342,7 +347,7 @@ func parseGql*(content: string): GqlNode =
     while not empty nested:
       let p = nested.last
       if p.indentLevel >= indent:
-        prune nested
+        less nested
       else:
         return p.node
 
@@ -419,10 +424,11 @@ func parseGql*(content: string): GqlNode =
       nested.add (n, ind)
 
 
-func nodeIndex(g: var GraphList, node: QueryNode): int = 
+func nodeIndex(g: var QueryGraph, node: QueryNode): int = 
   let i = g.nodes.find node.ident
   if  i == notFound:
-    g.nodes.add node.ident
+    g.nodes   .add  node.ident
+    g.iocounts.more 
 
     g.rels.addRow    @[]
     g.rels.addColumn @[]
@@ -432,29 +438,23 @@ func nodeIndex(g: var GraphList, node: QueryNode): int =
   else:
     i
 
-func addNode(g: var GraphList, node: QueryNode) = 
+func addNode(g: var QueryGraph, node: QueryNode) = 
   discard g.nodeIndex node
 
-func addEdge(g: var GraphList, a, b, c: QueryNode) = 
-  g.rels[g.nodeIndex a, g.nodeIndex b].add c
+func addEdge(g: var QueryGraph, a, b, c: QueryNode) = 
+  let 
+    i = g.nodeIndex a
+    j = g.nodeIndex b
 
-func addConn(g: var GraphList, a, b, c: QueryNode) = 
+  add g.rels[i, j], c
+  inc g.iocounts[i].outward
+  inc g.iocounts[j].inward 
+
+
+func addConn(g: var QueryGraph, a, b, c: QueryNode) = 
   g.addNode a
   g.addNode b
   g.addEdge a, b, c
-
-
-func countEdges(g: GraphList): Natural = 
-  for i in 0..<g.rels.height:
-    for j in 0..<g.rels.width:
-      result.inc g.rels[i, j].len
-
-func countEdges(g: GraphList, i: Natural): tuple[input, output: Natural] = 
-  for cell in g.rels.data[i]:
-    result.output.inc cell.len
-
-  for row in g.rels.data:
-    result.input.inc row[i].len
 
 func preProcessRawSql(s: string): seq[SqlPatSep] =
   let parts = s.split '|'
@@ -565,7 +565,12 @@ func parseQueryGraph(patts: seq[string]): QueryGraph =
         case t.kind
         of qpSingle: result.addNode t.node
         of qpMulti:  result.addConn t.travel.a, t.travel.b, t.travel.c
-
+  
+  ignore:
+    echo result
+    echo result.nodes
+    echo result.iocounts
+    echo ""
   # debugEcho patts
   # debugEcho $result
       
@@ -591,48 +596,76 @@ func parseQueryStrategies*(tv: TomlValueRef): seq[QueryStrategy] =
 func initIdentMap: IdentMap = 
   toTable {".": "."}
 
-func canMatch(pattern, query: QueryGraph): bool =
-  pattern.nodes.len  == query.nodes.len  and
-  pattern.countEdges == query.countEdges      
 
-func matchImpl(p, q: QueryGraph, i, j: Natural): bool = 
-  let
-    a = p.countEdges i
-    b = q.countEdges j
-  debugEcho a, b, a == b, ' ', i .. j
-  a == b
-
-func selects(candidates: seq[seq[int]]): seq[seq[int]] = 
-  discard
-
-func matchImpl(p, q: QueryGraph, imap: var IdentMap): bool = 
-  ## compute candidates. e.g. a=>{b, c}  b=>{c} c=>{b} 
+# iterator selects(candidates: seq[seq[int]]): seq[int] = 
+#   var 
+#     size   = len candidates
+#     limits = candidates ~> it.len
+#     states = candidates ~> 0
   
-  var candidates: seq[seq[int]] ## Table[int, seq[int]]
+#   while true:
+#     var chosen = candidates ~> false
+    
+#     # inc
+#     for i in 0..<size:
+#       if states[i] == limits[i]:
+#         states[i] = 0
+      
+#       else:
+#         inc states[i]
+#         break
 
-  debugEcho p
-  debugEcho q
+#     # inc states
+#     # repeat 
 
-  # ----- pre match
-  for i, n in p.nodes:
-    candidates.add @[]
-    for j, m in q.nodes:
-      if matchImpl(p, q, i, j):
-        candidates[^1].add j
+# func canMatch(pattern, query: QueryGraph): bool =
+#   pattern.nodes.len  == query.nodes.len  and
+#   pattern.countEdges == query.countEdges      
 
-  debugEcho candidates
+# func matchImpl(p, q: QueryGraph, i, j: Natural): bool = 
+#   let
+#     a = p.countEdges i
+#     b = q.countEdges j
+#   debugEcho a, b, a == b, ' ', i .. j
+#   a == b
+
+# func possible(p, q: QueryGraph, imapIndex: seq[int]): bool = 
+#   false
+
+# func matchImpl(p, q: QueryGraph): Option[IdentMap] = 
+#   ## compute candidates. e.g. a=>{b, c}  b=>{c} c=>{b} 
+  
+#   var candidates: seq[seq[int]] ## Table[int, seq[int]]
+
+#   debugEcho p
+#   debugEcho q
+
+#   # ----- pre match
+#   for i, n in p.nodes:
+#     candidates.add @[]
+#     for j, m in q.nodes:
+#       if matchImpl(p, q, i, j):
+#         candidates[^1].add j
+
+#   debugEcho candidates
 
   # ----- post match
-  for s in selects candidates:
-    if possible s:
-      return s
+  # for s in selects candidates:
+  #   if possible s:
+  #     return s
 
-func matches(pattern, query: QueryGraph): Option[IdentMap] =
-  if pattern.canMatch query:
-    var temp = initIdentMap()
-    if matchImpl(pattern, query, temp):
-       return some temp
-  
+
+func matchImpl(p, q: QueryGraph): Option[IdentMap] =
+  discard
+
+func canMatch(p, q: QueryGraph): bool = 
+  p.nodes.len == q.nodes.len
+
+func matches(p, q: QueryGraph): Option[IdentMap] =
+  if p.canMatch q:
+    if =??matchImpl(p, q): 
+      return it
+
 func resolveSql(node: GqlNode, name: string, varResolver): string {.effectsOf: varResolver.} = 
   case node.kind
   of gkInfix:       [

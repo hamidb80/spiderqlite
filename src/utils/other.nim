@@ -28,8 +28,11 @@ func last*[T](s: openArray[T]): T =
 func empty*[T: string or seq](s: T): bool = 
   0 == len s
 
-func prune*(s: var seq) = 
-  s.del s.high
+func less*[C: seq or string](s: var C) = 
+  s.setLen s.len - 1
+
+func more*(s: var seq) = 
+  s.setLen s.len + 1
 
 iterator rest*[T](s: seq[T]): T = 
   for i in 1..s.high:
@@ -84,3 +87,8 @@ template `~>`*(lst, op): untyped =
 template iff*(cond, iftrue, iffalse): untyped =
   if cond: iftrue
   else   : iffalse
+
+template `=??`*(optional): untyped =
+  var it {.inject.} = optional
+  issome it
+  
