@@ -1,4 +1,4 @@
-import std/[strutils, sequtils, tables, json, nre, sugar, strformat, algorithm]
+import std/[strutils, sequtils, tables, json, nre, sugar, strformat]
 import ./utils/[other, mat]
 
 import db_connector/db_sqlite
@@ -610,17 +610,10 @@ func similar(n, m: QueryNode): bool =
   n.mode == m.mode
 
 
-func `<=`(a, b: seq): bool = 
-  for c in a:
-    if c notin b:
-      return false
-  true
-
 func update(a: var IdentMap, b: IdentMap) = 
   for k, v in b:
     a[k] = v
 
-# TODO we must also match edge ident maps
 func evaluateCandidate(p, q: QueryGraph, candidates: seq[int]): Option[IdentMap] = 
   
 
@@ -1075,39 +1068,3 @@ func toSql*(gn; queryStrategies: seq[QueryStrategy], varResolver): SqlQuery {.ef
 
   raisee "no pattern was found"
 
-
-
-proc echoRows(db: DbConn, sql: SqlQuery, fout: File = stdout) = 
-  for row in db.getAllRows sql:
-    for cell in row:
-      fout.write:
-        try:
-          cell.parseJson.pretty 4
-        except:
-          cell
-      fout.write ", "
-    fout.write "\n"
-
-when isMainModule:
-  let
-    queryStrategies = parseQueryStrategies parseToml readfile "./examples/qs.toml"
-    ctx             = %*{"mtitle": "ZORRO ARK"}
-
-  for path in [
-    # "./test/sakila/get.gql",
-    "./test/sakila/get_agg.gql",
-    # "./test/sakila/simple1.gql",
-    # "./test/sakila/5cond.gql",
-    # "./test/sakila/get_ignore.gql",
-  ]:
-    let
-      parsedGql = parseGql readFile   path
-      graphDB   = openSqliteDB        "./graph.db"
-      sql       = toSql(
-        parsedGql, 
-        queryStrategies, 
-        s => $ctx[s])
-
-    echo   sql
-    # print  parsedGql
-    echoRows graphDB, sql
