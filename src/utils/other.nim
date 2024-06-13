@@ -63,6 +63,10 @@ func rev*[A, B](tab: Table[A, B]): Table[B, A] =
 proc openSqliteDB*(path: string): DbConn = 
   open path, "", "", ""
 
+iterator times*(n: int): int = 
+  for i in 0..<n:
+    yield i
+
 # templates ----------------------------------------
 
 template inspect*(a): untyped =

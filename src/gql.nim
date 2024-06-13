@@ -431,6 +431,8 @@ func infoLevel(n: QueryNode): int =
   if n.mode != invalidIndicator:
     inc result
   
+# func (g: var QueryGraph, ): int = 
+
 
 func nodeIndex(g: var QueryGraph, node: QueryNode): int = 
   let i = g.nodes.findit it.ident == node.ident
@@ -577,14 +579,6 @@ func parseQueryGraph(patts: seq[string]): QueryGraph =
         of qpSingle: result.addNode t.node
         of qpMulti:  result.addConn t.travel.a, t.travel.b, t.travel.c
   
-  ignore:
-    echo result
-    echo result.nodes
-    echo result.iocounts
-    echo ""
-  # debugEcho patts
-  # debugEcho $result
-      
 func parseQueryStrategy(pattern, selectable, query: string): QueryStrategy =
   QueryStrategy(
     pattern:    parseQueryGraph  splitLines pattern,
@@ -618,23 +612,69 @@ func similar(n, m: QueryNode): bool =
   n.mode == m.mode
 
 
+func `<=`(a, b: seq): bool = 
+  for c in a:
+    if c notin b:
+      return false
+  true
+
+func update(a: var IdentMap, b: IdentMap) = 
+  for k, v in b:
+    a[k] = v
+
 # TODO we must also match edge ident maps
-func evaluateCandidate(p, q: QueryGraph, candidates: seq[int]): bool = 
+func evaluateCandidate(p, q: QueryGraph, candidates: seq[int]): Option[IdentMap] = 
+  
+
   # check node's meta
   for i, j in candidates:
     let 
       n = p.nodes[i]
       m = q.nodes[j]
+    
     if not n.similar m:
-      return false
+      return 
 
   # check rels
-  for i, j in candidates:
-    let 
-      n = p.nodes[i]
-      m = q.nodes[j]
+  let 
+    h = p.rels.height
+    w = p.rels.width
+
+  var acc = initIdentMap()
   
-  true
+  for y in times h:
+    for x in times w:
+      let 
+        i  = candidates[y]
+        j  = candidates[x]
+
+      var
+        n = 0
+        m = 0
+        r1 = p.rels[y,x]
+        r2 = q.rels[i,j]
+
+      if r1.len != r2.len:
+        return
+    
+      while n < r1.len:
+        var found = false
+        
+        while m < r2.len:
+          if r1[0] .similar r2[m]:
+            acc[r1[0].ident] = r2[m].ident
+            del r1, 0
+            del r2, m
+            m = min(r2.high, m)
+            found = true
+            break
+          else:
+            inc m
+
+        if not found:
+          return
+
+  return some acc
 
 func hasDuplicated(imapIndex: seq[int]): bool = 
   var chosen = false *< imapIndex.len
@@ -647,47 +687,53 @@ func hasDuplicated(imapIndex: seq[int]): bool =
   
   false
 
+func select[T](c: seq[seq[T]], s: seq[int]): seq[T] = 
+  for i, x in s:
+    result.add c[i][x]
+
 iterator chooseCandidates(candidates: seq[seq[int]]): seq[int] = 
   var 
-    size   = len candidates
-    limits = candidates ~> it.len - 1
-    states = 0 *< size
-    cont   = true
+    size         = len candidates
+    indexLimits  = candidates ~> it.len - 1
+    indexes      = 0 *< size
+    cont         = true
   
-  debugEcho limits
   while cont:
-    debugEcho states
-    if not hasDuplicated states:
-      yield states
+    let cand = candidates.select indexes
+    
+    if not hasDuplicated cand:
+      yield cand
 
     # inc
     for i in 0..size:
       if i == size:
         cont = false
 
-      elif states[i] < limits[i]:
-        inc states[i]
+      elif indexes[i] < indexLimits[i]:
+        inc indexes[i]
         break
       
       else:
-        states[i] = 0
+        indexes[i] = 0
 
 func matchImpl(p, q: QueryGraph): Option[IdentMap] =
   var candidates: seq[seq[int]]
 
-  for i, n in p.nodes:
+  for i in times p.nodes.len:
     candidates.add @[]
 
-    for j, m in q.nodes:
+    for j in times q.nodes.len:
       if p.iocounts[i] == q.iocounts[j]:
         candidates[^1].add j
 
-  ignore:
-    print candidates
+  if candidates.anyit it.len == 0:
+    return
 
   for c in chooseCandidates candidates:
-    if evaluateCandidate(p, q, c):
-      return some identMapFromCandidates(p, q, c)
+    if edgeIdMap =? evaluateCandidate(p, q, c):
+      var acc = identMapFromCandidates(p, q, c)
+      acc.update edgeIdmap
+      return some acc
 
 func canMatch(p, q: QueryGraph): bool = 
   p.nodes.len == q.nodes.len
@@ -695,7 +741,6 @@ func canMatch(p, q: QueryGraph): bool =
 func matches(p, q: QueryGraph): Option[IdentMap] =
   if p.canMatch q:
     if =??matchImpl(p, q): 
-      debugEcho it
       return it
 
 func resolveSql(node: GqlNode, name: string, varResolver): string {.effectsOf: varResolver.} = 
@@ -1052,10 +1097,10 @@ when isMainModule:
 
   for path in [
     # "./test/sakila/get.gql",
-    # "./test/sakila/get_ignore.gql",
-    # "./test/sakila/get_agg.gql",
-    "./test/sakila/simple1.gql"
+    "./test/sakila/get_agg.gql",
+    # "./test/sakila/simple1.gql",
     # "./test/sakila/5cond.gql",
+    # "./test/sakila/get_ignore.gql",
   ]:
     let
       parsedGql = parseGql readFile   path

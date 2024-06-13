@@ -8,7 +8,9 @@
     |mtitle|
 
 match  
-  p>-a->^m
+  ^m<-a<-p
+
+-- p>-a->^m
 
 return
   p
