@@ -618,45 +618,21 @@ func initIdentMap: IdentMap =
 #     # inc states
 #     # repeat 
 
-# func canMatch(pattern, query: QueryGraph): bool =
-#   pattern.nodes.len  == query.nodes.len  and
-#   pattern.countEdges == query.countEdges      
-
-# func matchImpl(p, q: QueryGraph, i, j: Natural): bool = 
-#   let
-#     a = p.countEdges i
-#     b = q.countEdges j
-#   debugEcho a, b, a == b, ' ', i .. j
-#   a == b
-
 # func possible(p, q: QueryGraph, imapIndex: seq[int]): bool = 
 #   false
 
-# func matchImpl(p, q: QueryGraph): Option[IdentMap] = 
-#   ## compute candidates. e.g. a=>{b, c}  b=>{c} c=>{b} 
-  
-#   var candidates: seq[seq[int]] ## Table[int, seq[int]]
-
-#   debugEcho p
-#   debugEcho q
-
-#   # ----- pre match
-#   for i, n in p.nodes:
-#     candidates.add @[]
-#     for j, m in q.nodes:
-#       if matchImpl(p, q, i, j):
-#         candidates[^1].add j
-
-#   debugEcho candidates
-
-  # ----- post match
-  # for s in selects candidates:
-  #   if possible s:
-  #     return s
-
-
 func matchImpl(p, q: QueryGraph): Option[IdentMap] =
-  discard
+  var candidates: seq[seq[int]]
+
+  for i, n in p.nodes:
+    candidates.add @[]
+
+    for j, m in q.nodes:
+      if p.iocounts[i] == q.iocounts[j]:
+        candidates[^1].add j
+
+  ignore:
+    print candidates
 
 func canMatch(p, q: QueryGraph): bool = 
   p.nodes.len == q.nodes.len
@@ -1021,9 +997,9 @@ when isMainModule:
   for path in [
     # "./test/sakila/get.gql",
     # "./test/sakila/get_ignore.gql",
-    # "./test/sakila/get_agg.gql",
+    "./test/sakila/get_agg.gql",
     # "./test/sakila/simple1.gql"
-    "./test/sakila/5cond.gql",
+    # "./test/sakila/5cond.gql",
   ]:
     let
       parsedGql = parseGql readFile   path

@@ -3,7 +3,7 @@
 #movie    m
 
 match  
-  p>-a->*m
+  p>-a->^m
 
 AS
   len_actors
