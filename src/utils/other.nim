@@ -92,3 +92,13 @@ template `=??`*(optional): untyped =
   var it {.inject.} = optional
   issome it
   
+template `*<`*(val, n): untyped =
+  val.repeat n
+
+template findit*(s, cond): untyped =
+  var i = -1
+  for j, it {.inject.} in s:
+    if cond:
+      i = j 
+      break
+  i

@@ -138,7 +138,7 @@ type
     mark:   char   ## special prefix, is used to differentiate
 
   QueryGraph  = object
-    nodes:    seq[string]
+    nodes:    seq[QueryNode]
     iocounts: seq[IOcount]
     rels:     Mat[seq[QueryNode]]
 
@@ -198,21 +198,21 @@ func `$`(qn: QueryNode): string =
   << qn.ident
 
 func `$`*(g: QueryGraph): string = 
-  let maxNamesLen = max (g.nodes ~> len it)
+  let maxNamesLen = max (g.nodes ~> len it.ident)
 
   << '_'.repeat maxNamesLen
   << '|'
   
   for b in g.nodes:
-    << b
-    << ' '.repeat maxNamesLen - b.len
+    << b.ident
+    << ' '.repeat maxNamesLen - b.ident.len
     << '|'
   << '\n'
 
   
   for i, a in g.nodes:
-    << a
-    << ' '.repeat maxNamesLen - a.len
+    << a.ident
+    << ' '.repeat maxNamesLen - a.ident.len
     << '|'
 
     for j, b in g.nodes:
@@ -424,10 +424,18 @@ func parseGql*(content: string): GqlNode =
       nested.add (n, ind)
 
 
+func infoLevel(n: QueryNode): int =
+  if n.mark != invalidIndicator:
+    inc result
+  
+  if n.mode != invalidIndicator:
+    inc result
+  
+
 func nodeIndex(g: var QueryGraph, node: QueryNode): int = 
-  let i = g.nodes.find node.ident
+  let i = g.nodes.findit it.ident == node.ident
   if  i == notFound:
-    g.nodes   .add  node.ident
+    g.nodes   .add  node
     g.iocounts.more 
 
     g.rels.addRow    @[]
@@ -436,6 +444,9 @@ func nodeIndex(g: var QueryGraph, node: QueryNode): int =
     g.nodes.high
 
   else:
+    # e.g. replace ^m with m
+    if g.nodes[i].infoLevel < node.infoLevel:
+      g.nodes[i] = node
     i
 
 func addNode(g: var QueryGraph, node: QueryNode) = 
@@ -594,28 +605,49 @@ func parseQueryStrategies*(tv: TomlValueRef): seq[QueryStrategy] =
 
 
 func initIdentMap: IdentMap = 
-  toTable {".": "."}
+  result["."] = "."
 
+func identMapFromCandidates(p, q: QueryGraph, candidates: seq[int]): IdentMap = 
+  result = initIdentMap()
 
-func evaluateCandidateList(p, q: QueryGraph, imapIndex: seq[int]): bool = 
+  for i, j in candidates:
+    result[p.nodes[i].ident] = q.nodes[j].ident
+
+# TODO we must also match edge ident maps
+func evaluateCandidate(p, q: QueryGraph, candidates: seq[int]): bool = 
+  true
+  # check meta
+  # for i, j in candidates:
+    # p.nodes.
+
+func hasDuplicated(imapIndex: seq[int]): bool = 
+  var chosen = false *< imapIndex.len
+
+  for i, j in imapIndex:
+    if chosen[j]:
+      return true
+    else:
+      chosen[j] = true
+  
   false
 
-iterator selectFromCandidates(candidates: seq[seq[int]]): seq[int] = 
+iterator chooseCandidates(candidates: seq[seq[int]]): seq[int] = 
   var 
     size   = len candidates
     limits = candidates ~> it.len
-    states = candidates ~> 0
+    states = 0 *< size
+    cont   = true
   
-  while true:
-    var chosen = candidates ~> false
-
-    # evaluating candidates
-    if evaluateCandidateList(p, q, states):
+  while cont:
+    if not hasDuplicated states:
       yield states
 
     # inc
-    for i in 0..<size:
-      if states[i] == limits[i]:
+    for i in 0..size:
+      if i == size:
+        cont = false
+
+      elif states[i] == limits[i]:
         states[i] = 0
       
       else:
@@ -635,12 +667,17 @@ func matchImpl(p, q: QueryGraph): Option[IdentMap] =
   ignore:
     print candidates
 
+  for c in chooseCandidates candidates:
+    if evaluateCandidate(p, q, c):
+      return some identMapFromCandidates(p, q, c)
+
 func canMatch(p, q: QueryGraph): bool = 
   p.nodes.len == q.nodes.len
 
 func matches(p, q: QueryGraph): Option[IdentMap] =
   if p.canMatch q:
     if =??matchImpl(p, q): 
+      debugEcho it
       return it
 
 func resolveSql(node: GqlNode, name: string, varResolver): string {.effectsOf: varResolver.} = 
@@ -998,8 +1035,8 @@ when isMainModule:
   for path in [
     # "./test/sakila/get.gql",
     # "./test/sakila/get_ignore.gql",
-    "./test/sakila/get_agg.gql",
-    # "./test/sakila/simple1.gql"
+    # "./test/sakila/get_agg.gql",
+    "./test/sakila/simple1.gql"
     # "./test/sakila/5cond.gql",
   ]:
     let
