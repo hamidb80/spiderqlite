@@ -613,12 +613,28 @@ func identMapFromCandidates(p, q: QueryGraph, candidates: seq[int]): IdentMap =
   for i, j in candidates:
     result[p.nodes[i].ident] = q.nodes[j].ident
 
+func similar(n, m: QueryNode): bool = 
+  n.mark == m.mark and
+  n.mode == m.mode
+
+
 # TODO we must also match edge ident maps
 func evaluateCandidate(p, q: QueryGraph, candidates: seq[int]): bool = 
+  # check node's meta
+  for i, j in candidates:
+    let 
+      n = p.nodes[i]
+      m = q.nodes[j]
+    if not n.similar m:
+      return false
+
+  # check rels
+  for i, j in candidates:
+    let 
+      n = p.nodes[i]
+      m = q.nodes[j]
+  
   true
-  # check meta
-  # for i, j in candidates:
-    # p.nodes.
 
 func hasDuplicated(imapIndex: seq[int]): bool = 
   var chosen = false *< imapIndex.len
@@ -634,11 +650,13 @@ func hasDuplicated(imapIndex: seq[int]): bool =
 iterator chooseCandidates(candidates: seq[seq[int]]): seq[int] = 
   var 
     size   = len candidates
-    limits = candidates ~> it.len
+    limits = candidates ~> it.len - 1
     states = 0 *< size
     cont   = true
   
+  debugEcho limits
   while cont:
+    debugEcho states
     if not hasDuplicated states:
       yield states
 
@@ -647,12 +665,12 @@ iterator chooseCandidates(candidates: seq[seq[int]]): seq[int] =
       if i == size:
         cont = false
 
-      elif states[i] == limits[i]:
-        states[i] = 0
-      
-      else:
+      elif states[i] < limits[i]:
         inc states[i]
         break
+      
+      else:
+        states[i] = 0
 
 func matchImpl(p, q: QueryGraph): Option[IdentMap] =
   var candidates: seq[seq[int]]
