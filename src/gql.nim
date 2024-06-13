@@ -431,8 +431,6 @@ func infoLevel(n: QueryNode): int =
   if n.mode != invalidIndicator:
     inc result
   
-# func (g: var QueryGraph, ): int = 
-
 
 func nodeIndex(g: var QueryGraph, node: QueryNode): int = 
   let i = g.nodes.findit it.ident == node.ident

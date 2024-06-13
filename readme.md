@@ -1,8 +1,8 @@
 # SpiderQlite
 
-SpiderQliteSpiderQL is a query abstraction library over SQL.
+SpiderQlite is a query abstraction library.
 
-the goal is also being a light weight database server
+the goal is also being a light weight database server too.
 
 
 <p align="center">
@@ -11,13 +11,11 @@ the goal is also being a light weight database server
 
 
 ## History
-
 I wanted a BaaS (Backend as a service) but I've given up on that.
 
 
 ## Useful links
 - https://www.delphitools.info/2021/06/17/sqlite-as-a-no-sql-database/
-  
 - https://www.sqlitetutorial.net/sqlite-index/sqlite-drop-index/
 - https://database.guide/list-indexes-in-sqlite-database/
 - https://stackoverflow.com/questions/12526194/mysql-inner-join-select-only-one-row-from-second-table
@@ -28,6 +26,8 @@ I wanted a BaaS (Backend as a service) but I've given up on that.
 - https://github.com/arturo-lang/grafito/
 - https://github.com/webbery/gqlite
 - https://github.com/dpapathanasiou/simple-graph
+- CouchDB
+- Neo4j
 
 ## Sample Databases
 - https://www.sqlitetutorial.net/sqlite-sample-database/
