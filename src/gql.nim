@@ -597,29 +597,30 @@ func initIdentMap: IdentMap =
   toTable {".": "."}
 
 
-# iterator selects(candidates: seq[seq[int]]): seq[int] = 
-#   var 
-#     size   = len candidates
-#     limits = candidates ~> it.len
-#     states = candidates ~> 0
+func evaluateCandidateList(p, q: QueryGraph, imapIndex: seq[int]): bool = 
+  false
+
+iterator selectFromCandidates(candidates: seq[seq[int]]): seq[int] = 
+  var 
+    size   = len candidates
+    limits = candidates ~> it.len
+    states = candidates ~> 0
   
-#   while true:
-#     var chosen = candidates ~> false
-    
-#     # inc
-#     for i in 0..<size:
-#       if states[i] == limits[i]:
-#         states[i] = 0
+  while true:
+    var chosen = candidates ~> false
+
+    # evaluating candidates
+    if evaluateCandidateList(p, q, states):
+      yield states
+
+    # inc
+    for i in 0..<size:
+      if states[i] == limits[i]:
+        states[i] = 0
       
-#       else:
-#         inc states[i]
-#         break
-
-#     # inc states
-#     # repeat 
-
-# func possible(p, q: QueryGraph, imapIndex: seq[int]): bool = 
-#   false
+      else:
+        inc states[i]
+        break
 
 func matchImpl(p, q: QueryGraph): Option[IdentMap] =
   var candidates: seq[seq[int]]

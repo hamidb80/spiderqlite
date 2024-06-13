@@ -1,6 +1,9 @@
 # SpiderQlite
 
-An abstraction layer over sql and a DBaaS.
+SpiderQliteSpiderQL is a query abstraction library over SQL.
+
+the goal is also being a light weight database server
+
 
 <p align="center">
   <img src="./assets/logo.png" alt="spiderQlite Logo" width="300px">
