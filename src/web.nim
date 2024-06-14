@@ -27,7 +27,7 @@ proc askQuery(req: Request) {.gcsafe.} =
     tprepare        = getMonoTime()
     db              = openSqliteDB    "./temp/graph.db"
     topenDb         = getMonoTime()
-    sql             = toSql(
+    sql             = toSqlComplete(
       gql, 
       defaultQueryStrategies(), 
       s => $ctx[s])

@@ -1060,14 +1060,21 @@ func replaceAliases(gn) =
   if gAlias =? gn.findNode gkAlias:
     replaceDeep gn, replLookup gAlias
 
-func toSql*(gn; queryStrategies: seq[QueryStrategy], varResolver): SqlQuery {.effectsOf: varResolver.} =
+func prepareGQuery(gn) = 
   replaceAliases gn
 
+func findCorrespondingPattern(gn; queryStrategies: seq[QueryStrategy]): tuple[qs: QueryStrategy, imap: IdentMap] = 
   for qs in queryStrategies:
     if identMap =? matches(gn.askedQuery, qs.pattern):
       if (gn.getTake.selects.map identMap) <= qs.selectable:
-        result = sql resolve(qs.sqlPattern, identMap, gn, varResolver)
-        return
-
+        return (qs, identMap)
+        
   raisee "no pattern was found"
 
+func toSql(gn; qs: QueryStrategy, imap; varResolver): SqlQuery {.effectsOf: varResolver.} =
+  sql resolve(qs.sqlPattern, imap, gn, varResolver)
+
+func toSqlComplete*(gn; queryStrategies: seq[QueryStrategy], varResolver): SqlQuery {.effectsOf: varResolver.} = 
+  prepareGQuery gn
+  let p = findCorrespondingPattern(gn, queryStrategies)
+  toSql(gn, p.qs, p.imap, varResolver)
