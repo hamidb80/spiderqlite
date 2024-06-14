@@ -20,11 +20,12 @@ proc defaultQueryStrategies: seq[QueryStrategy] =
 
 proc askQuery(req: Request) {.gcsafe.} =
   let 
-    thead = getMonoTime()
+    thead           = getMonoTime()
     j               = parseJson req.body
+    ctx             = j["context"]
+    tparsejson      = getMonoTime()
     gql             = parseGql  getstr  j["query"]
-    ctx             =                   j["context"]
-    tprepare        = getMonoTime()
+    tparseq         = getMonoTime()
     db              = openSqliteDB    "./temp/graph.db"
     topenDb         = getMonoTime()
     sql             = toSqlComplete(
@@ -52,11 +53,14 @@ proc askQuery(req: Request) {.gcsafe.} =
     add "\"total\":"
     add $inMicroseconds(tcollect - thead)
     add ','
-    add "\"prepare\":"
-    add $inMicroseconds(tprepare - thead)
+    add "\"parse body\":"
+    add $inMicroseconds(tparsejson - thead)
+    add ','
+    add "\"parse query\":"
+    add $inMicroseconds(tparseq - tparsejson)
     add ','
     add "\"openning db\":"
-    add $inMicroseconds(topenDb - tprepare)
+    add $inMicroseconds(topenDb - tparseq)
     add ','
     add "\"query matching & conversion\":"
     add $inMicroseconds(tquery - topenDb)
