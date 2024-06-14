@@ -1,4 +1,4 @@
-import std/[json, strformat, with, os, strutils, sugar]
+import std/[json, strformat, with, os, strutils, sugar, monotimes, times]
 
 import db_connector/db_sqlite
 import mummy, mummy/routers
@@ -11,32 +11,63 @@ import ./utils/other
 proc staticFiles(req: Request) =
   discard
 
+
+let queryStrategies {.global.} = parseQueryStrategies parseToml readfile "./examples/qs.toml"
+
+proc defaultQueryStrategies: seq[QueryStrategy] =
+  ignore:
+    return queryStrategies
+
 proc askQuery(req: Request) {.gcsafe.} =
   let 
-    queryStrategies = parseQueryStrategies parseToml readfile "./examples/qs.toml"
-    j               = req.body.parseJson
-    gql             = parseGql getstr  j["query"]
-    ctx             =                  j["context"]
-    singleColumn    =          getBool j["singleColumn"]
+    thead = getMonoTime()
+    j               = parseJson req.body
+    gql             = parseGql  getstr  j["query"]
+    ctx             =                   j["context"]
+    tprepare        = getMonoTime()
     db              = openSqliteDB    "./temp/graph.db"
-  
-    sql = toSql(
+    topenDb         = getMonoTime()
+    sql             = toSql(
       gql, 
-      queryStrategies, 
+      defaultQueryStrategies(), 
       s => $ctx[s])
+    tquery          = getMonoTime()
 
   # echo sql
 
-  var resj = newJArray()
-  for row in db.getAllRows sql:
-    if singleColumn:
-      resj.add parseJson row[0]
-    else:
-      var rowj = newJArray()
-      for cell in row:
-        rowj.add parseJson cell
-      resj.add rowj
-  req.respond 200, emptyHttpHeaders(), $resj
+  var acc = "{\"result\": ["
+  for row in db.fastRows sql:
+    acc.add row[0]
+    acc.add ','
+  acc.less
+  acc.add ']'
+
+  let tcollect = getMonoTime()
+
+  with acc:
+    add ','
+    add "\"performance\":{"
+    add "\"unit\": \"us\""
+    add ','
+    add "\"total\":"
+    add $inMicroseconds(tcollect - thead)
+    add ','
+    add "\"prepare\":"
+    add $inMicroseconds(tprepare - thead)
+    add ','
+    add "\"openning db\":"
+    add $inMicroseconds(topenDb - tprepare)
+    add ','
+    add "\"query matching & conversion\":"
+    add $inMicroseconds(tquery - topenDb)
+    add ','
+    add "\"exec & collect\":"
+    add $inMicroseconds(tcollect - tquery)
+    add '}'
+    add '}'
+
+  close db
+  req.respond 200, emptyHttpHeaders(), acc
 
 proc gqlService(req: Request) =
   var headers: HttpHeaders

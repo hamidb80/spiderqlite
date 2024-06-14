@@ -137,7 +137,7 @@ type
     mode:   char   ## nothing, !, ?
     mark:   char   ## special prefix, is used to differentiate
 
-  QueryGraph  = object
+  QueryGraph  = ref object
     nodes:    seq[QueryNode]
     iocounts: seq[IOcount]
     rels:     Mat[seq[QueryNode]]
@@ -156,7 +156,7 @@ type
       cmd: string
       args: seq[string]
 
-  QueryStrategy = object
+  QueryStrategy* = ref object
     pattern:    QueryGraph
     selectable: seq[string]
     sqlPattern: seq[SqlPatSep]
@@ -570,6 +570,8 @@ func sepQuery(qc: QueryChain): seq[QueryPart] =
     of 1 .. 4: discard
 
 func parseQueryGraph(patts: seq[string]): QueryGraph =
+  result = QueryGraph()
+  
   for p in patts:
     if not isEmptyOrWhitespace p:
       for t in sepQuery lexQuery p:
@@ -909,8 +911,8 @@ func getTake(gn): GqlNode =
 
 func getGroup(gn): Option[GqlNode] = 
   findNode gn, gkGroupBy
-  
-  
+
+
 func toSqlSelectImpl(gn): string = 
   if gn.kind == gkIdent and gn.children.len == 0: 
     sqlJsonExpr gn.sval
