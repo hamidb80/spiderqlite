@@ -14,7 +14,7 @@ proc staticFiles(req: Request) =
 
 let queryStrategies {.global.} = parseQueryStrategies parseToml readfile "./examples/qs.toml"
 
-proc defaultQueryStrategies: seq[QueryStrategy] =
+proc defaultQueryStrategies: QueryStrategies =
   ignore:
     return queryStrategies
 
@@ -28,7 +28,7 @@ proc askQuery(req: Request) {.gcsafe.} =
     tparseq         = getMonoTime()
     db              = openSqliteDB    "./temp/graph.db"
     topenDb         = getMonoTime()
-    sql             = toSqlComplete(
+    sql             = toSql(
       gql, 
       defaultQueryStrategies(), 
       s => $ctx[s])
@@ -37,10 +37,14 @@ proc askQuery(req: Request) {.gcsafe.} =
   # echo sql
 
   var acc = "{\"result\": ["
+  
   for row in db.fastRows sql:
     acc.add row[0]
     acc.add ','
-  acc.less
+
+  if acc[^1] == ',': # check for 0 results
+    acc.less
+    
   acc.add ']'
 
   let tcollect = getMonoTime()
@@ -94,8 +98,8 @@ proc initRouter: Router =
     # get    "/api/database/stats/",    gqlService
     post   "/api/database/query/",    askQuery
     
-    post   "/api/database/node/",    gqlService
-    post   "/api/database/edge/",    gqlService
+    post   "/api/database/node/",     gqlService
+    post   "/api/database/edge/",     gqlService
     put    "/api/database/nodes/",    gqlService
     put    "/api/database/edges/",    gqlService
     delete "/api/database/nodes/",    gqlService

@@ -161,6 +161,9 @@ type
     selectable: seq[string]
     sqlPattern: seq[SqlPatSep]
 
+  QueryStrategies* = ref object
+    collection*: seq[QueryStrategy]
+
   AliasLookup = Table[string, GqlNode]
 
   IOcount = tuple
@@ -310,7 +313,6 @@ func parseCallToJsonArrayGroup (): GqlNode =
     children: @[
       GqlNode(kind: gkIdent, sval: "json_group_array")])
 
-
 func parseVar        (line: string): GqlNode =
   GqlNode(
     kind: gkVar, 
@@ -423,6 +425,9 @@ func parseGql*(content: string): GqlNode =
       parent.children.add n
       nested.add (n, ind)
 
+func `$`(gn): string = 
+  raisee "TODO"
+
 
 func infoLevel(n: QueryNode): int =
   if n.mark != invalidIndicator:
@@ -430,7 +435,7 @@ func infoLevel(n: QueryNode): int =
   
   if n.mode != invalidIndicator:
     inc result
-  
+
 
 func nodeIndex(g: var QueryGraph, node: QueryNode): int = 
   let i = g.nodes.findit it.ident == node.ident
@@ -595,8 +600,9 @@ proc parseToml*(s: string): TomlValueRef =
   ignore:
     parseToml.parseString s
 
-func parseQueryStrategies*(tv: TomlValueRef): seq[QueryStrategy] =
-  tv["q"].getElems.map parseQueryStrategy
+func parseQueryStrategies*(tv: TomlValueRef): QueryStrategies =
+  QueryStrategies(
+    collection: tv["q"].getElems.map parseQueryStrategy)
 
 
 func initIdentMap: IdentMap = 
@@ -1063,18 +1069,18 @@ func replaceAliases(gn) =
 func prepareGQuery(gn) = 
   replaceAliases gn
 
-func findCorrespondingPattern(gn; queryStrategies: seq[QueryStrategy]): tuple[qs: QueryStrategy, imap: IdentMap] = 
-  for qs in queryStrategies:
+func findCorrespondingPattern(gn; queryStrategies: QueryStrategies): tuple[qs: QueryStrategy, imap: IdentMap] = 
+  for qs in queryStrategies.collection:
     if identMap =? matches(gn.askedQuery, qs.pattern):
       if (gn.getTake.selects.map identMap) <= qs.selectable:
         return (qs, identMap)
         
   raisee "no pattern was found"
 
-func toSql(gn; qs: QueryStrategy, imap; varResolver): SqlQuery {.effectsOf: varResolver.} =
+func toSqlImpl(gn; qs: QueryStrategy, imap; varResolver): SqlQuery {.effectsOf: varResolver.} =
   sql resolve(qs.sqlPattern, imap, gn, varResolver)
 
-func toSqlComplete*(gn; queryStrategies: seq[QueryStrategy], varResolver): SqlQuery {.effectsOf: varResolver.} = 
+func toSql*(gn; queryStrategies: QueryStrategies, varResolver): SqlQuery {.effectsOf: varResolver.} = 
   prepareGQuery gn
   let p = findCorrespondingPattern(gn, queryStrategies)
-  toSql(gn, p.qs, p.imap, varResolver)
+  toSqlImpl gn, p.qs, p.imap, varResolver
