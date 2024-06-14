@@ -590,7 +590,8 @@ func parseQueryStrategy(tv: TomlValueRef): QueryStrategy =
     dedent getStr tv["query"])
 
 proc parseToml*(s: string): TomlValueRef =
-  parseToml.parseString s
+  ignore:
+    parseToml.parseString s
 
 func parseQueryStrategies*(tv: TomlValueRef): seq[QueryStrategy] =
   tv["q"].getElems.map parseQueryStrategy
