@@ -68,7 +68,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
           s => $ctx[s])
         tquery          = getMonoTime()
 
-
+      debugEcho sql
       var rows = 0
       var acc = newStringOfCap 1024 * 100 # 100 KB
       acc.add "{\"result\": ["
@@ -118,13 +118,16 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
 
     proc getEntity(req: Request, def, ret: string) =
       let
+        thead           = getMonoTime()
         id    = parseInt     req.queryParams["id"]
         db    = openSqliteDB app.config.storage.appDbFile
         query = resolve(app.systemSqlQueries[def], [ret, $id])
         row   = db.getRow sql query
+        tdone           = getMonoTime()
 
       close db
       req.respond 200, emptyHttpHeaders(), row[0]
+      debugEcho inMicroseconds(tdone - thead), "us"
 
     proc getNode(req: Request) =
       getEntity req, "get_node", sqlJsonNodeExpr "" 
@@ -135,6 +138,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
     # TODO add minimal option if enables only returns "id"
     proc insertNode(req: Request) =
       let
+        thead           = getMonoTime()
         j      = parseJson req.body
         tag    = parseTag getstr j["tag"]
         doc    =                $j["doc"]
@@ -144,12 +148,15 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         ])
         db     = openSqliteDB app.config.storage.appDbFile
         id     = db.insertID sql query
+        tdone           = getMonoTime()
 
       close db
+      debugEcho inMicroseconds(tdone - thead), "us"
       req.respond 200, emptyHttpHeaders(), jsonId id
 
     proc insertEdge(req: Request) =
       let
+        thead           = getMonoTime()
         j      = parseJson req.body
         tag    = parseTag getstr j["tag"]
         source =          getInt j["source"]
@@ -163,8 +170,10 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         ])
         db     = openSqliteDB app.config.storage.appDbFile
         id     = db.insertID sql query
+        tdone           = getMonoTime()
 
       close db
+      debugEcho inMicroseconds(tdone - thead), "us"
       req.respond 200, emptyHttpHeaders(), jsonId id
 
 
@@ -238,7 +247,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
       get    "/api/database/edge/",     getEdge
 
       post   "/api/database/node/",     insertNode
-      post   "/api/database/node/",     insertEdge
+      post   "/api/database/edge/",     insertEdge
 
       put    "/api/database/nodes/",    updateNodes
       put    "/api/database/nodes/",    updateEdges

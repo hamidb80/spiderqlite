@@ -750,24 +750,43 @@ func matches(p, q: QueryGraph): Option[IdentMap] =
     if =??matchImpl(p, q): 
       return it
 
-func resolveSql(node: GqlNode, name: string, varResolver): string {.effectsOf: varResolver.} = 
+
+func fieldAccessOf(s: string): string {.inline.} = 
+  if s == "": ""      # anonymous
+  else:       s & '.' # named
+
+func sqlJsonNodeExpr*(s: string): string = 
+  let fi = fieldAccessOf s
+  """ ('{ "id"  :' || """ & fi & """id  ||     """ &
+  """  ', "tag" :"'|| """ & fi & """tag ||     """ &
+  """ '", "doc":'  || """ & fi & """doc || '}')"""
+
+func sqlJsonEdgeExpr*(s: string): string = 
+  let fi = fieldAccessOf s
+  """ ('{ "id"  :'   || """ & fi & """id     || """ &
+  """  ', "tag" :"'  || """ & fi & """tag    || """ &
+  """ '", "source":' || """ & fi & """source || """ &
+  """  ', "target":' || """ & fi & """target || """ &
+  """  ', "doc":'    || """ & fi & """doc    || '}')"""
+
+func resolveSql(node: GqlNode, mode: string, name: string, varResolver): string {.effectsOf: varResolver.} = 
   case node.kind
   of gkInfix:       [
-    resolveSql(node.children[1], name, varResolver), 
-    resolveSql(node.children[0], name, varResolver), 
-    resolveSql(node.children[2], name, varResolver)].join " "
+    resolveSql(node.children[1], mode, name, varResolver), 
+    resolveSql(node.children[0], mode, name, varResolver), 
+    resolveSql(node.children[2], mode, name, varResolver)].join " "
 
   of gkPrefix:     
     let s = node.children[0].sval
     case s
     of  "$": 
       "'' || " & 
-      resolveSql(node.children[1], name, varResolver)
+      resolveSql(node.children[1], mode, name, varResolver)
 
     else: 
-      resolveSql(node.children[0], name, varResolver) &
+      resolveSql(node.children[0], mode, name, varResolver) &
       " " & 
-      resolveSql(node.children[1], name, varResolver)
+      resolveSql(node.children[1], mode, name, varResolver)
 
   of gkStrLit:   ["'", node.sval, "'"].join "" #FIXME SQL injection
   of gkIntLit:   $node.ival
@@ -781,35 +800,41 @@ func resolveSql(node: GqlNode, name: string, varResolver): string {.effectsOf: v
   of gkIdent:     
     let s = node.sval
     case node.children.len
-    of 0: s
-    else: resolveSql(node.children[0], s, varResolver)
+    of 0: 
+      if mode == "select": "json(" & sqlJsonNodeExpr(s) & ")"
+      else: s
+    of 1: # field acceses
+      resolveSql(node.children[0], mode, s, varResolver)
+    else:
+      raisee "invalid ident with children count of: " & $node.children.len
   
   of gkCall: 
       node.children[0].sval & 
       '(' & 
-      node.children.rest.mapit(resolveSql(it, name, varResolver)).join(", ") &
+      node.children.rest.mapit(resolveSql(it, mode, name, varResolver)).join(", ") &
       ')'
 
   of gkFieldAccess:
-      let f = resolveSql(node.children[0], name, varResolver)
+      let f = resolveSql(node.children[0], "normal", name, varResolver)
       case f
-      of "id", "tag", "doc": fmt"{name}.{f}"
-      else:                  fmt"json_extract({name}.doc, '$.{f}')"
+      of "id", "tag": fmt"{name}.{f}"
+      of "doc":       fmt"json({name}.{f})"
+      else:           fmt"json_extract({name}.doc, '$.{f}')"
 
   of gkCase:
     "CASE " & 
-    node.children.mapIt(resolveSql(it, name, varResolver)).join(" ") & 
+    node.children.mapIt(resolveSql(it, mode, name, varResolver)).join(" ") & 
     " END"
 
   of gkWhen:
     "WHEN " & 
-    resolveSql(node.children[0], name, varResolver) & 
+    resolveSql(node.children[0], mode, name, varResolver) & 
     " THEN " &
-    resolveSql(node.children[1], name, varResolver)
+    resolveSql(node.children[1], mode, name, varResolver)
 
   of gkElse:
     "ELSE " & 
-    resolveSql(node.children[0], name, varResolver)
+    resolveSql(node.children[0], mode, name, varResolver)
 
   else: 
     raisee fmt"cannot convert the node type {node.kind} to SQL code"
@@ -829,7 +854,7 @@ func sqlCondsOfNode(gn; imap; node: string, varResolver): string {.effectsOf: va
         result.add fmt"({inode}.tag == '{tag}'"
         
         if hasConds:
-          result.add " AND (" & resolveSql(n.children[2], inode, varResolver) & ")"
+          result.add " AND (" & resolveSql(n.children[2], "normal", inode, varResolver) & ")"
 
         result.add ")"
         return
@@ -861,7 +886,7 @@ func sqlCondsOfEdge(gn; imap; edge, source, target: string, varResolver): string
           acc.add fmt"{iedge}.target={itar}.id"
         
         if hasConds:
-          acc.add fmt"({resolveSql(n.children[2], iedge, varResolver)})"
+          acc.add fmt"""({resolveSql(n.children[2], "", iedge, varResolver)})"""
 
         result.add "("
         result.add acc.join " AND "
@@ -870,24 +895,6 @@ func sqlCondsOfEdge(gn; imap; edge, source, target: string, varResolver): string
 
     else: discard
   raisee fmt"the node '{edge}' not found in query"
-
-func fieldAccessOf(s: string): string {.inline.} = 
-  if s == "": ""      # anonymous
-  else:       s & '.' # named
-
-func sqlJsonNodeExpr*(s: string): string = 
-  let fi = fieldAccessOf s
-  """ ('{ "id"  :' || """ & fi & """id  ||     """ &
-  """  ', "tag" :"'|| """ & fi & """tag ||     """ &
-  """ '", "doc":'  || """ & fi & """doc || '}')"""
-
-func sqlJsonEdgeExpr*(s: string): string = 
-  let fi = fieldAccessOf s
-  """ ('{ "id"  :'   || """ & fi & """id     || """ &
-  """  ', "tag" :"'  || """ & fi & """tag    || """ &
-  """ '", "source":' || """ & fi & """source || """ &
-  """  ', "target":' || """ & fi & """target || """ &
-  """  ', "doc":'    || """ & fi & """doc    || '}')"""
 
 
 func findIdents(gn; result: var seq[string]) =
@@ -940,13 +947,11 @@ func getGroup(gn): Option[GqlNode] =
 
 
 func toSqlSelectImpl(gn): string = 
-  if gn.kind == gkIdent and gn.children.len == 0: 
-    sqlJsonNodeExpr gn.sval
-  else:       
-    resolveSql gn, "???", s => "!!!"
+  resolveSql gn, "select", "???", s => "!!!"
 
 func toSqlSelect(take: GqlNode, imap): string = 
   deepIdentReplace take, imap
+  debugEcho imap
   take
     .children
     .map(toSqlSelectImpl)
@@ -996,7 +1001,7 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
             let temp = 
               g
               .children
-              .mapIt(it.resolveSql("???", s => "!!!"))
+              .mapIt(it.resolveSql("???", "", s => "!!!"))
               .join ", "
             
             "GROUP BY " & temp
@@ -1010,7 +1015,7 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
             let temp = 
               g
               .children[0]
-              .resolveSql("???", s => "!!!")
+              .resolveSql("???", "", s => "!!!")
             
             "HAVING " & temp
 
@@ -1029,7 +1034,7 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
             
 
             for i, ch in g.children:
-              var temp = ch.resolveSql("???", s => "!!!")
+              var temp = ch.resolveSql("???", "", s => "!!!")
               if issome s:
                 temp.add ' '
                 temp.add s.get[i]
