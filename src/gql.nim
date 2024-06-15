@@ -603,7 +603,7 @@ proc parseToml*(s: string): TomlValueRef =
 
 func parseQueryStrategies*(tv: TomlValueRef): QueryStrategies =
   QueryStrategies(
-    collection: tv["q"].getElems.map parseQueryStrategy)
+    collection: tv["queries"].getElems.map parseQueryStrategy)
 
 
 func initIdentMap: IdentMap = 

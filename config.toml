@@ -1,4 +1,21 @@
-[schema]
+[meta]
+author   = "@hamidb80"
+desc     = '''
+'''
+
+[config]
+[config.frontend]
+enabled  = true
+
+[config.server]
+host   = "0.0.0.0"
+port   = 6001
+
+[config.admin]
+enabled  = true
+
+[sql]
+[sql.schema]
 query      = '''
   PRAGMA encoding="UTF-8";
 
@@ -31,21 +48,35 @@ query      = '''
   CREATE INDEX IF NOT EXISTS edges_target_index ON edges(target);
 '''
 
-[insert_node]
+[sql.get_node]
 query      = '''
   INSERT INTO
     nodes  (tag, doc) 
     VALUES (?,   ?)
 '''
 
-[insert_edge]
+[sql.get_edge]
 query      = '''
   INSERT INTO
     edges  (tag, source, target, doc) 
     VALUES (?,   ?,      ?,      doc)
 '''
 
-[update_node]
+[sql.insert_node]
+query      = '''
+  INSERT INTO
+    nodes  (tag, doc) 
+    VALUES (?,   ?)
+'''
+
+[sql.insert_edge]
+query      = '''
+  INSERT INTO
+    edges  (tag, source, target, doc) 
+    VALUES (?,   ?,      ?,      doc)
+'''
+
+[sql.update_node]
 query      = '''
   UPDATE 
     nodes
@@ -55,7 +86,7 @@ query      = '''
     id  = |id|
 '''
 
-[update_edge]
+[sql.update_edge]
 query      = '''
   UPDATE 
     edges
@@ -65,7 +96,7 @@ query      = '''
     id  = |id|
 '''
 
-[delete_nodes]
+[sql.delete_nodes]
 query      = '''
   DELETE 
   FROM 
@@ -74,7 +105,7 @@ query      = '''
     id in (|nodes_ids|)
 '''
 
-[delete_edges]
+[sql.delete_edges]
 query      = '''
   DELETE 
   FROM
@@ -83,7 +114,7 @@ query      = '''
     id in (|edges_ids|)
 '''
 
-[delete_edges_of_nodes]
+[sql.delete_edges_of_nodes]
 query      = '''
   DELETE
   FROM
@@ -93,7 +124,7 @@ query      = '''
     target in (|nodes_ids|)
 '''
 
-[list_indexes]
+[sql.list_indexes]
 query      = '''
   SELECT 
     name 
@@ -103,7 +134,7 @@ query      = '''
     type = 'index'
 '''
 
-[create_nodes_index]
+[sql.create_nodes_index]
 query      = '''
   CREATE 
   |UNIQUE?|
@@ -114,7 +145,7 @@ query      = '''
     (|index_expressions|);
 '''
 
-[create_edges_index]
+[sql.create_edges_index]
 query      = '''
   CREATE 
   |UNIQUE?|
@@ -125,7 +156,7 @@ query      = '''
     (|index_expressions|);
 '''
 
-[delete_indexes]
+[sql.delete_indexes]
 query      = '''
   DROP 
   INDEX 
@@ -133,16 +164,9 @@ query      = '''
   |name|
 '''
 
-
-[[user_queries]]
-name       = "get-nested"
-parameters = "a b c d"
-selectable = "a b c"
-query      = '''
-
-'''
-
-[[q]]
+[[queries]]
+key        = "single-node"
+parameters = "a"
 pattern    = "a"
 selectable = "a"
 query      = '''
@@ -158,30 +182,9 @@ query      = '''
   |limit_statement|
   |offset_statement|
 '''
-
-# [[q]]
-# pattern    = "c->a"
-# selectable = "a c"
-# query      = '''
-#   SELECT 
-#     |select_fields|
-#   FROM
-#     nodes a
-#   JOIN 
-#     edges c
-#   ON
-#     |check_edge c . a|
-#   WHERE 
-#     |check_node a|
-#   |group_statement|
-#   |having_statement|
-#   |order_statement|
-#   |limit_statement|
-#   |offset_statement|
-# '''
-
-
-[[q]]
+[[queries]]
+key        = "single-edge-node-head"
+parameters = "a b c"
 pattern    = "^a>-c->b"
 selectable = "a b c"
 query      = '''
@@ -204,7 +207,9 @@ query      = '''
   |offset_statement|
 '''
 
-[[q]]
+[[queries]]
+key        = "single-edge-edge"
+parameters = "a b c"
 pattern    = "a>-^c->b"
 selectable = "a b c"
 query      = '''
@@ -227,7 +232,9 @@ query      = '''
   |offset_statement|
 '''
 
-[[q]]
+[[queries]]
+key        = "single-edge-node-tail"
+parameters = "a b c"
 pattern    = "a>-c->^b"
 selectable = "a b c"
 query      = '''
@@ -250,7 +257,9 @@ query      = '''
   |offset_statement|
 '''
 
-[[q]]
+[[queries]]
+key        = "2-nodes-2-way-inv-1"
+parameters = "a b c1 c2"
 pattern    = 'b>-c1->a<-!c2-<b'
 selectable = "a b c1"
 query      = '''
