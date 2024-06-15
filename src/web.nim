@@ -23,6 +23,12 @@ proc jsonAffectedRows(n: int, ids: seq[int] = @[]): string =
   "{\"affected_rows\":" & $n & ", \"ids\": [" & ids.join(",") & "]}"
 
 
+
+proc indexPage(req: Request) =
+  req.respond(200, emptyHttpHeaders(), "hey! use APIs for now!")
+
+
+
 let queryStrategies {.global.} = parseQueryStrategies parseToml readfile "./examples/qs.toml"
 
 proc defaultQueryStrategies: QueryStrategies =
@@ -87,9 +93,6 @@ proc askQuery(req: Request) {.gcsafe.} =
 
   close db
   req.respond 200, emptyHttpHeaders(), acc
-
-
-
 
 
 proc getEntity(req: Request, entity, alias, select: string) =
@@ -166,7 +169,7 @@ proc updateEntity(req: Request, entity: string) =
       """, doc, id)
 
     if affected == 1:
-      acc.add affected
+      acc.add id
 
   close db
   req.respond(200, emptyHttpHeaders(), jsonAffectedRows(acc.len, acc))
@@ -201,17 +204,20 @@ proc deleteEdges(req: Request) =
 
 proc initRouter: Router = 
   with result:
-    # get    "/",                       interactiveApp
+    get    "/",                       indexPage
     get    "/static/",                staticFiles
 
-    # get    "/api/users/",             apiDatabasesOfUser
-    # get    "/api/user/",              apiDatabasesOfUser
     # get    "/api/login/",             apiDatabasesOfUser
     # get    "/api/signup/",            apiDatabasesOfUser
     
+    # get    "/api/users/",             apiDatabasesOfUser
+    # get    "/api/user/",              apiDatabasesOfUser
+
     # get    "/api/databases/",         apiDatabasesOfUser
     # post   "/api/database/",          apiDatabasesOfUser
+    
     # get    "/api/database/stats/",    gqlService
+    
     post   "/api/database/query/",    askQuery
 
 

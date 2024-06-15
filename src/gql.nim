@@ -170,9 +170,10 @@ type
     inward, outward: Natural
 
 using 
-  gn:          GqlNode
-  imap:        IdentMap
-  varResolver: string -> string
+  gn:              GqlNode
+  imap:            IdentMap
+  varResolver:     string -> string
+  queryStrategies: QueryStrategies
 
 
 const 
@@ -370,7 +371,7 @@ func parseGql*(content: string): GqlNode =
           of "NAMESPACE":                      gNode gkNameSpace
           of "PROC":                           gNode gkProcedure
 
-          of "ASK", "FROM", "MATCH":           gNode gkAsk
+          of "ASK", "MATCH":                   gNode gkAsk
           of "TAKE", "SELECT", "RETURN":       gNode gkTake
 
           of "GROUP":                          gNode gkGroupBy
@@ -1076,7 +1077,7 @@ func replaceAliases(gn) =
 func prepareGQuery(gn) = 
   replaceAliases gn
 
-func findCorrespondingPattern(gn; queryStrategies: QueryStrategies): tuple[qs: QueryStrategy, imap: IdentMap] = 
+func findCorrespondingPattern(gn; queryStrategies): tuple[qs: QueryStrategy, imap: IdentMap] = 
   for qs in queryStrategies.collection:
     if identMap =? matches(gn.askedQuery, qs.pattern):
       if (gn.getTake.selects.map identMap) <= qs.selectable:
@@ -1087,7 +1088,7 @@ func findCorrespondingPattern(gn; queryStrategies: QueryStrategies): tuple[qs: Q
 func toSqlImpl(gn; qs: QueryStrategy, imap; varResolver): SqlQuery {.effectsOf: varResolver.} =
   sql resolve(qs.sqlPattern, imap, gn, varResolver)
 
-func toSql*(gn; queryStrategies: QueryStrategies, varResolver): SqlQuery {.effectsOf: varResolver.} = 
+func toSql*(gn; queryStrategies; varResolver): SqlQuery {.effectsOf: varResolver.} = 
   prepareGQuery gn
   let p = findCorrespondingPattern(gn, queryStrategies)
   toSqlImpl gn, p.qs, p.imap, varResolver
@@ -1095,3 +1096,6 @@ func toSql*(gn; queryStrategies: QueryStrategies, varResolver): SqlQuery {.effec
 
 # TODO add named queries
 # TODO some gql grammers can be inline like PARAMTERES a b c 
+# TODO faster parser
+# TODO options for all routes: include-sql,
+# TODO add guard

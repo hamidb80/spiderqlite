@@ -1,8 +1,11 @@
 #movie m
 
-USE 
-  "collect"
+IMPORT
+EXPORT
+INCLUDE
 
+USE
+  "collect"
 PARAMETERS
   a 
   b 
