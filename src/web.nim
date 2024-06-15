@@ -44,6 +44,7 @@ type
     config: AppConfig
     defaultQueryStrategies: QueryStrategies
 
+
 func conv(val: string, typ: type string): string = 
   val
 
@@ -85,7 +86,7 @@ func getNested(data: TomlValueRef, nestedKey: string): Option[string] =
       of TomlValueKind.Int:    $getInt curr
       of TomlValueKind.String:  getStr curr
       of TomlValueKind.Bool:   $getBool curr
-      else: raisee "invalid value" & $curr
+      else: raisee "invalid toml value type: " & $curr.kind
 
 proc getOsEnv(key: string): Option[string] =
   let t = getEnv key
