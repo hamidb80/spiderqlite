@@ -147,14 +147,14 @@ type
     sqkStr
     sqkCommand
 
-  SqlPatSep = object
-    case kind: SqlPatKind
+  SqlPatSep* = object
+    case kind*: SqlPatKind
     of sqkStr:
-      content: string
+      content*: string
 
     of sqkCommand:
-      cmd: string
-      args: seq[string]
+      cmd*: string
+      args*: seq[string]
 
   QueryStrategy* = ref object
     key:        string
@@ -475,7 +475,7 @@ func addConn(g: var QueryGraph, a, b, c: QueryNode) =
   g.addNode b
   g.addEdge a, b, c
 
-func preProcessRawSql(s: string): seq[SqlPatSep] =
+func preProcessRawSql*(s: string): seq[SqlPatSep] =
   let parts = s.split '|'
   for i, part in parts:
     result.add:
@@ -871,17 +871,23 @@ func sqlCondsOfEdge(gn; imap; edge, source, target: string, varResolver): string
     else: discard
   raisee fmt"the node '{edge}' not found in query"
 
+func fieldAccessOf(s: string): string {.inline.} = 
+  if s == "": ""      # anonymous
+  else:       s & '.' # named
+
 func sqlJsonNodeExpr*(s: string): string = 
-  """ ('{ "id"  :' || """ & s & """.id  ||     """ &
-  """  ', "tag" :"'|| """ & s & """.tag ||     """ &
-  """ '", "doc":'  || """ & s & """.doc || '}')"""
+  let fi = fieldAccessOf s
+  """ ('{ "id"  :' || """ & fi & """id  ||     """ &
+  """  ', "tag" :"'|| """ & fi & """tag ||     """ &
+  """ '", "doc":'  || """ & fi & """doc || '}')"""
 
 func sqlJsonEdgeExpr*(s: string): string = 
-  """ ('{ "id"  :'   || """ & s & """.id     || """ &
-  """  ', "tag" :"'  || """ & s & """.tag    || """ &
-  """ '", "source":' || """ & s & """.source || """ &
-  """  ', "target":' || """ & s & """.target || """ &
-  """  ', "doc":'    || """ & s & """.doc    || '}')"""
+  let fi = fieldAccessOf s
+  """ ('{ "id"  :'   || """ & fi & """id     || """ &
+  """  ', "tag" :"'  || """ & fi & """tag    || """ &
+  """ '", "source":' || """ & fi & """source || """ &
+  """  ', "target":' || """ & fi & """target || """ &
+  """  ', "doc":'    || """ & fi & """doc    || '}')"""
 
 
 func findIdents(gn; result: var seq[string]) =

@@ -1,5 +1,6 @@
 import std/[os, options, paths, strutils, strformat]
 
+import ./gql
 import ./utils/other
 
 import parsetoml, mummy
@@ -22,6 +23,9 @@ type
     enabled*: bool
 
   AppConfig* = ref object
+    # TODO load from numble file at compile file
+    # version:
+
     admin*:    AdminConfig
 
     server*:   ServerConfig
@@ -29,8 +33,6 @@ type
 
     storage*:  StorageConfig
 
-    # TODO load from numble file at compile file
-    # version:
 
   AppContext* = ref object
     cmdParams*: seq[string]
@@ -121,7 +123,9 @@ proc buildConfig*(ctx: AppContext): AppConfig =
     storage: StorageConfig(
       appDbFile:  v(ctx, "--app-db-file",  "SPIDERSQL_APP_DB_FILE",  "storage.app_db_file", "./temp/graph.db", Path),
       usersDbDir: v(ctx, "--users-db-dir", "SPIDERSQL_USERS_DB_DIR", "admin.users_db_dir",  "./temp/users/", Path),
-    )
+    ),
+
+
   )
 
 proc loadAppContext*(configFilePath: string): AppContext = 
