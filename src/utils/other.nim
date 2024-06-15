@@ -106,3 +106,8 @@ template findit*(s, cond): untyped =
       i = j 
       break
   i
+
+
+template unwrap*(name, body): untyped =
+  body
+  
