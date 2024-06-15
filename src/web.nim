@@ -42,6 +42,7 @@ type
   App = object
     server: Server
     config: AppConfig
+    defaultQueryStrategies: QueryStrategies
 
 func conv(val: string, typ: type string): string = 
   val
@@ -153,7 +154,7 @@ proc jsonAffectedRows(n: int, ids: seq[int] = @[]): string =
 
 
 proc initApp(ctx: AppContext, config: AppConfig): App = 
-  let defaultQueryStrategies = parseQueryStrategies ctx.tomlConf
+  var app: App
 
   unwrap controllers:
     proc indexPage(req: Request) =
@@ -174,7 +175,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         topenDb         = getMonoTime()
         sql             = toSql(
           gql, 
-          defaultQueryStrategies, 
+          app.defaultQueryStrategies, 
           s => $ctx[s])
         tquery          = getMonoTime()
 
@@ -362,12 +363,14 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
       # post   "/api/database/index/",    gqlService
       # delete "/api/database/index/",    gqlService
 
-  App(
-    server: newServer initRouter(),
-    config: config
+  app = App(
+    server:                 newServer initRouter(),
+    config:                 config,
+    defaultQueryStrategies: parseQueryStrategies ctx.tomlConf,
   )
+  app
 
-proc run(app: App) = 
+proc run(app: App) {.noreturn.} = 
   echo "running in " & app.config.url
   serve app.server, app.config.server.port, app.config.server.host
 
