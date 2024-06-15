@@ -864,10 +864,17 @@ func sqlCondsOfEdge(gn; imap; edge, source, target: string, varResolver): string
     else: discard
   raisee fmt"the node '{edge}' not found in query"
 
-func sqlJsonExpr(s: string): string = 
+func sqlJsonNodeExpr*(s: string): string = 
   """ ('{ "id"  :' || """ & s & """.id  ||     """ &
   """  ', "tag" :"'|| """ & s & """.tag ||     """ &
   """ '", "doc":'  || """ & s & """.doc || '}')"""
+
+func sqlJsonEdgeExpr*(s: string): string = 
+  """ ('{ "id"  :'   || """ & s & """.id     || """ &
+  """  ', "tag" :"'  || """ & s & """.tag    || """ &
+  """ '", "source":' || """ & s & """.source || """ &
+  """  ', "target":' || """ & s & """.target || """ &
+  """  ', "doc":'    || """ & s & """.doc    || '}')"""
 
 
 func findIdents(gn; result: var seq[string]) =
@@ -921,7 +928,7 @@ func getGroup(gn): Option[GqlNode] =
 
 func toSqlSelectImpl(gn): string = 
   if gn.kind == gkIdent and gn.children.len == 0: 
-    sqlJsonExpr gn.sval
+    sqlJsonNodeExpr gn.sval
   else:       
     resolveSql gn, "???", s => "!!!"
 

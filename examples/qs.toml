@@ -34,15 +34,15 @@ query      = '''
 [insert_node]
 query      = '''
   INSERT INTO
-    nodes  ( tag,   doc ) 
-    VALUES (|tag|, |doc|)
+    nodes  (tag, doc) 
+    VALUES (?,   ?)
 '''
 
 [insert_edge]
 query      = '''
   INSERT INTO
-    edges  ( tag,   source,   target,   doc ) 
-    VALUES (|tag|, |source|, |target|, |doc|)
+    edges  (tag, source, target, doc) 
+    VALUES (?,   ?,      ?,      doc)
 '''
 
 [update_node]
