@@ -10,12 +10,17 @@ import ./utils/other
 type
   DbEssense = object # TODO put queries in toml file here
 
+func parseTag(s: string): string = 
+  s.strip(chars= {'#'})
 
 proc sqlize(s: seq[int]): string = 
   '(' & join(s, ",") & ')'
 
 proc staticFiles(req: Request) =
   discard
+
+proc jsonAffectedRows(n: int, ids: seq[int] = @[]): string = 
+  "{\"affected_rows\":" & $n & ", \"ids\": [" & ids.join(",") & "]}"
 
 
 let queryStrategies {.global.} = parseQueryStrategies parseToml readfile "./examples/qs.toml"
@@ -85,38 +90,34 @@ proc askQuery(req: Request) {.gcsafe.} =
 
 
 
+
+
+proc getEntity(req: Request, entity, alias, select: string) =
+  let
+    id     = req.queryParams["id"]
+    db     = openSqliteDB    "./temp/graph.db"
+    row = db.getRow(sql fmt"""
+      SELECT {select}
+      FROM   {entity} {alias}
+      WHERE  id = ?
+    """, id)
+
+  close db
+  req.respond(200, emptyHttpHeaders(), row[0])
+
 proc getNode(req: Request) =
-  let
-    id     = req.queryParams["id"]
-    db     = openSqliteDB    "./temp/graph.db"
-    row = db.getRow(sql fmt"""
-      SELECT {sqlJsonNodeExpr "n"}
-      FROM nodes n
-      WHERE id = ?
-    """, id)
-
-  close db
-  req.respond(200, emptyHttpHeaders(), row[0])
-
+  getEntity req, "nodes", "n", sqlJsonNodeExpr "n"
+  
 proc getEdge(req: Request) =
-  let
-    id     = req.queryParams["id"]
-    db     = openSqliteDB    "./temp/graph.db"
-    row = db.getRow(sql fmt"""
-      SELECT {sqlJsonEdgeExpr "e"}
-      FROM edges e
-      WHERE id = ?
-    """, id)
+  getEntity req, "edges", "e", sqlJsonEdgeExpr "e"
 
-  close db
-  req.respond(200, emptyHttpHeaders(), row[0])
 
 # TODO add minimal option if enables only returns "_id"
 proc createNode(req: Request) =
   let
     j      = parseJson req.body
-    tag    = getstr j["tag"]
-    doc    =       $j["doc"]
+    tag    = parseTag getstr j["tag"]
+    doc    =                $j["doc"]
     db     = openSqliteDB    "./temp/graph.db"
 
   let id = db.insertID(sql """
@@ -131,91 +132,70 @@ proc createNode(req: Request) =
 proc createEdge(req: Request) =
   let
     j      = parseJson req.body
-    tag    = getstr j["tag"]
-    source = getInt j["source"]
-    target = getInt j["target"]
-    doc    =       $j["doc"]
+    tag    = parseTag getstr j["tag"]
+    source =          getInt j["source"]
+    target =          getInt j["target"]
+    doc    =                $j["doc"]
     db     = openSqliteDB    "./temp/graph.db"
 
   let id = db.insertID(sql """
     INSERT INTO
     edges  (tag, source, target, doc) 
-    VALUES (?,   ?,      ?,      doc)
+    VALUES (?,   ?,      ?,      ?)
   """, tag, source, target, doc)
 
   close db
   req.respond(200, emptyHttpHeaders(), "{\"_id\":" & $id & "}")
 
 
-proc updateNodes(req: Request) =
+proc updateEntity(req: Request, entity: string) =
   let
     j   = parseJson req.body
     db  = openSqliteDB    "./temp/graph.db"
 
   assert j.kind == JObject
-  var acc = 0
+  var acc: seq[int]
   for k, v in j:
     let 
       id       = parseint k
       doc      = $v
-      affected = db.execAffectedRows(sql """
-        UPDATE nodes
+      affected = db.execAffectedRows(sql fmt"""
+        UPDATE {entity}
         SET    doc = ?
         WHERE  id  = ?
       """, doc, id)
 
-    acc.inc affected
+    if affected == 1:
+      acc.add affected
 
   close db
-  req.respond(200, emptyHttpHeaders(), "{\"affected_rows\":" & $acc & "}")
+  req.respond(200, emptyHttpHeaders(), jsonAffectedRows(acc.len, acc))
+
+proc updateNodes(req: Request) =
+  updateEntity req, "nodes"
 
 proc updateEdges(req: Request) =
+  updateEntity req, "edges"
+
+
+proc deleteEntity(req: Request, entity: string) =
   let
-    j   = parseJson req.body
-    db  = openSqliteDB    "./temp/graph.db"
-
-  assert j.kind == JObject
-  var acc = 0
-  for k, v in j:
-    let 
-      id       = parseint k
-      doc      = $v
-      affected = db.execAffectedRows(sql """
-        UPDATE edges
-        SET    doc = ?
-        WHERE  id  = ?
-      """, doc, id)
-
-    acc.inc affected
+    j        = parseJson req.body
+    ids      = j["ids"].to seq[int]
+    db       = openSqliteDB    "./temp/graph.db"
+    affected = db.execAffectedRows(sql fmt"""
+      DELETE FROM  {entity}
+      WHERE  id IN {sqlize ids} 
+    """)
 
   close db
-  req.respond(200, emptyHttpHeaders(), "{\"affected_rows\":" & $acc & "}")
+  req.respond(200, emptyHttpHeaders(), jsonAffectedRows affected)
 
 proc deleteNodes(req: Request) =
-  let
-    j        = parseJson req.body
-    ids      = j["ids"].to seq[int]
-    db       = openSqliteDB    "./temp/graph.db"
-    affected = db.execAffectedRows(sql fmt"""
-      DELETE FROM nodes
-      WHERE  id IN {sqlize ids} 
-    """)
-
-  close db
-  req.respond(200, emptyHttpHeaders(), "{\"affected_rows\":" & $affected & "}")
+  deleteEntity req, "nodes"
 
 proc deleteEdges(req: Request) =
-  let
-    j        = parseJson req.body
-    ids      = j["ids"].to seq[int]
-    db       = openSqliteDB    "./temp/graph.db"
-    affected = db.execAffectedRows(sql fmt"""
-      DELETE FROM edges
-      WHERE  id IN {sqlize ids} 
-    """)
-
-  close db
-  req.respond(200, emptyHttpHeaders(), "{\"affected_rows\":" & $affected & "}")
+  deleteEntity req, "edges"
 
 
 

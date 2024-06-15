@@ -1091,3 +1091,7 @@ func toSql*(gn; queryStrategies: QueryStrategies, varResolver): SqlQuery {.effec
   prepareGQuery gn
   let p = findCorrespondingPattern(gn, queryStrategies)
   toSqlImpl gn, p.qs, p.imap, varResolver
+
+
+# TODO add named queries
+# TODO some gql grammers can be inline like PARAMTERES a b c 

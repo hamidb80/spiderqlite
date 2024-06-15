@@ -134,6 +134,15 @@ query      = '''
 '''
 
 
+[user_queries]
+name       = "get-nested"
+parameters = "a b c d"
+selectable = "a b c"
+query      = '''
+
+
+'''
+
 [[q]]
 pattern    = "a"
 selectable = "a"
