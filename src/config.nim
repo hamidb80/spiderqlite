@@ -1,6 +1,6 @@
 import std/[os, options, paths, strutils]
 
-import ./gql, ./utils/other
+import ./utils/other
 
 import parsetoml, mummy
 
@@ -119,7 +119,7 @@ proc buildConfig*(ctx: AppContext): AppConfig =
       password: v(ctx, "--admin-password", "SPIDERSQL_ADMIN_PASSWORD", "admin.password", "1234",  string),
     ),
     storage: StorageConfig(
-      appDbFile:  v(ctx, "--app-db-file",  "SPIDERSQL_APP_DB_FILE",  "storage.app_db_file", "./temp/app.db", Path),
+      appDbFile:  v(ctx, "--app-db-file",  "SPIDERSQL_APP_DB_FILE",  "storage.app_db_file", "./temp/graph.db", Path),
       usersDbDir: v(ctx, "--users-db-dir", "SPIDERSQL_USERS_DB_DIR", "admin.users_db_dir",  "./temp/users/", Path),
     )
   )

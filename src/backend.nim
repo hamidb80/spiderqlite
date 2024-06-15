@@ -1,4 +1,4 @@
-import std/[json, strformat, with, os, strutils, sugar, monotimes, times, paths, options]
+import std/[json, strformat, with, strutils, sugar, monotimes, times, options]
 
 import db_connector/db_sqlite
 import mummy, mummy/routers
@@ -49,7 +49,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         tparsejson      = getMonoTime()
         gql             = parseGql  getstr  j["query"]
         tparseq         = getMonoTime()
-        db              = openSqliteDB    "./temp/graph.db"
+        db              = openSqliteDB    app.config.storage.appDbFile
         topenDb         = getMonoTime()
         sql             = toSql(
           gql, 
@@ -59,7 +59,8 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
 
       # echo sql
 
-      var acc = "{\"result\": ["
+      var acc = newStringOfCap 1024 * 100 # 100 KB
+      acc.add "{\"result\": ["
       
       for row in db.fastRows sql:
         acc.add row[0]
@@ -104,7 +105,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
     proc getEntity(req: Request, entity, alias, select: string) =
       let
         id     = req.queryParams["id"]
-        db     = openSqliteDB    "./temp/graph.db"
+        db     = openSqliteDB    app.config.storage.appDbFile
         row = db.getRow(sql fmt"""
           SELECT {select}
           FROM   {entity} {alias}
@@ -127,7 +128,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         j      = parseJson req.body
         tag    = parseTag getstr j["tag"]
         doc    =                $j["doc"]
-        db     = openSqliteDB    "./temp/graph.db"
+        db     = openSqliteDB    app.config.storage.appDbFile
 
       let id = db.insertID(sql """
         INSERT INTO
@@ -145,7 +146,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         source =          getInt j["source"]
         target =          getInt j["target"]
         doc    =                $j["doc"]
-        db     = openSqliteDB    "./temp/graph.db"
+        db     = openSqliteDB    app.config.storage.appDbFile
 
       let id = db.insertID(sql """
         INSERT INTO
@@ -160,7 +161,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
     proc updateEntity(req: Request, entity: string) =
       let
         j   = parseJson req.body
-        db  = openSqliteDB    "./temp/graph.db"
+        db  = openSqliteDB    app.config.storage.appDbFile
 
       assert j.kind == JObject
       var acc: seq[int]
@@ -191,7 +192,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
       let
         j        = parseJson req.body
         ids      = j["ids"].to seq[int]
-        db       = openSqliteDB    "./temp/graph.db"
+        db       = openSqliteDB    app.config.storage.appDbFile
         affected = db.execAffectedRows(sql fmt"""
           DELETE FROM  {entity}
           WHERE  id IN {sqlize ids} 

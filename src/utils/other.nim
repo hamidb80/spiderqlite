@@ -1,4 +1,4 @@
-import std/[tables, sequtils]
+import std/[tables, sequtils, paths]
 import db_connector/db_sqlite
 
 
@@ -62,6 +62,9 @@ func rev*[A, B](tab: Table[A, B]): Table[B, A] =
 
 proc openSqliteDB*(path: string): DbConn = 
   open path, "", "", ""
+
+proc openSqliteDB*(path: Path): DbConn = 
+  openSqliteDB path.string
 
 iterator times*(n: int): int = 
   for i in 0..<n:
