@@ -126,7 +126,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
       getEntity req, "edges", "e", sqlJsonEdgeExpr "e"
 
 
-    # TODO add minimal option if enables only returns "_id"
+    # TODO add minimal option if enables only returns "id"
     proc createNode(req: Request) =
       let
         j      = parseJson req.body
@@ -141,7 +141,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
       """, tag, doc)
 
       close db
-      req.respond(200, emptyHttpHeaders(), "{\"_id\":" & $id & "}")
+      req.respond(200, emptyHttpHeaders(), "{\"id\":" & $id & "}")
 
     proc createEdge(req: Request) =
       let
@@ -159,7 +159,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
       """, tag, source, target, doc)
 
       close db
-      req.respond(200, emptyHttpHeaders(), "{\"_id\":" & $id & "}")
+      req.respond(200, emptyHttpHeaders(), "{\"id\":" & $id & "}")
 
 
     proc updateEntity(req: Request, entity: string) =
