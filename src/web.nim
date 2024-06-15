@@ -148,9 +148,6 @@ func parseTag(s: string): string =
 proc sqlize(s: seq[int]): string = 
   '(' & join(s, ",") & ')'
 
-proc staticFiles(req: Request) =
-  discard
-
 proc jsonAffectedRows(n: int, ids: seq[int] = @[]): string = 
   "{\"affected_rows\":" & $n & ", \"ids\": [" & ids.join(",") & "]}"
 
@@ -161,6 +158,9 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
   unwrap controllers:
     proc indexPage(req: Request) =
       req.respond(200, emptyHttpHeaders(), "hey! use APIs for now!")
+
+    proc staticFiles(req: Request) =
+      discard
 
     proc askQuery(req: Request) {.gcsafe.} =
       let 
@@ -378,4 +378,4 @@ when isMainModule:
     config = buildConfig    ctx
     app    = initApp(ctx, config)
 
-  run app      
+  run app
