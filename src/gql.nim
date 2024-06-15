@@ -157,6 +157,8 @@ type
       args: seq[string]
 
   QueryStrategy* = ref object
+    key:        string
+    parameters: seq[string]
     pattern:    QueryGraph
     selectable: seq[string]
     sqlPattern: seq[SqlPatSep]
@@ -585,17 +587,21 @@ func parseQueryGraph(patts: seq[string]): QueryGraph =
         of qpSingle: result.addNode t.node
         of qpMulti:  result.addConn t.travel.a, t.travel.b, t.travel.c
   
-func parseQueryStrategy(pattern, selectable, query: string): QueryStrategy =
+func parseQueryStrategy(key, params, pattern, selectable, query: string): QueryStrategy =
   QueryStrategy(
+    key:        key,
+    parameters: splitWhitespace params,
     pattern:    parseQueryGraph  splitLines pattern,
     selectable: splitWhitespace             selectable,
     sqlPattern: preProcessRawSql            query)
 
 func parseQueryStrategy(tv: TomlValueRef): QueryStrategy =
   parseQueryStrategy(
+           getStr tv["key"],
+           getStr tv["parameters"],
     dedent getStr tv["pattern"],
            getStr tv["selectable"],
-    dedent getStr tv["query"])
+    dedent getStr tv["sql"])
 
 proc parseToml*(s: string): TomlValueRef =
   ignore:

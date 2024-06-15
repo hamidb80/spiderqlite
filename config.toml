@@ -14,9 +14,9 @@ port   = 6001
 [config.admin]
 enabled  = true
 
-[sql]
-[sql.schema]
-query      = '''
+[system]
+[system.create_schema]
+sql      = '''
   PRAGMA encoding="UTF-8";
 
   -- tables
@@ -48,36 +48,36 @@ query      = '''
   CREATE INDEX IF NOT EXISTS edges_target_index ON edges(target);
 '''
 
-[sql.get_node]
-query      = '''
+[system.get_node]
+sql      = '''
   INSERT INTO
     nodes  (tag, doc) 
     VALUES (?,   ?)
 '''
 
-[sql.get_edge]
-query      = '''
+[system.get_edge]
+sql      = '''
   INSERT INTO
     edges  (tag, source, target, doc) 
     VALUES (?,   ?,      ?,      doc)
 '''
 
-[sql.insert_node]
-query      = '''
+[system.insert_node]
+sql      = '''
   INSERT INTO
     nodes  (tag, doc) 
     VALUES (?,   ?)
 '''
 
-[sql.insert_edge]
-query      = '''
+[system.insert_edge]
+sql      = '''
   INSERT INTO
     edges  (tag, source, target, doc) 
     VALUES (?,   ?,      ?,      doc)
 '''
 
-[sql.update_node]
-query      = '''
+[system.update_node]
+sql      = '''
   UPDATE 
     nodes
   SET
@@ -86,8 +86,8 @@ query      = '''
     id  = |id|
 '''
 
-[sql.update_edge]
-query      = '''
+[system.update_edge]
+sql      = '''
   UPDATE 
     edges
   SET
@@ -96,8 +96,8 @@ query      = '''
     id  = |id|
 '''
 
-[sql.delete_nodes]
-query      = '''
+[system.delete_nodes]
+sql      = '''
   DELETE 
   FROM 
     nodes
@@ -105,8 +105,8 @@ query      = '''
     id in (|nodes_ids|)
 '''
 
-[sql.delete_edges]
-query      = '''
+[system.delete_edges]
+sql      = '''
   DELETE 
   FROM
     edges
@@ -114,8 +114,8 @@ query      = '''
     id in (|edges_ids|)
 '''
 
-[sql.delete_edges_of_nodes]
-query      = '''
+[system.delete_edges_of_nodes]
+sql      = '''
   DELETE
   FROM
     edges
@@ -124,8 +124,8 @@ query      = '''
     target in (|nodes_ids|)
 '''
 
-[sql.list_indexes]
-query      = '''
+[system.list_indexes]
+sql      = '''
   SELECT 
     name 
   FROM 
@@ -134,8 +134,8 @@ query      = '''
     type = 'index'
 '''
 
-[sql.create_nodes_index]
-query      = '''
+[system.create_nodes_index]
+sql      = '''
   CREATE 
   |UNIQUE?|
   INDEX 
@@ -145,8 +145,8 @@ query      = '''
     (|index_expressions|);
 '''
 
-[sql.create_edges_index]
-query      = '''
+[system.create_edges_index]
+sql      = '''
   CREATE 
   |UNIQUE?|
   INDEX 
@@ -156,8 +156,8 @@ query      = '''
     (|index_expressions|);
 '''
 
-[sql.delete_indexes]
-query      = '''
+[system.delete_indexes]
+sql      = '''
   DROP 
   INDEX 
   IF EXISTS
@@ -169,7 +169,7 @@ key        = "single-node"
 parameters = "a"
 pattern    = "a"
 selectable = "a"
-query      = '''
+sql        = '''
   SELECT 
     |select_fields|
   FROM
@@ -187,7 +187,7 @@ key        = "single-edge-node-head"
 parameters = "a b c"
 pattern    = "^a>-c->b"
 selectable = "a b c"
-query      = '''
+sql        = '''
   SELECT 
     |select_fields|
   FROM
@@ -212,7 +212,7 @@ key        = "single-edge-edge"
 parameters = "a b c"
 pattern    = "a>-^c->b"
 selectable = "a b c"
-query      = '''
+sql        = '''
   SELECT 
     |select_fields|
   FROM
@@ -237,7 +237,7 @@ key        = "single-edge-node-tail"
 parameters = "a b c"
 pattern    = "a>-c->^b"
 selectable = "a b c"
-query      = '''
+sql        = '''
   SELECT 
     |select_fields|
   FROM
@@ -262,7 +262,7 @@ key        = "2-nodes-2-way-inv-1"
 parameters = "a b c1 c2"
 pattern    = 'b>-c1->a<-!c2-<b'
 selectable = "a b c1"
-query      = '''
+sql        = '''
   SELECT 
     |select_fields|
   FROM
