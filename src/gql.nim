@@ -1094,6 +1094,11 @@ func toSql*(gn; queryStrategies; varResolver): SqlQuery {.effectsOf: varResolver
   toSqlImpl gn, p.qs, p.imap, varResolver
 
 
+func parseTag*(s: string): string = 
+  if s.len == 0:    raisee "empty tag"
+  elif s[0] == '#': s.substr 1
+  else:             s
+
 # TODO add named queries
 # TODO some gql grammers can be inline like PARAMTERES a b c 
 # TODO faster parser

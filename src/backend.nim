@@ -15,22 +15,16 @@ type
     defaultQueryStrategies*: QueryStrategies
 
 
-func url(conf: AppConfig): string = 
-  fmt"http://{conf.server.host}:{conf.server.port.int}/"
+func joinComma(s: sink seq): string = 
+  s.join ","  
 
+func sqlize(s: seq[int]): string = 
+  '(' & s.joinComma & ')'
 
-func parseTag(s: string): string = 
-  if s.len == 0:    raisee "empty tag"
-  elif s[0] == '#': s.substr 1
-  else:             s
+func jsonAffectedRows(n: int, ids: seq[int] = @[]): string = 
+  "{\"affected_rows\":" & $n & ", \"ids\": [" & ids.joinComma & "]}"
 
-proc sqlize(s: seq[int]): string = 
-  '(' & join(s, ",") & ')'
-
-proc jsonAffectedRows(n: int, ids: seq[int] = @[]): string = 
-  "{\"affected_rows\":" & $n & ", \"ids\": [" & ids.join(",") & "]}"
-
-proc jsonId(id: int): string = 
+func jsonId(id: int): string = 
   "{\"id\":" & $id & "}"
 
 
@@ -257,7 +251,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
   app
 
 proc run(app: App) {.noreturn.} = 
-  echo "running in " & app.config.url
+  echo fmt"running in {app.config.url}"
   serve app.server, app.config.server.port, app.config.server.host
 
 

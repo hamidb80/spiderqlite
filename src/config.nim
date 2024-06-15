@@ -1,4 +1,4 @@
-import std/[os, options, paths, strutils]
+import std/[os, options, paths, strutils, strformat]
 
 import ./utils/other
 
@@ -128,3 +128,6 @@ proc loadAppContext*(configFilePath: string): AppContext =
   AppContext(
     cmdParams: commandLineParams(),
     tomlConf:  parseToml.parseFile configFilePath)
+
+func url*(conf: AppConfig): string = 
+  fmt"http://{conf.server.host}:{conf.server.port.int}"
