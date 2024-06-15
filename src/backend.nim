@@ -1,4 +1,4 @@
-import std/[json, strformat, with, strutils, sugar, monotimes, times, options]
+import std/[json, strformat, with, strutils, sugar, monotimes, times]
 
 import db_connector/db_sqlite
 import mummy, mummy/routers
@@ -30,13 +30,16 @@ proc sqlize(s: seq[int]): string =
 proc jsonAffectedRows(n: int, ids: seq[int] = @[]): string = 
   "{\"affected_rows\":" & $n & ", \"ids\": [" & ids.join(",") & "]}"
 
+proc jsonId(id: int): string = 
+  "{\"id\":" & $id & "}"
+
 
 proc initApp(ctx: AppContext, config: AppConfig): App = 
   var app: App
 
   unwrap controllers:
     proc indexPage(req: Request) =
-      req.respond(200, emptyHttpHeaders(), "hey! use APIs for now!")
+      req.respond 200, emptyHttpHeaders(), "hey! use APIs for now!"
 
     proc staticFiles(req: Request) =
       discard
@@ -117,7 +120,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         """, id)
 
       close db
-      req.respond(200, emptyHttpHeaders(), row[0])
+      req.respond 200, emptyHttpHeaders(), row[0]
 
     proc getNode(req: Request) =
       getEntity req, "nodes", "n", sqlJsonNodeExpr "n"
@@ -141,7 +144,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
       """, tag, doc)
 
       close db
-      req.respond(200, emptyHttpHeaders(), "{\"id\":" & $id & "}")
+      req.respond 200, emptyHttpHeaders(), jsonId id
 
     proc createEdge(req: Request) =
       let
@@ -159,7 +162,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
       """, tag, source, target, doc)
 
       close db
-      req.respond(200, emptyHttpHeaders(), "{\"id\":" & $id & "}")
+      req.respond 200, emptyHttpHeaders(), jsonId id
 
 
     proc updateEntity(req: Request, entity: string) =
@@ -183,7 +186,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
           acc.add id
 
       close db
-      req.respond(200, emptyHttpHeaders(), jsonAffectedRows(acc.len, acc))
+      req.respond 200, emptyHttpHeaders(), jsonAffectedRows(acc.len, acc)
 
     proc updateNodes(req: Request) =
       updateEntity req, "nodes"
@@ -203,7 +206,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         """)
 
       close db
-      req.respond(200, emptyHttpHeaders(), jsonAffectedRows affected)
+      req.respond 200, emptyHttpHeaders(), jsonAffectedRows affected
 
     proc deleteNodes(req: Request) =
       deleteEntity req, "nodes"
