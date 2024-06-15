@@ -57,12 +57,13 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
           s => $ctx[s])
         tquery          = getMonoTime()
 
-      # echo sql
 
+      var rows = 0
       var acc = newStringOfCap 1024 * 100 # 100 KB
       acc.add "{\"result\": ["
       
       for row in db.fastRows sql:
+        inc rows
         acc.add row[0]
         acc.add ','
 
@@ -74,6 +75,9 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
       let tcollect = getMonoTime()
 
       with acc:
+        add ','
+        add "\"length\":"
+        add $rows
         add ','
         add "\"performance\":{"
         add "\"unit\": \"us\""
