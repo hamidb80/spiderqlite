@@ -1,6 +1,5 @@
 import std/[os, options, paths, strutils, strformat]
 
-import ./gql
 import ./utils/other
 
 import parsetoml, mummy

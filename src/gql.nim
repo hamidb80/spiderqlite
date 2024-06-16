@@ -150,7 +150,7 @@ type
     rels:     Mat[seq[QueryNode]]
 
 
-  SqlPatKind = enum
+  SqlPatKind* = enum
     sqkStr
     sqkCommand
 
