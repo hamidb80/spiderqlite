@@ -3,6 +3,7 @@ import std/[tables, strutils, strformat, json, monotimes, times, with, sugar]
 import db_connector/db_sqlite
 import mummy, mummy/routers
 import parsetoml
+import webby
 
 import gql
 import ./utils/other
@@ -26,6 +27,9 @@ func sqlize(s: seq[int]): string =
 func jsonAffectedRows(n: int, ids: seq[int] = @[]): string = 
   "{\"affected_rows\":" & $n & ", \"ids\": [" & ids.joinComma & "]}"
 
+func jsonHeader: HttpHeaders = 
+  toWebby @{"Content-Type": "application/json"}
+
 func jsonIds(ids: seq[int]): string = 
   "{\"ids\": [" & ids.joinComma & "]}"
 
@@ -47,7 +51,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
 
   unwrap controllers:
     proc indexPage(req: Request) =
-      req.respond 200, emptyHttpHeaders(), "hey! use APIs for now!"
+      req.respond 200, jsonHeader(), "hey! use APIs for now!"
 
     proc staticFiles(req: Request) =
       discard
@@ -114,7 +118,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         add '}'
 
       close db
-      req.respond 200, emptyHttpHeaders(), acc
+      req.respond 200, jsonHeader(), acc
 
     proc getEntity(req: Request, def, ret: string) =
       let
@@ -126,7 +130,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         tdone           = getMonoTime()
 
       close db
-      req.respond 200, emptyHttpHeaders(), row[0]
+      req.respond 200, jsonHeader(), row[0]
       debugEcho inMicroseconds(tdone - thead), "us"
 
     proc getNode(req: Request) =
@@ -161,7 +165,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
       let tdone  = getMonoTime()
 
       debugEcho inMicroseconds(tdone - thead), "us"
-      req.respond 200, emptyHttpHeaders(), jsonIds ids
+      req.respond 200, jsonHeader(), jsonIds ids
 
     proc insertEdges(req: Request) =
       let
@@ -191,7 +195,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
       let tdone  = getMonoTime()
 
       debugEcho inMicroseconds(tdone - thead), "us"
-      req.respond 200, emptyHttpHeaders(), jsonIds ids
+      req.respond 200, jsonHeader(), jsonIds ids
 
 
     proc updateEntity(req: Request, ent: string) =
@@ -214,7 +218,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
           acc.add id
 
       close db
-      req.respond 200, emptyHttpHeaders(), jsonAffectedRows(acc.len, acc)
+      req.respond 200, jsonHeader(), jsonAffectedRows(acc.len, acc)
 
     proc updateNodes(req: Request) =
       updateEntity req, "update_nodes"
@@ -232,7 +236,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
           sqlize ids
         ])
       close db
-      req.respond 200, emptyHttpHeaders(), jsonAffectedRows affected
+      req.respond 200, jsonHeader(), jsonAffectedRows affected
 
     proc deleteNodes(req: Request) =
       deleteEntity req, "delete_nodes"
