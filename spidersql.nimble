@@ -16,3 +16,4 @@ requires "db_connector"   # https://github.com/nim-lang/db_connector
 requires "questionable"   # https://github.com/codex-storage/questionable
 requires "parsetoml"      # https://github.com/NimParsers/parsetoml
 requires "pretty"         # https://github.com/treeform/pretty
+requires "webby"          # https://github.com/treeform/webby
