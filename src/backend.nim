@@ -68,7 +68,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
           s => $ctx[s])
         tquery          = getMonoTime()
 
-      debugEcho sql
+      # debugEcho sql
       var rows = 0
       var acc = newStringOfCap 1024 * 100 # 100 KB
       acc.add "{\"result\": ["
@@ -138,13 +138,11 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
     # TODO add bulk insert
     # TODO add minimal option if enables only returns "id"
     proc insertNodes(req: Request) =
-      debugEcho "jwjw"
       let
         thead  = getMonoTime()
         j      = parseJson req.body
         q      = app.systemSqlQueries["insert_node"]
         db     = openSqliteDB app.config.storage.appDbFile
-
       
       var ids: seq[int]
       for a in j:
@@ -163,7 +161,6 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
       let tdone  = getMonoTime()
 
       debugEcho inMicroseconds(tdone - thead), "us"
-      debugEcho jsonIds ids
       req.respond 200, emptyHttpHeaders(), jsonIds ids
 
     proc insertEdges(req: Request) =
@@ -213,7 +210,6 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
             $id])
           affected = db.execAffectedRows sql query
 
-        debugEcho query
         if affected == 1:
           acc.add id
 

@@ -448,7 +448,6 @@ func parseGql*(content: string): GqlNode =
 
       parent.children.add n
       nested.add (n, ind)
-  debugEcho "pARSREDL:ASDLKJS DSALJK DLASKjD LKASJD"
 
 func `$`(gn): string = 
   raisee "TODO"
@@ -990,8 +989,6 @@ func getRels(gn): seq[string] =
     if ch.kind == gkDef:
       if ch.defkind == defEdge:
         result.add ch.children[1].sval
-
-  debugEcho result
 
 
 func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf: varResolver.} =
