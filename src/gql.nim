@@ -254,12 +254,17 @@ func parseComment    (line: string): GqlNode =
     kind: gkComment,
     sval: line.substr 2)
 
+func isString(line: string): bool = 
+  line[0]  == '"' and
+  line[^1] == '"'
+
 func parseString     (line: string): GqlNode =
-  assert line[0] == '"'
-  assert line[^1] == '"'
-  GqlNode(
-    kind: gkStrLit,
-    sval: line[1 .. ^2])
+  if isString line:
+    GqlNode(
+      kind: gkStrLit,
+      sval: line[1 .. ^2])
+  else:
+    raisee "invalid string format: " & line
 
 func parseNumber     (line: string): GqlNode =
   try:
@@ -427,6 +432,7 @@ func parseGql*(content: string): GqlNode =
 
       parent.children.add n
       nested.add (n, ind)
+  debugEcho "pARSREDL:ASDLKJS DSALJK DLASKjD LKASJD"
 
 func `$`(gn): string = 
   raisee "TODO"
@@ -757,17 +763,21 @@ func fieldAccessOf(s: string): string {.inline.} =
 
 func sqlJsonNodeExpr*(s: string): string = 
   let fi = fieldAccessOf s
-  """ ('{ "id"  :' || """ & fi & """id  ||     """ &
-  """  ', "tag" :"'|| """ & fi & """tag ||     """ &
-  """ '", "doc":'  || """ & fi & """doc || '}')"""
+  "json_object("                &
+  " 'id',  "      & fi & "id  " &
+  ",'tag', "      & fi & "tag " &
+  ",'doc', json(" & fi & "doc)" &
+  ")"
 
 func sqlJsonEdgeExpr*(s: string): string = 
   let fi = fieldAccessOf s
-  """ ('{ "id"  :'   || """ & fi & """id     || """ &
-  """  ', "tag" :"'  || """ & fi & """tag    || """ &
-  """ '", "source":' || """ & fi & """source || """ &
-  """  ', "target":' || """ & fi & """target || """ &
-  """  ', "doc":'    || """ & fi & """doc    || '}')"""
+  "json_object("                   &
+  " 'id',  "      & fi & "id  "    &
+  ",'tag', "      & fi & "tag "    &
+  ",'doc', json(" & fi & "doc)"    &
+  ",'source', "   & fi & "source " &
+  ",'target', "   & fi & "target " &
+  ")"
 
 func resolveSql(node: GqlNode, mode: string, name: string, varResolver): string {.effectsOf: varResolver.} = 
   case node.kind
@@ -801,7 +811,7 @@ func resolveSql(node: GqlNode, mode: string, name: string, varResolver): string 
     let s = node.sval
     case node.children.len
     of 0: 
-      if mode == "select": "json(" & sqlJsonNodeExpr(s) & ")"
+      if mode == "select": sqlJsonNodeExpr s
       else: s
     of 1: # field acceses
       resolveSql(node.children[0], mode, s, varResolver)

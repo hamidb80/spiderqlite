@@ -26,8 +26,8 @@ func sqlize(s: seq[int]): string =
 func jsonAffectedRows(n: int, ids: seq[int] = @[]): string = 
   "{\"affected_rows\":" & $n & ", \"ids\": [" & ids.joinComma & "]}"
 
-func jsonId(id: int): string = 
-  "{\"id\":" & $id & "}"
+func jsonIds(ids: seq[int]): string = 
+  "{\"ids\": [" & ids.joinComma & "]}"
 
 
 func parseSystemQueries*(tv: TomlValueRef): Table[string, seq[SqlPatSep]] =
@@ -135,46 +135,66 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
     proc getEdge(req: Request) =
       getEntity req, "get_edge", sqlJsonEdgeExpr ""
 
+    # TODO add bulk insert
     # TODO add minimal option if enables only returns "id"
-    proc insertNode(req: Request) =
+    proc insertNodes(req: Request) =
+      debugEcho "jwjw"
       let
-        thead           = getMonoTime()
+        thead  = getMonoTime()
         j      = parseJson req.body
-        tag    = parseTag getstr j["tag"]
-        doc    =                $j["doc"]
-        query  = resolve(app.systemSqlQueries["insert_node"], [
-          dbQuote tag, 
-          dbQuote doc
-        ])
+        q      = app.systemSqlQueries["insert_node"]
         db     = openSqliteDB app.config.storage.appDbFile
-        id     = db.insertID sql query
-        tdone           = getMonoTime()
+
+      
+      var ids: seq[int]
+      for a in j:
+        let
+          tag    = parseTag getstr a["tag"]
+          doc    =                $a["doc"]
+          query  = resolve(q, [
+            dbQuote tag, 
+            dbQuote doc
+          ])
+          id     = db.insertID sql query
+        
+        ids.add id
 
       close db
-      debugEcho inMicroseconds(tdone - thead), "us"
-      req.respond 200, emptyHttpHeaders(), jsonId id
+      let tdone  = getMonoTime()
 
-    proc insertEdge(req: Request) =
+      debugEcho inMicroseconds(tdone - thead), "us"
+      debugEcho jsonIds ids
+      req.respond 200, emptyHttpHeaders(), jsonIds ids
+
+    proc insertEdges(req: Request) =
       let
-        thead           = getMonoTime()
+        thead  = getMonoTime()
         j      = parseJson req.body
-        tag    = parseTag getstr j["tag"]
-        source =          getInt j["source"]
-        target =          getInt j["target"]
-        doc    =                $j["doc"]
-        query  = resolve(app.systemSqlQueries["insert_edge"], [
-          dbQuote tag, 
-          $source,
-          $target,
-          dbQuote doc,
-        ])
+        q      = app.systemSqlQueries["insert_edge"]
         db     = openSqliteDB app.config.storage.appDbFile
-        id     = db.insertID sql query
-        tdone           = getMonoTime()
+      
+      var ids: seq[int]
+      for a in j:
+        let
+          tag    = parseTag getstr a["tag"]
+          source =          getInt a["source"]
+          target =          getInt a["target"]
+          doc    =                $a["doc"]
+          query  = resolve(q, [
+            dbQuote tag, 
+            $source,
+            $target,
+            dbQuote doc
+          ])
+          id     = db.insertID sql query
+        
+        ids.add id
 
       close db
+      let tdone  = getMonoTime()
+
       debugEcho inMicroseconds(tdone - thead), "us"
-      req.respond 200, emptyHttpHeaders(), jsonId id
+      req.respond 200, emptyHttpHeaders(), jsonIds ids
 
 
     proc updateEntity(req: Request, ent: string) =
@@ -246,8 +266,8 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
       get    "/api/database/node/",     getNode
       get    "/api/database/edge/",     getEdge
 
-      post   "/api/database/node/",     insertNode
-      post   "/api/database/edge/",     insertEdge
+      post   "/api/database/nodes/",    insertNodes
+      post   "/api/database/edges/",    insertEdges
 
       put    "/api/database/nodes/",    updateNodes
       put    "/api/database/nodes/",    updateEdges
