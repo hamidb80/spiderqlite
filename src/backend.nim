@@ -34,6 +34,13 @@ func jsonIds(ids: seq[int]): string =
   "{\"ids\": [" & ids.joinComma & "]}"
 
 
+func isNumber(s: string): bool = 
+  try:
+    discard parseFloat s
+    true
+  except:
+    false
+
 func parseSystemQueries*(tv: TomlValueRef): Table[string, seq[SqlPatSep]] =
   for k, v in tv["system"].tableVal:
     result[k] = preProcessRawSql getstr v["sql"]
@@ -72,14 +79,20 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
           s => $ctx[s])
         tquery          = getMonoTime()
 
-      # debugEcho sql
+      debugEcho sql
       var rows = 0
       var acc = newStringOfCap 1024 * 100 # 100 KB
       acc.add "{\"result\": ["
       
       for row in db.fastRows sql:
         inc rows
-        acc.add row[0]
+        let r   = row[0]
+
+        if r[0] in {'[', '{'} or (r.len < 20 and isNumber r):
+          acc.add r
+        else:
+          acc.add escapeJson r
+
         acc.add ','
 
       if acc[^1] == ',': # check for 0 results
