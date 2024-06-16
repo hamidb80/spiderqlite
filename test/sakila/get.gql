@@ -1,7 +1,7 @@
 -- or can be #: p, since it doesn't matter
 
 #person   p  
-#acted_in a  
+@acted_in a  
 #movie    m
   == 
     .title 
@@ -9,8 +9,6 @@
 
 match  
   ^m<-a<-p
-
--- p>-a->^m
 
 return
   p

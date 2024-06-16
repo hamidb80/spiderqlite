@@ -1,5 +1,5 @@
 #person   p  
-#acted_in a  
+@acted_in a  
 #movie    m
 
 match  

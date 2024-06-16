@@ -69,10 +69,17 @@ type
 
     gkWrapper
 
+  GqlDefKind* = enum
+    defNode
+    defEdge
+
   GqlNode* = ref object
     children*: seq[GqlNode]
 
     case kind*: GqlKind
+    of gkDef:
+      defKind*: GqlDefKind
+
     of gkIdent, gkStrLit, gkComment, gkVar:
       sval*: string
 
@@ -238,7 +245,7 @@ func `$`*(g: QueryGraph): string =
 func cmd(ind: int, line: string): string =
   line
     .match(
-      re "#|[$\"|.=<>!%*+-/^$?(){}\\[\\]]+|\\d+|\\w+",
+      re "#|@|[$\"|.=<>!%*+-/^$?(){}\\[\\]]+|\\d+|\\w+",
       ind,
       line.high)
     .get
@@ -333,10 +340,19 @@ func parseFieldAccess(line: string): GqlNode =
     children: @[parseIdent line.substr 1])
 
 func parseDefHeader  (line: string): GqlNode =
-  assert line[0] == '#'
-  let ll = splitWhitespace line.substr 1
+  let 
+    dk = 
+      case line[0]
+      of '#': defNode
+      of '@': defEdge
+      else:
+        raisee "invalid def header start character: " & line[0]
+
+    ll = splitWhitespace line.substr 1
+  
   GqlNode(
     kind: gkDef,
+    defKind: dk,
     children: @[
       parseIdent ll[0],
       parseIdent ll[1],
@@ -419,7 +435,7 @@ func parseGql*(content: string): GqlNode =
           of "$", "NOT":                       parsePrefix      lineee          
           of ".":                              parseFieldAccess lineee
           of "\"", "\"\"":                     parseString      lineee
-          of "#":                              parseDefHeader   lineee
+          of "#", "@":                         parseDefHeader   lineee
 
           of "|":                              parseVar         lineee
           elif key[0] in '0'..'9':             parseNumber      lineee
@@ -779,24 +795,24 @@ func sqlJsonEdgeExpr*(s: string): string =
   ",'target', "   & fi & "target " &
   ")"
 
-func resolveSql(node: GqlNode, mode: string, name: string, varResolver): string {.effectsOf: varResolver.} = 
+func resolveSql(node: GqlNode, relIdents: seq[string], mode: string, name: string, varResolver): string {.effectsOf: varResolver.} = 
   case node.kind
   of gkInfix:       [
-    resolveSql(node.children[1], mode, name, varResolver), 
-    resolveSql(node.children[0], mode, name, varResolver), 
-    resolveSql(node.children[2], mode, name, varResolver)].join " "
+    resolveSql(node.children[1], relIdents, mode, name, varResolver), 
+    resolveSql(node.children[0], relIdents, mode, name, varResolver), 
+    resolveSql(node.children[2], relIdents, mode, name, varResolver)].join " "
 
   of gkPrefix:     
     let s = node.children[0].sval
     case s
     of  "$": 
       "'' || " & 
-      resolveSql(node.children[1], mode, name, varResolver)
+      resolveSql(node.children[1], relIdents, mode, name, varResolver)
 
     else: 
-      resolveSql(node.children[0], mode, name, varResolver) &
+      resolveSql(node.children[0], relIdents, mode, name, varResolver) &
       " " & 
-      resolveSql(node.children[1], mode, name, varResolver)
+      resolveSql(node.children[1], relIdents, mode, name, varResolver)
 
   of gkStrLit:   ["'", node.sval, "'"].join "" #FIXME SQL injection
   of gkIntLit:   $node.ival
@@ -811,21 +827,23 @@ func resolveSql(node: GqlNode, mode: string, name: string, varResolver): string 
     let s = node.sval
     case node.children.len
     of 0: 
-      if mode == "select": sqlJsonNodeExpr s
+      if mode == "select": 
+        if s in relIdents: sqlJsonEdgeExpr s
+        else:              sqlJsonNodeExpr s
       else: s
     of 1: # field acceses
-      resolveSql(node.children[0], mode, s, varResolver)
+      resolveSql(node.children[0], relIdents, mode, s, varResolver)
     else:
       raisee "invalid ident with children count of: " & $node.children.len
   
   of gkCall: 
       node.children[0].sval & 
       '(' & 
-      node.children.rest.mapit(resolveSql(it, mode, name, varResolver)).join(", ") &
+      node.children.rest.mapit(resolveSql(it, relIdents, mode, name, varResolver)).join(", ") &
       ')'
 
   of gkFieldAccess:
-      let f = resolveSql(node.children[0], "normal", name, varResolver)
+      let f = resolveSql(node.children[0], relIdents, "normal", name, varResolver)
       case f
       of "id", "tag": fmt"{name}.{f}"
       of "doc":       fmt"json({name}.{f})"
@@ -833,18 +851,18 @@ func resolveSql(node: GqlNode, mode: string, name: string, varResolver): string 
 
   of gkCase:
     "CASE " & 
-    node.children.mapIt(resolveSql(it, mode, name, varResolver)).join(" ") & 
+    node.children.mapIt(resolveSql(it, relIdents, mode, name, varResolver)).join(" ") & 
     " END"
 
   of gkWhen:
     "WHEN " & 
-    resolveSql(node.children[0], mode, name, varResolver) & 
+    resolveSql(node.children[0], relIdents, mode, name, varResolver) & 
     " THEN " &
-    resolveSql(node.children[1], mode, name, varResolver)
+    resolveSql(node.children[1], relIdents, mode, name, varResolver)
 
   of gkElse:
     "ELSE " & 
-    resolveSql(node.children[0], mode, name, varResolver)
+    resolveSql(node.children[0], relIdents, mode, name, varResolver)
 
   else: 
     raisee fmt"cannot convert the node type {node.kind} to SQL code"
@@ -864,7 +882,7 @@ func sqlCondsOfNode(gn; imap; node: string, varResolver): string {.effectsOf: va
         result.add fmt"({inode}.tag == '{tag}'"
         
         if hasConds:
-          result.add " AND (" & resolveSql(n.children[2], "normal", inode, varResolver) & ")"
+          result.add " AND (" & resolveSql(n.children[2], @[], "normal", inode, varResolver) & ")"
 
         result.add ")"
         return
@@ -896,7 +914,7 @@ func sqlCondsOfEdge(gn; imap; edge, source, target: string, varResolver): string
           acc.add fmt"{iedge}.target={itar}.id"
         
         if hasConds:
-          acc.add fmt"""({resolveSql(n.children[2], "", iedge, varResolver)})"""
+          acc.add fmt"""({resolveSql(n.children[2], @[], "", iedge, varResolver)})"""
 
         result.add "("
         result.add acc.join " AND "
@@ -956,16 +974,25 @@ func getGroup(gn): Option[GqlNode] =
   findNode gn, gkGroupBy
 
 
-func toSqlSelectImpl(gn): string = 
-  resolveSql gn, "select", "???", s => "!!!"
+func toSqlSelectImpl(gn; relsIdent: seq[string]): string = 
+  resolveSql gn, relsIdent, "select", "???", s => "!!!"
 
-func toSqlSelect(take: GqlNode, imap): string = 
+func toSqlSelect(take: GqlNode, relsIdent: seq[string], imap): string = 
   deepIdentReplace take, imap
-  debugEcho imap
+  let mappedRels = relsIdent.map imap
   take
     .children
-    .map(toSqlSelectImpl)
+    .mapit(toSqlSelectImpl(it, mappedRels))
     .join ", "
+
+func getRels(gn): seq[string] = 
+  for ch in gn.children:
+    if ch.kind == gkDef:
+      if ch.defkind == defEdge:
+        result.add ch.children[1].sval
+
+  debugEcho result
+
 
 func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf: varResolver.} =
   let
@@ -1002,7 +1029,7 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
 
 
         of "SELECT_FIELDS":
-          toSqlSelect takes, imap
+          toSqlSelect takes, gn.getRels , imap
 
         of "GROUP_STATEMENT":  
           if g =? gn.getGroup:
@@ -1011,7 +1038,7 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
             let temp = 
               g
               .children
-              .mapIt(it.resolveSql("???", "", s => "!!!"))
+              .mapIt(resolveSql(it, @[], "???", "", s => "!!!"))
               .join ", "
             
             "GROUP BY " & temp
@@ -1025,7 +1052,7 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
             let temp = 
               g
               .children[0]
-              .resolveSql("???", "", s => "!!!")
+              .resolveSql(@[], "???", "", s => "!!!")
             
             "HAVING " & temp
 
@@ -1044,7 +1071,7 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
             
 
             for i, ch in g.children:
-              var temp = ch.resolveSql("???", "", s => "!!!")
+              var temp = ch.resolveSql(@[], "???", "", s => "!!!")
               if issome s:
                 temp.add ' '
                 temp.add s.get[i]
@@ -1122,9 +1149,9 @@ func toSql*(gn; queryStrategies; varResolver): SqlQuery {.effectsOf: varResolver
 
 
 func parseTag*(s: string): string = 
-  if s.len == 0:    raisee "empty tag"
-  elif s[0] == '#': s.substr 1
-  else:             s
+  if s.len == 0:           raisee "empty tag"
+  elif s[0] in {'#', '@'}: s.substr 1
+  else:                    s
 
 # TODO add named queries
 # TODO some gql grammers can be inline like PARAMTERES a b c 
