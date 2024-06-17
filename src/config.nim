@@ -1,4 +1,4 @@
-import std/[os, options, paths, strutils, strformat]
+import std/[os, options, paths, strutils, strformat, tables]
 
 import ./utils/other
 
@@ -32,9 +32,10 @@ type
 
     storage*:  StorageConfig
 
+  ParamTable  = Table[string, string]
 
   AppContext* = ref object
-    cmdParams*: seq[string]
+    cmdParams*: ParamTable
     tomlConf*:  TomlValueRef
     
 
@@ -58,10 +59,11 @@ func conv(val: string, typ: type bool): bool =
   else: raisee "invalid bool value: " & val
   
 
-func getParam(params: seq[string], key: string): Option[string] = 
-  for i in countup(0, params.high, 2):
-    if params[i] == key: 
-      return some params[i+1]
+func getParam(paramsTab: ParamTable, key: string): Option[string] = 
+  if key in paramsTab:
+    some paramsTab[key]
+  else:
+    none string
 
 func getNested(data: TomlValueRef, nestedKey: string): Option[string] =
   var curr = data["config"]
@@ -127,9 +129,24 @@ proc buildConfig*(ctx: AppContext): AppConfig =
 
   )
 
+proc toParamTable(params: seq[string]): ParamTable = 
+  var 
+    lastWasKey = false
+    key        = ""
+
+  for i, p in params:
+    if p.startsWith "--":
+      if lastWasKey:
+        result[key] = "t"
+      key = p
+      lastWasKey = true
+    else:
+      result[key] = p
+      lastWasKey = false
+
 proc loadAppContext*(configFilePath: string): AppContext = 
   AppContext(
-    cmdParams: commandLineParams(),
+    cmdParams: toParamTable commandLineParams(),
     tomlConf:  parseToml.parseFile configFilePath)
 
 func url*(conf: AppConfig): string = 

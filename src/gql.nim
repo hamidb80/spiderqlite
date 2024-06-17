@@ -186,7 +186,7 @@ using
 
 
 const 
-  notionChars      = {'0' .. '9', '^', '*'}
+  notionChars      = {'0' .. '9', '^'}
   invalidIndicator = '\0'
   notFound = -1
 
@@ -253,8 +253,8 @@ func cmd(ind: int, line: string): string =
     .toUpperAscii
 
 
-func gNode(k: GqlKind): GqlNode =
-  GqlNode(kind: k)
+func gNode(k: GqlKind, children: seq[GqlNode] = @[]): GqlNode =
+  GqlNode(kind: k, children: children)
 
 func parseComment    (line: string): GqlNode =
   GqlNode(
@@ -358,6 +358,20 @@ func parseDefHeader  (line: string): GqlNode =
       parseIdent ll[1],
     ])
 
+
+func parseInlineParamsAsIdents(line: string): seq[GqlNode] = 
+  let parts = line.splitwhitespace
+  for i, p in parts: 
+    if 0 < i:
+      result.add parseIdent p
+
+func parseAsk        (line: string): GqlNode =
+  gNode gkAsk, parseInlineParamsAsIdents line
+
+func parseTake       (line: string): GqlNode =
+  gNode gkTake, parseInlineParamsAsIdents line
+
+
 func parseGql*(content: string): GqlNode =
   result = GqlNode(kind: gkWrapper)
 
@@ -394,8 +408,8 @@ func parseGql*(content: string): GqlNode =
           of "NAMESPACE":                      gNode gkNameSpace
           of "PROC":                           gNode gkProcedure
 
-          of "ASK", "MATCH":                   gNode gkAsk
-          of "TAKE", "SELECT", "RETURN":       gNode gkTake
+          of "ASK", "MATCH":                   parseAsk     lineee
+          of "TAKE", "SELECT", "RETURN":       parseTake    lineee
 
           of "GROUP":                          gNode gkGroupBy
           of "ORDER":                          gNode gkOrderBy

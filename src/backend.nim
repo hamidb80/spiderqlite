@@ -68,6 +68,10 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         thead           = getMonoTime()
         j               = parseJson req.body
         ctx             = j["context"]
+
+      debugEcho j.pretty
+
+      let
         tparsejson      = getMonoTime()
         gql             = parseGql  getstr  j["query"]
         tparseq         = getMonoTime()
