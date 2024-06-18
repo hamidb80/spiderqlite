@@ -4,6 +4,6 @@
 
 USE    single-edge-node-head
 PARAM  p m a
-
+RETURN p
 LIMIT 
   1

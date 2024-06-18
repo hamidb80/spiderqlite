@@ -69,6 +69,15 @@ func makeMap*[A, B](a: seq[A], b: seq[B]): Table[A, B] =
   else:
     raisee "cannot make map from uneven seqs"
 
+template makeTabBy*(s, keyGet, valGet): untyped {.dirty.} = 
+  let it = default typeof s[0]
+  var acc: Table[typeof keyGet, typeof valGet]
+
+  for it in s:
+    acc[keyGet] = valGet
+
+  acc
+
 # procs ----------------------------------------
 
 proc openSqliteDB*(path: string): DbConn = 

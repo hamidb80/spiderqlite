@@ -174,6 +174,7 @@ type
 
   QueryStrategies* = ref object
     collection*: seq[QueryStrategy]
+    table*     : Table[string, QueryStrategy]
 
   AliasLookup = Table[string, GqlNode]
 
@@ -658,8 +659,11 @@ proc parseToml*(s: string): TomlValueRef =
     parseToml.parseString s
 
 func parseQueryStrategies*(tv: TomlValueRef): QueryStrategies =
+  let col = tv["queries"].getElems.map parseQueryStrategy
   QueryStrategies(
-    collection: tv["queries"].getElems.map parseQueryStrategy)
+    collection: col,
+    table     : makeTabBy(col, it.key, it)
+  )
 
 
 func initIdentMap: IdentMap = 
@@ -1208,14 +1212,10 @@ func toSql*(gn; queryStrategies; varResolver): SqlQuery {.effectsOf: varResolver
     let 
       u = getUse    gn
       p = getParams gn
+      qs   = queryStrategies.table[u]
+      imap = makeMap(p, qs.parameters)
 
-    for qs in queryStrategies.collection:
-      if qs.key == u:
-        let imap = makeMap(p, qs.parameters)
-        debugecho imap
-        return toSqlImpl(gn, qs, imap, varResolver)
-
-    raisee "invalid key"
+    return toSqlImpl(gn, qs, imap, varResolver)
 
 func parseTag*(s: string): string = 
   if s.len == 0:           raisee "empty tag"
