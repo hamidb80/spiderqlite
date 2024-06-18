@@ -63,6 +63,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
     proc staticFiles(req: Request) =
       discard
 
+
     proc askQuery(req: Request) {.gcsafe.} =
       let 
         thead           = getMonoTime()
@@ -140,30 +141,31 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
 
     proc getEntity(req: Request, def, ret: string) =
       let
-        thead           = getMonoTime()
+        thead = getMonoTime()
         id    = parseInt     req.queryParams["id"]
         db    = openSqliteDB app.config.storage.appDbFile
-        query = resolve(app.systemSqlQueries[def], [ret, $id])
-        row   = db.getRow sql query
-        tdone           = getMonoTime()
+        query = fmt"""
+          SELECT {ret}
+          FROM   {def}
+          WHERE  id = ?
+        """
+        row   = db.getRow(sql query, id)
+        tdone = getMonoTime()
 
       close db
       req.respond 200, jsonHeader(), row[0]
       debugEcho inMicroseconds(tdone - thead), "us"
 
     proc getNode(req: Request) =
-      getEntity req, "get_node", sqlJsonNodeExpr "" 
+      getEntity req, "nodes", sqlJsonNodeExpr "" 
 
     proc getEdge(req: Request) =
-      getEntity req, "get_edge", sqlJsonEdgeExpr ""
+      getEntity req, "edges", sqlJsonEdgeExpr ""
 
-    # TODO add bulk insert
-    # TODO add minimal option if enables only returns "id"
     proc insertNodes(req: Request) =
       let
         thead  = getMonoTime()
         j      = parseJson req.body
-        q      = app.systemSqlQueries["insert_node"]
         db     = openSqliteDB app.config.storage.appDbFile
       
       var ids: seq[int]
@@ -171,11 +173,11 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         let
           tag    = parseTag getstr a["tag"]
           doc    =                $a["doc"]
-          query  = resolve(q, [
-            dbQuote tag, 
-            dbQuote doc
-          ])
-          id     = db.insertID sql query
+          id     = db.insertID(sql """
+            INSERT INTO
+            nodes  (tag, doc) 
+            VALUES (?,   ?)
+          """, tag, doc)
         
         ids.add id
 
@@ -199,13 +201,11 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
           source =          getInt a["source"]
           target =          getInt a["target"]
           doc    =                $a["doc"]
-          query  = resolve(q, [
-            dbQuote tag, 
-            $source,
-            $target,
-            dbQuote doc
-          ])
-          id     = db.insertID sql query
+          id     = db.insertID(sql """
+            INSERT INTO
+            edges  (tag, source, target, doc) 
+            VALUES (?,   ?,      ?,      ?)
+          """, tag, source, target, doc)
         
         ids.add id
 
@@ -227,10 +227,11 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         let 
           id       = parseint k
           doc      = $v
-          query    = resolve(app.systemSqlQueries[ent], [
-            dbQuote $doc,
-            $id])
-          affected = db.execAffectedRows sql query
+          affected = db.execAffectedRows(sql fmt"""
+            UPDATE {ent}
+            SET    doc = ?
+            WHERE  id  = ?
+          """, doc, id)
 
         if affected == 1:
           acc.add id
@@ -239,10 +240,10 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
       req.respond 200, jsonHeader(), jsonAffectedRows(acc.len, acc)
 
     proc updateNodes(req: Request) =
-      updateEntity req, "update_nodes"
+      updateEntity req, "nodes"
 
     proc updateEdges(req: Request) =
-      updateEntity req, "update_edges"
+      updateEntity req, "edges"
 
 
     proc deleteEntity(req: Request, ent: string) =
@@ -250,17 +251,18 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         j        = parseJson req.body
         ids      = j["ids"].to seq[int]
         db       = openSqliteDB    app.config.storage.appDbFile
-        affected = db.execAffectedRows sql resolve(app.systemSqlQueries[ent], [
-          sqlize ids
-        ])
+        affected = db.execAffectedRows sql fmt"""
+          DELETE FROM  {ent}
+          WHERE  id in ({sqlize ids})
+        """
       close db
       req.respond 200, jsonHeader(), jsonAffectedRows affected
 
     proc deleteNodes(req: Request) =
-      deleteEntity req, "delete_nodes"
+      deleteEntity req, "nodes"
 
     proc deleteEdges(req: Request) =
-      deleteEntity req, "delete_edges"
+      deleteEntity req, "edges"
 
   proc initRouter: Router = 
     with result:
