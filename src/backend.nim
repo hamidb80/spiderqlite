@@ -70,6 +70,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         ctx             = j["context"]
 
       debugEcho j.pretty
+      debugEcho getstr j["query"]
 
       let
         tparsejson      = getMonoTime()

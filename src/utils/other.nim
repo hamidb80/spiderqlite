@@ -2,6 +2,10 @@ import std/[tables, sequtils, paths]
 import db_connector/db_sqlite
 
 
+template raisee*(reason): untyped =
+  ## raise [e]rror -- just a convention
+  raise newException(ValueError, reason)
+
 # funcs ----------------------------------------
 
 # ---- convertor
@@ -58,6 +62,13 @@ func rev*[A, B](tab: Table[A, B]): Table[B, A] =
   for k, v in tab:
     result[v] = k
 
+func makeMap*[A, B](a: seq[A], b: seq[B]): Table[A, B] = 
+  if a.len == b.len:
+    for i in 0 .. a.high:
+      result[a[i]] = b[i]
+  else:
+    raisee "cannot make map from uneven seqs"
+
 # procs ----------------------------------------
 
 proc openSqliteDB*(path: string): DbConn = 
@@ -77,10 +88,6 @@ template inspect*(a): untyped =
   debugecho b
   b
 
-template raisee*(reason): untyped =
-  ## raise [e]rror -- just a convention
-  raise newException(ValueError, reason)
-  
 template ignore*(body): untyped {.dirty.} =
   {.cast(nosideeffect).}:
     body

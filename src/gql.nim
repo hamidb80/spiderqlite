@@ -47,6 +47,8 @@ type
     gkVar         # |var|
     gkChain       # 1-r->p
 
+    gkParams
+    gkUse
     gkGroupBy     # GROUP BY
     gkTake        # select take
     gkFrom        # from
@@ -372,6 +374,14 @@ func parseTake       (line: string): GqlNode =
   gNode gkTake, parseInlineParamsAsIdents line
 
 
+func parseParams     (line: string): GqlNode =
+  gNode gkParams, parseInlineParamsAsIdents line
+
+func parseUse       (line: string): GqlNode =
+  gNode gkUse, parseInlineParamsAsIdents line
+
+
+
 func parseGql*(content: string): GqlNode =
   result = GqlNode(kind: gkWrapper)
 
@@ -410,6 +420,11 @@ func parseGql*(content: string): GqlNode =
 
           of "ASK", "MATCH":                   parseAsk     lineee
           of "TAKE", "SELECT", "RETURN":       parseTake    lineee
+
+          of "PARAM", "PARAMS",  
+             "PARAMETER", "PARAMETERS":        parseParams  lineee
+
+          of "USE", "TEMPLATE":                parseUse     lineee
 
           of "GROUP":                          gNode gkGroupBy
           of "ORDER":                          gNode gkOrderBy
@@ -983,6 +998,12 @@ func getTake(gn): GqlNode =
   get:
     findNode gn, gkTake
 
+func getUse(gn): string =
+  gn.findNode(gkuse).get.children[0].sval
+
+func getParams(gn): seq[string] =
+  gn.findNode(gkParams).get.children ~> it.sval
+
 func getGroup(gn): Option[GqlNode] = 
   findNode gn, gkGroupBy
 
@@ -1142,7 +1163,29 @@ func replaceAliases(gn) =
 func prepareGQuery(gn) = 
   replaceAliases gn
 
-func findCorrespondingPattern(gn; queryStrategies): tuple[qs: QueryStrategy, imap: IdentMap] = 
+
+type 
+  KindOfQuery = enum
+    byPattern
+    byKey
+
+func howToFind(gn): KindOfQuery = 
+  var 
+    cAsk = 0
+    cUse  = 0
+  
+  for ch in gn.children:
+    case ch.kind
+    of gkAsk: inc cAsk
+    of gkUse: inc cUse
+    else:     discard
+
+  let  state = (cAsk, cUse)
+  if   state == (1, 0): byPattern
+  elif state == (0, 1): byKey
+  else: raisee "invalid state: " & $state
+
+func findByPattern(gn; queryStrategies): tuple[qs: QueryStrategy, imap: IdentMap] = 
   for qs in queryStrategies.collection:
     if identMap =? matches(gn.askedQuery, qs.pattern):
       if (gn.getTake.selects.map identMap) <= qs.selectable:
@@ -1155,9 +1198,24 @@ func toSqlImpl(gn; qs: QueryStrategy, imap; varResolver): SqlQuery {.effectsOf: 
 
 func toSql*(gn; queryStrategies; varResolver): SqlQuery {.effectsOf: varResolver.} = 
   prepareGQuery gn
-  let p = findCorrespondingPattern(gn, queryStrategies)
-  toSqlImpl gn, p.qs, p.imap, varResolver
 
+  case howToFind gn
+  of byPattern:
+    let p = findByPattern(gn, queryStrategies)
+    return toSqlImpl(gn, p.qs, p.imap, varResolver)
+  
+  of byKey:
+    let 
+      u = getUse    gn
+      p = getParams gn
+
+    for qs in queryStrategies.collection:
+      if qs.key == u:
+        let imap = makeMap(p, qs.parameters)
+        debugecho imap
+        return toSqlImpl(gn, qs, imap, varResolver)
+
+    raisee "invalid key"
 
 func parseTag*(s: string): string = 
   if s.len == 0:           raisee "empty tag"
@@ -1165,7 +1223,6 @@ func parseTag*(s: string): string =
   else:                    s
 
 # TODO add named queries
-# TODO some gql grammers can be inline like PARAMTERES a b c 
 # TODO faster parser
 # TODO options for all routes: include-sql,
 # TODO add guard
