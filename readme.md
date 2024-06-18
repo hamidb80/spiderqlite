@@ -32,3 +32,4 @@ I wanted a BaaS (Backend as a service) but I've given up on that.
 ## Sample Databases
 - https://www.sqlitetutorial.net/sqlite-sample-database/
 - https://github.com/siara-cc/sakila_sqlite3/
+- https://antonz.org/sqlean-define/

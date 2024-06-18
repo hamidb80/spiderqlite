@@ -433,7 +433,7 @@ func parseGql*(content: string): GqlNode =
           of "HAVING":                         gNode gkHaving
           of "LIMIT":                          gNode gkLimit
           of "OFFSET":                         gNode gkOffset
-          of "AS":                             gNode gkAlias
+          of "AS", "ALIAS", "ALIASES":         gNode gkAlias
 
           of "CASE":                           gNode gkCase
           of "WHEN":                           gNode gkWhen
@@ -533,8 +533,11 @@ func preProcessRawSql*(s: string): seq[SqlPatSep] =
       if i mod 2 == 0:
         SqlPatSep(kind: sqkStr, content: part)
       else:
-        let tmp = splitWhitespace strip part
-        SqlPatSep(kind: sqkCommand, cmd: tmp[0], args: rest tmp)
+        if part == "":  # to support string concatinator ||
+          SqlPatSep(kind: sqkStr, content: "||")
+        else:
+          let tmp = splitWhitespace strip part
+          SqlPatSep(kind: sqkCommand, cmd: tmp[0], args: rest tmp)
 
 func toArrow(d: ArrowDir): AskPatNode = 
   AskPatNode(kind: apkArrow, dir: d)
@@ -940,10 +943,10 @@ func sqlCondsOfEdge(gn; imap; edge, source, target: string, varResolver): string
         var acc = @[fmt"{iedge}.tag == '{tag}'"]
 
         if isrc != ".":
-          acc.add fmt"{iedge}.source={isrc}.id"
+          acc.add fmt"{iedge}.source == {isrc}.id"
 
         if itar != ".":
-          acc.add fmt"{iedge}.target={itar}.id"
+          acc.add fmt"{iedge}.target == {itar}.id"
         
         if hasConds:
           acc.add fmt"""({resolveSql(n.children[2], @[], "", iedge, varResolver)})"""
@@ -1222,7 +1225,6 @@ func parseTag*(s: string): string =
   elif s[0] in {'#', '@'}: s.substr 1
   else:                    s
 
-# TODO add named queries
 # TODO faster parser
 # TODO options for all routes: include-sql,
 # TODO add guard

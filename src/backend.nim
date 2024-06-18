@@ -33,6 +33,10 @@ func jsonHeader: HttpHeaders =
 func jsonIds(ids: seq[int]): string = 
   "{\"ids\": [" & ids.joinComma & "]}"
 
+func jsonError(msg: string): string = 
+  "{\"error\": {\"message\": " & msg.escapeJson & "}}"
+
+
 
 func isNumber(s: string): bool = 
   try:
@@ -58,79 +62,87 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
 
       
     proc askQuery(req: Request) {.gcsafe.} =
-      let 
-        thead           = getMonoTime()
-        j               = parseJson req.body
-        ctx             = j["context"]
+      try:
+        let 
+          thead           = getMonoTime()
+          j               = parseJson req.body
+          ctx             = j["context"]
 
-      debugEcho j.pretty
-      debugEcho getstr j["query"]
+        debugEcho j.pretty
+        debugEcho getstr j["query"]
 
-      let
-        tparsejson      = getMonoTime()
-        gql             = parseGql  getstr  j["query"]
-        tparseq         = getMonoTime()
-        db              = openSqliteDB  app.config.storage.appDbFile
-        topenDb         = getMonoTime()
-        sql             = toSql(
-          gql, 
-          app.defaultQueryStrategies, 
-          s => $ctx[s])
-        tquery          = getMonoTime()
+        let
+          tparsejson      = getMonoTime()
+          gql             = parseGql  getstr  j["query"]
+          tparseq         = getMonoTime()
+          db              = openSqliteDB  app.config.storage.appDbFile
+          topenDb         = getMonoTime()
+          sql             = toSql(
+            gql, 
+            app.defaultQueryStrategies, 
+            s => $ctx[s])
+          tquery          = getMonoTime()
 
-      debugEcho sql
-      var rows = 0
-      var acc = newStringOfCap 1024 * 100 # 100 KB
-      acc.add "{\"result\": ["
-      
-      for row in db.fastRows sql:
-        inc rows
-        let r   = row[0]
-
-        if r[0] in {'[', '{'} or (r.len < 20 and isNumber r):
-          acc.add r
-        else:
-          acc.add escapeJson r
-
-        acc.add ','
-
-      if acc[^1] == ',': # check for 0 results
-        acc.less
+        debugEcho sql
+        var rows = 0
+        var acc = newStringOfCap 1024 * 100 # 100 KB
+        acc.add "{\"result\": ["
         
-      acc.add ']'
+        for row in db.fastRows sql:
+          inc rows
+          let r   = row[0]
 
-      let tcollect = getMonoTime()
+          if r[0] in {'[', '{'} or (r.len < 20 and isNumber r):
+            acc.add r
+          else:
+            acc.add escapeJson r
 
-      with acc:
-        add ','
-        add "\"length\":"
-        add $rows
-        add ','
-        add "\"performance\":{"
-        add "\"unit\": \"us\""
-        add ','
-        add "\"total\":"
-        add $inMicroseconds(tcollect - thead)
-        add ','
-        add "\"parse body\":"
-        add $inMicroseconds(tparsejson - thead)
-        add ','
-        add "\"parse query\":"
-        add $inMicroseconds(tparseq - tparsejson)
-        add ','
-        add "\"openning db\":"
-        add $inMicroseconds(topenDb - tparseq)
-        add ','
-        add "\"query matching & conversion\":"
-        add $inMicroseconds(tquery - topenDb)
-        add ','
-        add "\"exec & collect\":"
-        add $inMicroseconds(tcollect - tquery)
-        add '}'
-        add '}'
+          acc.add ','
 
-      close db
-      req.respond 200, jsonHeader(), acc
+        if acc[^1] == ',': # check for 0 results
+          acc.less
+          
+        acc.add ']'
+
+        let tcollect = getMonoTime()
+
+        with acc:
+          add ','
+          add "\"length\":"
+          add $rows
+          add ','
+          add "\"performance\":{"
+          add "\"unit\": \"us\""
+          add ','
+          add "\"total\":"
+          add $inMicroseconds(tcollect - thead)
+          add ','
+          add "\"parse body\":"
+          add $inMicroseconds(tparsejson - thead)
+          add ','
+          add "\"parse query\":"
+          add $inMicroseconds(tparseq - tparsejson)
+          add ','
+          add "\"openning db\":"
+          add $inMicroseconds(topenDb - tparseq)
+          add ','
+          add "\"query matching & conversion\":"
+          add $inMicroseconds(tquery - topenDb)
+          add ','
+          add "\"exec & collect\":"
+          add $inMicroseconds(tcollect - tquery)
+          add '}'
+          add '}'
+
+        close db
+        req.respond 200, jsonHeader(), acc
+
+      except:
+        let e = getCurrentExceptionMsg()
+        req.respond 400, jsonHeader(), jsonError e
+        debugEcho "did error ", e
+        debugEcho jsonError e
+
 
     proc getEntity(req: Request, def, ret: string) =
       let

@@ -92,6 +92,28 @@ sql        = '''
 '''
 
 [[queries]]
+key        = "single-edge-node-head-inv"
+parameters = "a b c"
+pattern    = "^a>-!c->b"
+selectable = "a"
+sql        = '''
+    SELECT |select_fields|
+    FROM   nodes a
+    WHERE
+      0 == COUNT(
+          SELECT c.target 
+          FROM   edges c
+          WHERE  |check_edge c a .|
+
+        INTERSECTS 
+
+          SELECT b.id
+          FROM   nodes b
+          WHERE  |check_node b|
+      )
+'''
+
+[[queries]]
 key        = "single-edge-edge"
 parameters = "a b c"
 pattern    = "a>-^c->b"
