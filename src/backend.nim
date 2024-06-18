@@ -136,6 +136,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
 
         close db
         req.respond 200, jsonHeader(), acc
+        debugEcho inMicroseconds(tcollect - thead), "us"
 
       except:
         let e = getCurrentExceptionMsg()

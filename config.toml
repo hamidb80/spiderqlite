@@ -97,20 +97,20 @@ parameters = "a b c"
 pattern    = "^a>-!c->b"
 selectable = "a"
 sql        = '''
-    SELECT |select_fields|
-    FROM   nodes a
-    WHERE
-      0 == COUNT(
-          SELECT c.target 
-          FROM   edges c
-          WHERE  |check_edge c a .|
-
-        INTERSECTS 
-
-          SELECT b.id
-          FROM   nodes b
-          WHERE  |check_node b|
-      )
+  SELECT |select_fields|
+  FROM   nodes a
+  WHERE  
+    |check_node a| 
+    AND NOT EXISTS 
+    (
+      SELECT     1
+      FROM edges c
+      JOIN nodes b 
+      ON 
+        |check_edge c a b|
+      WHERE 
+        |check_node b|
+    )
 '''
 
 [[queries]]
