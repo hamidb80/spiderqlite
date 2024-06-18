@@ -45,14 +45,7 @@ func parseSystemQueries*(tv: TomlValueRef): Table[string, seq[SqlPatSep]] =
   for k, v in tv["system"].tableVal:
     result[k] = preProcessRawSql getstr v["sql"]
 
-func resolve(s: seq[SqlPatSep], lookup: openArray[string]): string =
-  for i, p in s:
-    let x = i div 2
-    add result:
-      case p.kind
-      of sqkStr:     p.content
-      of sqkCommand: lookup[x]
-
+  
 proc initApp(ctx: AppContext, config: AppConfig): App = 
   var app: App
 
@@ -63,7 +56,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
     proc staticFiles(req: Request) =
       discard
 
-
+      
     proc askQuery(req: Request) {.gcsafe.} =
       let 
         thead           = getMonoTime()
@@ -191,7 +184,6 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
       let
         thead  = getMonoTime()
         j      = parseJson req.body
-        q      = app.systemSqlQueries["insert_edge"]
         db     = openSqliteDB app.config.storage.appDbFile
       
       var ids: seq[int]
@@ -253,7 +245,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         db       = openSqliteDB    app.config.storage.appDbFile
         affected = db.execAffectedRows sql fmt"""
           DELETE FROM  {ent}
-          WHERE  id in ({sqlize ids})
+          WHERE  id in {sqlize ids}
         """
       close db
       req.respond 200, jsonHeader(), jsonAffectedRows affected

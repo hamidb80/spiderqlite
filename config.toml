@@ -15,7 +15,7 @@ port   = 6001
 enabled  = true
 
 [system]
-[system.create_schema]
+[system.schema_blueprint]
 sql      = '''
   PRAGMA encoding="UTF-8";
 
