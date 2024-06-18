@@ -1,9 +1,0 @@
-#movie    m
-#person   p
-@acted_in a
-
-USE    single-edge-node-head
-PARAM  p m a
-RETURN p
-LIMIT 
-  1

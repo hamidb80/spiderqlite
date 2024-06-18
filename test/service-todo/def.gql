@@ -15,13 +15,13 @@ database
 
   references 
     #owner        o
-      p>-.->d 
+      p->d 
 
     #assigned_to  a
-      p>-.->t
+      p->t
 
     #completed_by c 
-      t>-.->p
+      t->p
 
 proc 
   get_device_programs

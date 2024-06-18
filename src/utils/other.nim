@@ -69,12 +69,19 @@ func makeMap*[A, B](a: seq[A], b: seq[B]): Table[A, B] =
   else:
     raisee "cannot make map from uneven seqs"
 
-template makeTabBy*(s, keyGet, valGet): untyped {.dirty.} = 
+template makeTabBy*(s, keyGet, valGet, uniq): untyped {.dirty.} = 
   let it = default typeof s[0]
   var acc: Table[typeof keyGet, typeof valGet]
 
   for it in s:
-    acc[keyGet] = valGet
+    let 
+      key = keyGet
+      val = valGet
+
+    if key in acc and uniq:
+      raisee "duplicated key: " & key
+    else:
+      acc[key] = val
 
   acc
 

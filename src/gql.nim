@@ -259,6 +259,9 @@ func cmd(ind: int, line: string): string =
 func gNode(k: GqlKind, children: seq[GqlNode] = @[]): GqlNode =
   GqlNode(kind: k, children: children)
 
+func gIdent(s: string): GqlNode =
+  GqlNode(kind: gkIdent, sval: s)
+
 func parseComment    (line: string): GqlNode =
   GqlNode(
     kind: gkComment,
@@ -286,10 +289,20 @@ func parseNumber     (line: string): GqlNode =
       kind: gkFloatLit,
       fval: parseFloat line)
 
+
 func parseIdent      (line: string): GqlNode =
+  let parts = line.split('.', maxsplit=1)
   GqlNode(
     kind: gkIdent,
-    sval: line)
+    sval: parts[0],
+    children: 
+      case parts.len
+      of 1: @[]
+      else: @[
+        GqlNode(
+          kind: gkFieldAccess,
+          children: @[
+            gIdent parts[1]])])
 
 func parseInfix      (line: string): GqlNode =
   GqlNode(
@@ -337,10 +350,12 @@ func parseVar        (line: string): GqlNode =
     sval: line.strip(chars = {'|'}))
 
 func parseFieldAccess(line: string): GqlNode =
-  assert line[0] == '.'
-  GqlNode(
-    kind: gkFieldAccess,
-    children: @[parseIdent line.substr 1])
+  if line[0] == '.':
+    GqlNode(
+      kind: gkFieldAccess,
+      children: @[parseIdent line.substr 1])
+  else:
+    raisee "invalid field access"
 
 func parseDefHeader  (line: string): GqlNode =
   let 
@@ -665,7 +680,7 @@ func parseQueryStrategies*(tv: TomlValueRef): QueryStrategies =
   let col = tv["queries"].getElems.map parseQueryStrategy
   QueryStrategies(
     collection: col,
-    table     : makeTabBy(col, it.key, it)
+    table     : makeTabBy(col, it.key, it, true)
   )
 
 
@@ -849,7 +864,7 @@ func resolveSql(node: GqlNode, relIdents: seq[string], mode: string, name: strin
       " " & 
       resolveSql(node.children[1], relIdents, mode, name, varResolver)
 
-  of gkStrLit:   ["'", node.sval, "'"].join "" #FIXME SQL injection
+  of gkStrLit:   dbQuote node.sval
   of gkIntLit:   $node.ival
   of gkFloatLit: $node.fval
   of gkInf:      "INF"
