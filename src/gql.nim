@@ -387,10 +387,6 @@ func parseInlineNumbersOrVars(line: string): seq[GqlNode] =
         of '|':      parseVar    part
         else:        raisee "inline child is not number or var"
 
-func parseLimit      (line: string): GqlNode =
-  result = gNode gkLimit
-  result.children = parseInlineNumbersOrVars line
-
 
 func parseInlineParamsAsIdents(line: string): seq[GqlNode] = 
   let parts = line.splitwhitespace
@@ -398,11 +394,7 @@ func parseInlineParamsAsIdents(line: string): seq[GqlNode] =
     if 0 < i:
       result.add parseIdent p
 
-func parseAsk        (line: string): GqlNode =
-  gNode gkAsk, parseInlineParamsAsIdents line
 
-func parseTake       (line: string): GqlNode =
-  gNode gkTake, parseInlineParamsAsIdents line
 
 
 func parseParams     (line: string): GqlNode =
@@ -449,21 +441,22 @@ func parseGql*(content: string): GqlNode =
           of "NAMESPACE":                      gNode        gkNameSpace
           of "PROC":                           gNode        gkProcedure
 
-          of "ASK", "MATCH":                   parseAsk     lineee
-          of "TAKE", "SELECT", "RETURN":       parseTake    lineee
+          of "ASK", "MATCH":                   gNode gkAsk,  parseInlineParamsAsIdents lineee
+          of "TAKE", "SELECT", "RETURN":       gNode gkTake, parseInlineParamsAsIdents lineee
 
           of "PARAM", "PARAMS",  
              "PARAMETER", "PARAMETERS":        parseParams  lineee
 
           of "USE", "TEMPLATE":                parseUse     lineee
 
-          of "GROUP":                          gNode        gkGroupBy
-          of "ORDER":                          gNode        gkOrderBy
-          of "SORT":                           gNode        gkSort
-          of "HAVING":                         gNode        gkHaving
-          of "LIMIT":                          parseLimit   lineee
-          of "OFFSET":                         gNode        gkOffset
-          of "AS", "ALIAS", "ALIASES":         gNode        gkAlias
+          of "GROUP":                          gNode gkGroupBy, parseInlineParamsAsIdents lineee
+          of "ORDER":                          gNode gkOrderBy, parseInlineParamsAsIdents lineee
+          
+          of "SORT":                           gNode gkSort,   parseInlineParamsAsIdents lineee
+          of "HAVING":                         gNode gkHaving
+          of "LIMIT":                          gNode gkLimit,  parseInlineNumbersOrVars line
+          of "OFFSET":                         gNode gkOffset, parseInlineNumbersOrVars line
+          of "AS", "ALIAS", "ALIASES":         gNode gkAlias
 
           of "CASE":                           gNode        gkCase
           of "WHEN":                           gNode        gkWhen
@@ -485,12 +478,9 @@ func parseGql*(content: string): GqlNode =
              "*", "/",
              "AND", "NAND",
              "OR", "NOR",
-             "EQ", "NEQ",
-             "GT", "GTE",
-             "LT", "LTE",
              "XOR", "IS", "ISNOT",
-             "NOTIN", "IN", "HAS",
-             "BETWEEN", "CONTAINS":            parseInfix       lineee
+             "NOTIN", "IN",
+             "BETWEEN":                        parseInfix       lineee
 
           of "$", "NOT":                       parsePrefix      lineee          
           of ".":                              parseFieldAccess lineee
@@ -1256,5 +1246,4 @@ func parseTag*(s: string): string =
   else:                    s
 
 # TODO faster parser
-# TODO options for all routes: include-sql,
 # TODO add guard
