@@ -147,7 +147,7 @@ type
     mark:   char   ## special prefix, is used to differentiate
 
   QueryGraph  = ref object
-    pattern:  string
+    # rawpattern:  seq[string]
     nodes:    seq[QueryNode]
     iocounts: seq[IOcount]
     rels:     Mat[seq[QueryNode]]
@@ -664,7 +664,7 @@ func sepQuery(qc: QueryChain): seq[QueryPart] =
 
 func parseQueryGraph(patts: seq[string]): QueryGraph =
   result = QueryGraph(
-    pattern: patts.join "\n"
+    # rawpattern: patts.join "\n"
   )
   
   for p in patts:
