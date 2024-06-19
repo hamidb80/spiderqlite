@@ -377,6 +377,21 @@ func parseDefHeader  (line: string): GqlNode =
     ])
 
 
+func parseInlineNumbersOrVars(line: string): seq[GqlNode] =
+  let parts = line.splitWhitespace
+  for i, part in parts:
+    if i != 0:
+      result.add:
+        case part[0]
+        of '0'..'9': parseNumber part
+        of '|':      parseVar    part
+        else:        raisee "inline child is not number or var"
+
+func parseLimit      (line: string): GqlNode =
+  result = gNode gkLimit
+  result.children = parseInlineNumbersOrVars line
+
+
 func parseInlineParamsAsIdents(line: string): seq[GqlNode] = 
   let parts = line.splitwhitespace
   for i, p in parts: 
@@ -428,11 +443,11 @@ func parseGql*(content: string): GqlNode =
           case key
           of "--":                             parseComment lineee
 
-          of "DATABASE":                       gNode gkDataBase
-          of "SCHEMA", "TABLE":                gNode gkTable
-          of "REFERENCES":                     gNode gkRelation
-          of "NAMESPACE":                      gNode gkNameSpace
-          of "PROC":                           gNode gkProcedure
+          of "DATABASE":                       gNode        gkDataBase
+          of "SCHEMA", "TABLE":                gNode        gkTable
+          of "REFERENCES":                     gNode        gkRelation
+          of "NAMESPACE":                      gNode        gkNameSpace
+          of "PROC":                           gNode        gkProcedure
 
           of "ASK", "MATCH":                   parseAsk     lineee
           of "TAKE", "SELECT", "RETURN":       parseTake    lineee
@@ -442,19 +457,19 @@ func parseGql*(content: string): GqlNode =
 
           of "USE", "TEMPLATE":                parseUse     lineee
 
-          of "GROUP":                          gNode gkGroupBy
-          of "ORDER":                          gNode gkOrderBy
-          of "SORT":                           gNode gkSort
-          of "HAVING":                         gNode gkHaving
-          of "LIMIT":                          gNode gkLimit
-          of "OFFSET":                         gNode gkOffset
-          of "AS", "ALIAS", "ALIASES":         gNode gkAlias
+          of "GROUP":                          gNode        gkGroupBy
+          of "ORDER":                          gNode        gkOrderBy
+          of "SORT":                           gNode        gkSort
+          of "HAVING":                         gNode        gkHaving
+          of "LIMIT":                          parseLimit   lineee
+          of "OFFSET":                         gNode        gkOffset
+          of "AS", "ALIAS", "ALIASES":         gNode        gkAlias
 
-          of "CASE":                           gNode gkCase
-          of "WHEN":                           gNode gkWhen
-          of "ELSE":                           gNode gkElse
+          of "CASE":                           gNode        gkCase
+          of "WHEN":                           gNode        gkWhen
+          of "ELSE":                           gNode        gkElse
 
-          of "()":                             gNode gkCall
+          of "()":                             gNode        gkCall
           # special calls
           of ">>":                             parseCallToJson()
           of "{}":                             parseCallToJsonObject()
