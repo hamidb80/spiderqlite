@@ -143,10 +143,11 @@ type
 
   QueryNode  = object
     ident:  string
-    mode:   char   ## nothing, !, ?
+    mode:   char   ## nothing, !, ?, *
     mark:   char   ## special prefix, is used to differentiate
 
   QueryGraph  = ref object
+    pattern:  string
     nodes:    seq[QueryNode]
     iocounts: seq[IOcount]
     rels:     Mat[seq[QueryNode]]
@@ -193,17 +194,24 @@ using
   queryStrategies: QueryStrategies
 
 const 
-  notionChars      = {'0' .. '9', '^', '$', '*', '+'}
+  modeChars        = {'!', '?', '*'}
+  markChars        = {'0' .. '9', '^', '$', '+'}
   invalidIndicator = '\0'
 
 
 func `$`(p: AskPatNode): string =
   case p.kind
   of apkNode:
-    result.add $p.node
+    if p.node.mode != invalidIndicator:
+      << p.node.mode
+
+    if p.node.mark != invalidIndicator:
+      << p.node.mark
+
+    << p.node.ident
 
   of apkArrow:
-    result.add $p.dir
+    << $p.dir
 
 func `$`(qc: QueryChain): string =
   join qc
@@ -251,6 +259,10 @@ func `$`*(g: QueryGraph): string =
 func `$`(gn): string = 
   raisee "TODO"
 
+
+func repr(qc: QueryChain): string =
+  qc.join " "
+    
 
 
 func cmd(ind: int, line: string): string =
@@ -569,11 +581,11 @@ func toArrow(d: ArrowDir): AskPatNode =
 func parseQueryNode(s: string): QueryNode = 
   var i = 0
   
-  if s[i] in {'!', '?'}:
+  if s[i] in modeChars:
     result.mode = s[i]
     inc i
 
-  if s[i] in notionChars:
+  if s[i] in markChars:
     result.mark = s[i]
     inc i
 
@@ -582,7 +594,7 @@ func parseQueryNode(s: string): QueryNode =
     inc i
 
 func lexQueryImpl(str: string, i: var int): AskPatNode = 
-  let m = str.find(re"[-<>]{2}|[?!]?[0-9^]?\w+", i).get.match
+  let m = str.find(re"[-<>]{2}|[?!*]?[0-9^+$]?\w+", i).get.match
   i.inc m.len
   case m
   of ">-": toArrow headL2R
@@ -610,10 +622,6 @@ func sepQuery(qc: QueryChain): seq[QueryPart] =
   # a               :: a
 
   let sz = qc.len
-
-  # template firstp: untyped {.dirty.} =
-  #   i == 0
-
 
   if   sz == 1:
     << QueryPart(kind: qpSingle, node: qc[0].node)
@@ -645,9 +653,8 @@ func sepQuery(qc: QueryChain): seq[QueryPart] =
         if dir != t.dir:
           raisee "edge direction is not consistent, expected same direction as " & $dir & " but got "  & $t.dir
 
-
   else:
-    raisee "invalid query length: " & $sz
+    raisee "invalid query length: " & $sz & "query chain was: " & $qc
 
 
   for i, en in qc:
@@ -656,7 +663,9 @@ func sepQuery(qc: QueryChain): seq[QueryPart] =
     of 1 .. 4: discard
 
 func parseQueryGraph(patts: seq[string]): QueryGraph =
-  result = QueryGraph()
+  result = QueryGraph(
+    pattern: patts.join "\n"
+  )
   
   for p in patts:
     if not isEmptyOrWhitespace p:
@@ -1216,7 +1225,11 @@ func findByPattern(gn; queryStrategies): tuple[qs: QueryStrategy, imap: IdentMap
     if identMap =? matches(gn.askedQuery, qs.pattern):
       if (gn.getTake.selects.map identMap) <= qs.selectable:
         return (qs, identMap)
-        
+
+      else:
+        discard
+        # debugEcho "matched but select items are not matched"
+
   raisee "no pattern was found"
 
 func toSqlImpl(gn; qs: QueryStrategy, imap; varResolver): SqlQuery {.effectsOf: varResolver.} =

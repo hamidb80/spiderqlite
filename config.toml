@@ -66,6 +66,7 @@ sql        = '''
   |limit_statement|
   |offset_statement|
 '''
+
 [[queries]]
 key        = "single-edge-node-head"
 parameters = "a b c"
@@ -77,6 +78,31 @@ sql        = '''
   FROM
     nodes a
   JOIN 
+    edges c,
+    nodes b
+  ON
+    |check_node b| AND
+    |check_edge c a b|
+  WHERE 
+    |check_node a|
+  |group_statement|
+  |having_statement|
+  |order_statement|
+  |limit_statement|
+  |offset_statement|
+'''
+
+[[queries]]
+key        = "single-edge-node-head-zero-or-more"
+parameters = "a b c"
+pattern    = "^a>-*c->b"
+selectable = "a b c"
+sql        = '''
+  SELECT 
+    |select_fields|
+  FROM
+    nodes a
+  LEFT JOIN 
     edges c,
     nodes b
   ON
