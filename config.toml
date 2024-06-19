@@ -102,12 +102,15 @@ sql        = '''
     |select_fields|
   FROM
     nodes a
-  LEFT JOIN 
-    edges c,
-    nodes b
-  ON
-    |check_node b| AND
-    |check_edge c a b|
+  LEFT JOIN
+    edges c 
+  ON 
+    |check_edge c a .|
+  LEFT JOIN
+    nodes b 
+  ON 
+    |edge_rels c . b| AND
+    |check_node b|
   WHERE 
     |check_node a|
   |group_statement|

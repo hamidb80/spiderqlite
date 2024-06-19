@@ -958,7 +958,7 @@ func sqlCondsOfNode(gn; imap; node: string, varResolver): string {.effectsOf: va
     else: discard
   raisee fmt"the node '{node}' not found in query"
 
-func sqlCondsOfEdge(gn; imap; edge, source, target: string, varResolver): string {.effectsOf: varResolver.} =
+func sqlCondsOfEdge(gn; imap; edge, source, target: string, includeConds: bool, varResolver): string {.effectsOf: varResolver.} =
   let
     iedge = imap[edge]
     isrc  = imap[source]
@@ -973,20 +973,28 @@ func sqlCondsOfEdge(gn; imap; edge, source, target: string, varResolver): string
         hasConds = n.children.len > 2
       
       if alias == edge:
-        var acc = @[fmt"{iedge}.tag == '{tag}'"]
+        var acc: seq[string]
+
+        if includeConds:
+          acc.add fmt"{iedge}.tag == '{tag}'"
+
+          if hasConds:
+            acc.add fmt"""({resolveSql(n.children[2], @[], "", iedge, varResolver)})"""
 
         if isrc != ".":
           acc.add fmt"{iedge}.source == {isrc}.id"
 
         if itar != ".":
           acc.add fmt"{iedge}.target == {itar}.id"
-        
-        if hasConds:
-          acc.add fmt"""({resolveSql(n.children[2], @[], "", iedge, varResolver)})"""
 
-        result.add "("
-        result.add acc.join " AND "
-        result.add ")"
+        case acc.len
+        of 0: 
+          << "1"
+        else:
+          << "("
+          << acc.join " AND "
+          << ")"
+        
         return
 
     else: discard
@@ -1083,7 +1091,10 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
           sqlCondsOfNode(gn, imap, revmap[p.args[0]], varResolver)
 
         of "CHECK_EDGE":
-          sqlCondsOfEdge(gn, imap, revmap[p.args[0]], revmap[p.args[1]], revmap[p.args[2]], varResolver)
+          sqlCondsOfEdge(gn, imap, revmap[p.args[0]], revmap[p.args[1]], revmap[p.args[2]], true,  varResolver)
+
+        of "EDGE_RELS":
+          sqlCondsOfEdge(gn, imap, revmap[p.args[0]], revmap[p.args[1]], revmap[p.args[2]], false, varResolver)
 
         of "EXISTS_EDGE": 
           resolve(

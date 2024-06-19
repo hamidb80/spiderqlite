@@ -1,0 +1,65 @@
+[schema]
+blueprint = '''
+
+  #movie     m
+    name! :: string
+    name! :: string
+  
+  #person    p
+  
+  @acted_in  a
+    p->m
+
+'''
+
+[queries]
+
+movie_title_filter = '''
+  #movie  m
+    ==
+      .title
+      |mtitle|
+  
+  MATCH   m
+  RETURN  m  
+'''
+
+people_not_acted_in_any_movies = '''
+  #person   p
+  #movie    m
+  @acted_in a
+
+  MATCH     ^p>-!a->m
+  RETURN     p 
+'''
+
+movies_of_people = '''
+  #person   p
+  #movie    m
+  @acted_in a
+
+  AS
+    no_movies
+    ()
+      COUNT
+      m.id
+
+  -- *a means that include `p`s that may not have any edge `a` connected to `a` movie at all
+
+  MATCH  ^p>-*a->m
+  GROUP   p.id
+
+  ORDER no_movies
+  SORT  DESC 
+  RETURN  
+    {}
+      "person"
+      p
+
+      "movies"
+      [].
+        m.title
+
+      "no_movies"
+      no_movies
+'''

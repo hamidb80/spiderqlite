@@ -22,6 +22,7 @@ I wanted a BaaS (Backend as a service) but I've given up on that.
 - https://neo4j.com/docs/cypher-manual/current/functions/aggregating/
 - https://sqlite.org/json1.html
 
+
 ## Inspirations
 - https://github.com/arturo-lang/grafito/
 - https://github.com/webbery/gqlite
