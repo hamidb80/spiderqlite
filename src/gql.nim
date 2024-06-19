@@ -193,7 +193,7 @@ using
   queryStrategies: QueryStrategies
 
 const 
-  notionChars      = {'0' .. '9', '^'}
+  notionChars      = {'0' .. '9', '^', '$', '*', '+'}
   invalidIndicator = '\0'
 
 
@@ -256,7 +256,7 @@ func `$`(gn): string =
 func cmd(ind: int, line: string): string =
   line
     .match(
-      re "#|@|[$\"|.=<>!%*+-/^$?(){}\\[\\]]+|\\d+|\\w+",
+      re"""\.|#|@|[$\"|=<>!%*+-/^$?(){}\[\]]+|\d+|\w+""",
       ind,
       line.high)
     .get
@@ -408,7 +408,7 @@ func parseInlineParamsAsIdents(line: string): seq[GqlNode] =
 func parseParams     (line: string): GqlNode =
   gNode gkParams, parseInlineParamsAsIdents line
 
-func parseUse       (line: string): GqlNode =
+func parseUse        (line: string): GqlNode =
   gNode gkUse, parseInlineParamsAsIdents line
 
 
@@ -440,69 +440,69 @@ func parseGql*(content: string): GqlNode =
         lineee = strip line
         parent = getParent ind
         n      =
-          case key
-          of "--":                             parseComment lineee
+          if   parent.kind == gkAsk:             parseIdent       lineee
+          else:
+            case key
+            of "--":                             parseComment lineee
 
-          of "DATABASE":                       gNode        gkDataBase
-          of "SCHEMA", "TABLE":                gNode        gkTable
-          of "REFERENCES":                     gNode        gkRelation
-          of "NAMESPACE":                      gNode        gkNameSpace
-          of "PROC":                           gNode        gkProcedure
+            of "DATABASE":                       gNode        gkDataBase
+            of "SCHEMA", "TABLE":                gNode        gkTable
+            of "REFERENCES":                     gNode        gkRelation
+            of "NAMESPACE":                      gNode        gkNameSpace
+            of "PROC":                           gNode        gkProcedure
 
-          of "ASK", "MATCH", "FROM":           gNode gkAsk,  parseInlineParamsAsIdents lineee
-          of "TAKE", "SELECT", "RETURN":       gNode gkTake, parseInlineParamsAsIdents lineee
+            of "ASK", "MATCH", "FROM":           gNode gkAsk,  parseInlineParamsAsIdents lineee
+            of "TAKE", "SELECT", "RETURN":       gNode gkTake, parseInlineParamsAsIdents lineee
 
-          of "PARAM", "PARAMS",  
-             "PARAMETER", "PARAMETERS":        parseParams  lineee
+            of "PARAM", "PARAMS",  
+              "PARAMETER", "PARAMETERS":        parseParams  lineee
 
-          of "USE", "TEMPLATE":                parseUse     lineee
+            of "USE", "TEMPLATE":                parseUse     lineee
 
-          of "GROUP", "GROUPBY", "GROUP_BY":   gNode gkGroupBy, parseInlineParamsAsIdents lineee
-          of "ORDER", "ORDERBY", "ORDER_BY":   gNode gkOrderBy, parseInlineParamsAsIdents lineee
-          
-          of "SORT":                           gNode gkSort,   parseInlineParamsAsIdents lineee
-          of "HAVING":                         gNode gkHaving
-          of "LIMIT":                          gNode gkLimit,  parseInlineNumbersOrVars line
-          of "OFFSET":                         gNode gkOffset, parseInlineNumbersOrVars line
-          of "AS", "ALIAS", "ALIASES":         gNode gkAlias
+            of "GROUP", "GROUP_BY":              gNode gkGroupBy, parseInlineParamsAsIdents lineee
+            of "ORDER", "ORDER_BY":              gNode gkOrderBy, parseInlineParamsAsIdents lineee
+            
+            of "SORT":                           gNode gkSort,   parseInlineParamsAsIdents lineee
+            of "HAVING":                         gNode gkHaving
+            of "LIMIT":                          gNode gkLimit,  parseInlineNumbersOrVars line
+            of "OFFSET":                         gNode gkOffset, parseInlineNumbersOrVars line
+            of "AS", "ALIAS", "ALIASES":         gNode gkAlias
 
-          of "CASE":                           gNode        gkCase
-          of "WHEN":                           gNode        gkWhen
-          of "ELSE":                           gNode        gkElse
+            of "CASE":                           gNode        gkCase
+            of "WHEN":                           gNode        gkWhen
+            of "ELSE":                           gNode        gkElse
 
-          of "()":                             gNode        gkCall
-          # special calls
-          of ">>":                             parseCallToJson()
-          of "{}":                             parseCallToJsonObject()
-          of "{}.":                            parseCallToJsonObjectGroup()
-          of "[]":                             parseCallToJsonArray()
-          of "[].":                            parseCallToJsonArrayGroup()
+            of "()":                             gNode        gkCall
+            # special calls
+            of ">>":                             parseCallToJson()
+            of "{}":                             parseCallToJsonObject()
+            of "{}.":                            parseCallToJsonObjectGroup()
+            of "[]":                             parseCallToJsonArray()
+            of "[].":                            parseCallToJsonArrayGroup()
 
-          of "||", "%",
-             "==", "!=",
-             "<", "<=",
-             ">=", ">",
-             "+" , "-",
-             "*", "/",
-             "AND", "NAND",
-             "OR", "NOR",
-             "XOR", "IS", "ISNOT",
-             "NOTIN", "IN",
-             "BETWEEN":                        parseInfix       lineee
+            of "||", "%",
+              "==", "!=",
+              "<", "<=",
+              ">=", ">",
+              "+" , "-",
+              "*", "/",
+              "AND", "NAND",
+              "OR", "NOR",
+              "XOR", "IS", "ISNOT",
+              "NOTIN", "IN",
+              "BETWEEN":                        parseInfix       lineee
 
-          of "$", "NOT":                       parsePrefix      lineee          
-          of ".":                              parseFieldAccess lineee
-          of "\"", "\"\"":                     parseString      lineee
-          of "#", "@":                         parseDefHeader   lineee
+            of "$", "NOT":                       parsePrefix      lineee          
+            of ".":                              parseFieldAccess lineee
+            of "\"", "\"\"":                     parseString      lineee
+            of "#", "@":                         parseDefHeader   lineee
 
-          of "|":                              parseVar         lineee
-          elif key[0] in '0'..'9':             parseNumber      lineee
-          elif key[0] in 'A'..'Z':             parseIdent       lineee
+            of "|":                              parseVar         lineee
+            elif key[0] in '0'..'9':             parseNumber      lineee
+            elif key[0] in 'A'..'Z':             parseIdent       lineee
 
-          elif parent.kind == gkAsk:           parseIdent       lineee
-
-          else: 
-            raisee key
+            else: 
+              raisee key
 
       parent.children.add n
       nested.add (n, ind)
