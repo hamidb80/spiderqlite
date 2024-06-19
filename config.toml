@@ -97,15 +97,20 @@ parameters = "a b c"
 pattern    = "^a>-!c->b"
 selectable = "a"
 sql        = '''
-  SELECT |select_fields|
-  FROM   nodes a
+  SELECT 
+    |select_fields|
+  FROM   
+    nodes a
   WHERE  
     |check_node a| 
     AND NOT EXISTS 
     (
-      SELECT     1
-      FROM edges c
-      JOIN nodes b 
+      SELECT 
+        1
+      FROM   
+        edges c
+      JOIN   
+        nodes b 
       ON 
         |check_edge c a b|
       WHERE 

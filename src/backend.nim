@@ -283,6 +283,9 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
       # get    "/api/databases/",         apiDatabasesOfUser
       # post   "/api/database/",          apiDatabasesOfUser
 
+      # get    "/api/database/blueprint/",  gqlService
+      # post   "/api/database/blueprint/",  gqlService
+
       # get    "/api/database/stats/",    gqlService
 
       post   "/api/database/query/",    askQuery
@@ -303,6 +306,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
       # get    "/api/database/indexes/",  gqlService
       # post   "/api/database/index/",    gqlService
       # delete "/api/database/index/",    gqlService
+
 
   app = App(
     server:                 newServer initRouter(),
