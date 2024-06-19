@@ -181,17 +181,21 @@ type
   IOcount = tuple
     inward, outward: Natural
 
+  KindOfQuery = enum
+    byPattern
+    byKey
+
+
 using 
   gn:              GqlNode
   imap:            IdentMap
   varResolver:     string -> string
   queryStrategies: QueryStrategies
 
-
 const 
   notionChars      = {'0' .. '9', '^'}
   invalidIndicator = '\0'
-  notFound = -1
+
 
 func `$`(p: AskPatNode): string =
   case p.kind
@@ -243,6 +247,10 @@ func `$`*(g: QueryGraph): string =
     << '\n'  
 
   less result
+
+func `$`(gn): string = 
+  raisee "TODO"
+
 
 
 func cmd(ind: int, line: string): string =
@@ -441,7 +449,7 @@ func parseGql*(content: string): GqlNode =
           of "NAMESPACE":                      gNode        gkNameSpace
           of "PROC":                           gNode        gkProcedure
 
-          of "ASK", "MATCH":                   gNode gkAsk,  parseInlineParamsAsIdents lineee
+          of "ASK", "MATCH", "FROM":           gNode gkAsk,  parseInlineParamsAsIdents lineee
           of "TAKE", "SELECT", "RETURN":       gNode gkTake, parseInlineParamsAsIdents lineee
 
           of "PARAM", "PARAMS",  
@@ -449,8 +457,8 @@ func parseGql*(content: string): GqlNode =
 
           of "USE", "TEMPLATE":                parseUse     lineee
 
-          of "GROUP":                          gNode gkGroupBy, parseInlineParamsAsIdents lineee
-          of "ORDER":                          gNode gkOrderBy, parseInlineParamsAsIdents lineee
+          of "GROUP", "GROUPBY", "GROUP_BY":   gNode gkGroupBy, parseInlineParamsAsIdents lineee
+          of "ORDER", "ORDERBY", "ORDER_BY":   gNode gkOrderBy, parseInlineParamsAsIdents lineee
           
           of "SORT":                           gNode gkSort,   parseInlineParamsAsIdents lineee
           of "HAVING":                         gNode gkHaving
@@ -498,10 +506,6 @@ func parseGql*(content: string): GqlNode =
 
       parent.children.add n
       nested.add (n, ind)
-
-func `$`(gn): string = 
-  raisee "TODO"
-
 
 func infoLevel(n: QueryNode): int =
   if n.mark != invalidIndicator:
@@ -1190,11 +1194,6 @@ func replaceAliases(gn) =
 func prepareGQuery(gn) = 
   replaceAliases gn
 
-
-type 
-  KindOfQuery = enum
-    byPattern
-    byKey
 
 func howToFind(gn): KindOfQuery = 
   var 

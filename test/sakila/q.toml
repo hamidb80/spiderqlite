@@ -78,40 +78,6 @@ get_agg = '''
       collected_actor_names
 '''
 
-get_ignore = '''
-  #acted_in a
-  #movie    m
-
-  match  
-    a->m
-
-  GROUP BY
-    m
-      .id
-
-  limit
-    10
-
-  ORDER BY
-    m
-      .id
-
-  SORT
-    DESC
-
-  return
-    m
-      .title
-
-    m
-      .id
-      
-    ()
-      COUNT
-      a
-        .id
-'''
-
 get = '''
   -- or can be #: p, since it doesn't matter
 
@@ -122,11 +88,8 @@ get = '''
       .title 
       |mtitle|
 
-  match  
-    ^m<-a<-p
-
-  return
-    p
+  match  ^m<-a<-p
+  return p
 '''
 
 simple1 = '''
@@ -135,11 +98,8 @@ simple1 = '''
       .title 
       |mtitle|
 
-  match 
-    m
-
-  return 
-    m
+  FROM   m
+  SELECT m
 '''
 
 use_named = '''
@@ -147,9 +107,8 @@ use_named = '''
   #person   p
   @acted_in a
 
-  USE    single-edge-node-head
-  PARAM  p m a
-  RETURN p
-  LIMIT 
-    1
+  USE       single-edge-node-head
+  PARAMS    p m a
+  RETURN    p
+  LIMIT     1
 '''

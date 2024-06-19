@@ -2,6 +2,10 @@ import std/[tables, sequtils, paths]
 import db_connector/db_sqlite
 
 
+const
+  notFound* = -1
+
+
 template raisee*(reason): untyped =
   ## raise [e]rror -- just a convention
   raise newException(ValueError, reason)
