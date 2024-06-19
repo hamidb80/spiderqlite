@@ -78,7 +78,7 @@ sql        = '''
     |select_fields|
   FROM
     nodes a
-  JOIN 
+  INNER JOIN 
     edges c,
     nodes b
   ON
@@ -162,7 +162,7 @@ sql        = '''
     |select_fields|
   FROM
     edges c
-  JOIN 
+  INNER JOIN 
     nodes a,
     nodes b
   ON
@@ -188,7 +188,7 @@ sql        = '''
     |select_fields|
   FROM
     nodes b
-  JOIN 
+  INNER JOIN 
     edges c,
     nodes a
   ON
@@ -214,7 +214,7 @@ sql        = '''
     |select_fields|
   FROM
     nodes a
-  JOIN 
+  INNER JOIN 
     edges c1,
     nodes b
   ON
