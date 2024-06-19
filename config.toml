@@ -1,6 +1,7 @@
 [meta]
-author   = "@hamidb80"
-desc     = '''
+author = "@hamidb80"
+desc   = '''
+  default config file
 '''
 
 [config]
@@ -59,7 +60,7 @@ sql        = '''
   FROM
     nodes a
   WHERE 
-    |check_node a|
+    |check_conds a|
   |group_statement|
   |having_statement|
   |order_statement|
@@ -81,10 +82,12 @@ sql        = '''
     edges c,
     nodes b
   ON
-    |check_node b| AND
-    |check_edge c a b|
+    |check_conds c|     AND
+    |check_rels c a b|
   WHERE 
-    |check_node a|
+    |check_conds a| AND
+    |check_conds b| 
+
   |group_statement|
   |having_statement|
   |order_statement|
@@ -105,14 +108,15 @@ sql        = '''
   LEFT JOIN
     edges c 
   ON 
-    |check_edge c a .|
+    |check_conds c|     AND
+    |check_rels  c a .|
   LEFT JOIN
     nodes b 
   ON 
-    |edge_rels c . b| AND
-    |check_node b|
+    |check_rels c . b| AND
+    |check_conds b|
   WHERE 
-    |check_node a|
+    |check_conds a|
   |group_statement|
   |having_statement|
   |order_statement|
@@ -131,7 +135,7 @@ sql        = '''
   FROM   
     nodes a
   WHERE  
-    |check_node a| 
+    |check_conds a| 
     AND NOT EXISTS 
     (
       SELECT 
@@ -141,9 +145,10 @@ sql        = '''
       JOIN   
         nodes b 
       ON 
-        |check_edge c a b|
+        |check_conds c|    AND
+        |check_rels c a b|
       WHERE 
-        |check_node b|
+        |check_conds b|
     )
 '''
 
@@ -161,10 +166,11 @@ sql        = '''
     nodes a,
     nodes b
   ON
-    |check_node a| AND
-    |check_node b|
+    |check_conds a| AND
+    |check_conds b| AND
+    |check_rels  c a b|
   WHERE 
-    |check_edge c a b|
+    |check_conds c|
   |group_statement|
   |having_statement|
   |order_statement|
@@ -186,10 +192,11 @@ sql        = '''
     edges c,
     nodes a
   ON
-    |check_node a| AND
-    |check_edge c a b|
+    |check_conds a| AND
+    |check_conds c| AND
+    |check_rels c a b|
   WHERE
-    |check_node b|
+    |check_conds b|
   |group_statement|
   |having_statement|
   |order_statement|
@@ -211,11 +218,12 @@ sql        = '''
     edges c1,
     nodes b
   ON
-        |check_node b|       AND
-        |check_edge c1 a b|  AND
+        |check_conds b|       AND
+        |check_conds c1|      AND
+        |check_rels  c1 a b|  AND
     NOT |exists_edge c2 a b|
   WHERE 
-    |check_node a|
+    |check_conds a|
   |group_statement|
   |having_statement|
   |order_statement|

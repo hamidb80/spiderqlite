@@ -958,7 +958,7 @@ func sqlCondsOfNode(gn; imap; node: string, varResolver): string {.effectsOf: va
     else: discard
   raisee fmt"the node '{node}' not found in query"
 
-func sqlCondsOfEdge(gn; imap; edge, source, target: string, includeConds: bool, varResolver): string {.effectsOf: varResolver.} =
+func sqlCondsOfEdge(gn; imap; edge, source, target: string, varResolver): string {.effectsOf: varResolver.} =
   let
     iedge = imap[edge]
     isrc  = imap[source]
@@ -967,19 +967,10 @@ func sqlCondsOfEdge(gn; imap; edge, source, target: string, includeConds: bool, 
   for n in gn.children:
     case n.kind
     of gkDef:
-      let
-        tag      = n.children[0].sval
-        alias    = n.children[1].sval
-        hasConds = n.children.len > 2
+      let alias    = n.children[1].sval
       
       if alias == edge:
         var acc: seq[string]
-
-        if includeConds:
-          acc.add fmt"{iedge}.tag == '{tag}'"
-
-          if hasConds:
-            acc.add fmt"""({resolveSql(n.children[2], @[], "", iedge, varResolver)})"""
 
         if isrc != ".":
           acc.add fmt"{iedge}.source == {isrc}.id"
@@ -1087,20 +1078,19 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
 
       of sqkCommand:
         case toUpperAscii p.cmd         
-        of "CHECK_NODE":
+        of "CHECK_CONDS":
           sqlCondsOfNode(gn, imap, revmap[p.args[0]], varResolver)
 
-        of "CHECK_EDGE":
-          sqlCondsOfEdge(gn, imap, revmap[p.args[0]], revmap[p.args[1]], revmap[p.args[2]], true,  varResolver)
-
-        of "EDGE_RELS":
-          sqlCondsOfEdge(gn, imap, revmap[p.args[0]], revmap[p.args[1]], revmap[p.args[2]], false, varResolver)
+        of "CHECK_RELS":
+          sqlCondsOfEdge(gn, imap, revmap[p.args[0]], revmap[p.args[1]], revmap[p.args[2]], varResolver)
 
         of "EXISTS_EDGE": 
           resolve(
             @[
               SqlPatSep(kind: sqkStr, content: fmt"EXISTS ( SELECT 1 FROM edges {p.args[0]} WHERE "),
-              SqlPatSep(kind: sqkCommand, cmd: "CHECK_EDGE", args: p.args),
+              SqlPatSep(kind: sqkCommand, cmd: "CHECK_CONDS", args: @[p.args[0]]),
+              SqlPatSep(kind: sqkStr, content: " AND "),
+              SqlPatSep(kind: sqkCommand, cmd: "CHECK_RELS", args: p.args),
               SqlPatSep(kind: sqkStr, content: " )")],
             imap, 
             gn,
