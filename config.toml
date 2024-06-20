@@ -1,10 +1,12 @@
 [meta]
-author = "@hamidb80"
-desc   = '''
+about   = '''
   default config file
 '''
 
 [config]
+
+query_strategy_file_path = "./query_stategies.toml"
+
 [config.logs]
 sql = true
 
@@ -19,7 +21,7 @@ port   = 6001
 enabled  = true
 
 [system]
-[system.schema_blueprint]
+[system.schema]
 sql      = '''
   PRAGMA encoding="UTF-8";
 
@@ -52,184 +54,3 @@ sql      = '''
   CREATE INDEX IF NOT EXISTS edges_target_index ON edges(target);
 '''
 
-[[queries]]
-key        = "single-node"
-parameters = "a"
-pattern    = "a"
-selectable = "a"
-sql        = '''
-  SELECT 
-    |select_fields|
-  FROM
-    nodes a
-  WHERE 
-    |check_conds a|
-  |group_statement|
-  |having_statement|
-  |order_statement|
-  |limit_statement|
-  |offset_statement|
-'''
-
-[[queries]]
-key        = "single-edge-node-head"
-parameters = "a b c"
-pattern    = "^a>-c->b"
-selectable = "a b c"
-sql        = '''
-  SELECT 
-    |select_fields|
-  FROM
-    nodes a
-  INNER JOIN 
-    edges c,
-    nodes b
-  ON
-    |check_conds c|     AND
-    |check_rels c a b|
-  WHERE 
-    |check_conds a| AND
-    |check_conds b| 
-
-  |group_statement|
-  |having_statement|
-  |order_statement|
-  |limit_statement|
-  |offset_statement|
-'''
-
-[[queries]]
-key        = "single-edge-node-head-zero-or-more"
-parameters = "a b c"
-pattern    = "^a>-*c->b"
-selectable = "a b c"
-sql        = '''
-  SELECT 
-    |select_fields|
-  FROM
-    nodes a
-  LEFT JOIN
-    edges c 
-  ON 
-    |check_conds c|     AND
-    |check_rels  c a .|
-  LEFT JOIN
-    nodes b 
-  ON 
-    |check_rels c . b| AND
-    |check_conds b|
-  WHERE 
-    |check_conds a|
-  |group_statement|
-  |having_statement|
-  |order_statement|
-  |limit_statement|
-  |offset_statement|
-'''
-
-[[queries]]
-key        = "single-edge-node-head-inv"
-parameters = "a b c"
-pattern    = "^a>-!c->b"
-selectable = "a"
-sql        = '''
-  SELECT 
-    |select_fields|
-  FROM   
-    nodes a
-  WHERE  
-    |check_conds a| 
-    AND NOT EXISTS 
-    (
-      SELECT 
-        1
-      FROM   
-        edges c
-      JOIN   
-        nodes b 
-      ON 
-        |check_conds c|    AND
-        |check_rels c a b|
-      WHERE 
-        |check_conds b|
-    )
-'''
-
-[[queries]]
-key        = "single-edge-edge"
-parameters = "a b c"
-pattern    = "a>-^c->b"
-selectable = "a b c"
-sql        = '''
-  SELECT 
-    |select_fields|
-  FROM
-    edges c
-  INNER JOIN 
-    nodes a,
-    nodes b
-  ON
-    |check_conds a| AND
-    |check_conds b| AND
-    |check_rels  c a b|
-  WHERE 
-    |check_conds c|
-  |group_statement|
-  |having_statement|
-  |order_statement|
-  |limit_statement|
-  |offset_statement|
-'''
-
-[[queries]]
-key        = "single-edge-node-tail"
-parameters = "a b c"
-pattern    = "a>-c->^b"
-selectable = "a b c"
-sql        = '''
-  SELECT 
-    |select_fields|
-  FROM
-    nodes b
-  INNER JOIN 
-    edges c,
-    nodes a
-  ON
-    |check_conds a| AND
-    |check_conds c| AND
-    |check_rels c a b|
-  WHERE
-    |check_conds b|
-  |group_statement|
-  |having_statement|
-  |order_statement|
-  |limit_statement|
-  |offset_statement|
-'''
-
-[[queries]]
-key        = "2-nodes-2-way-inv-1"
-parameters = "a b c1 c2"
-pattern    = 'b>-c1->a<-!c2-<b'
-selectable = "a b c1"
-sql        = '''
-  SELECT 
-    |select_fields|
-  FROM
-    nodes a
-  INNER JOIN 
-    edges c1,
-    nodes b
-  ON
-        |check_conds b|       AND
-        |check_conds c1|      AND
-        |check_rels  c1 a b|  AND
-    NOT |exists_edge c2 a b|
-  WHERE 
-    |check_conds a|
-  |group_statement|
-  |having_statement|
-  |order_statement|
-  |limit_statement|
-  |offset_statement|
-'''

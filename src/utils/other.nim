@@ -7,6 +7,13 @@ const
   notFound* = -1
 
 
+type
+  Password* = distinct string
+
+func `$`*(p: Password): string = 
+  repeat '*', p.string.len
+
+
 template raisee*(reason): untyped =
   ## raise [e]rror -- just a convention
   raise newException(ValueError, reason)
@@ -17,6 +24,9 @@ template raisee*(reason): untyped =
 
 proc parseTomlFile*(path: string): TomlValueRef =
   parseToml.parseFile path
+
+proc parseTomlFile*(path: Path): TomlValueRef =
+  parseToml.parseFile path.string
 
 # funcs ----------------------------------------
 

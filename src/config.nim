@@ -7,8 +7,9 @@ import parsetoml, mummy
 
 type
   AdminConfig* = object
-    enabled*            : bool
-    username*, password*: string
+    enabled* : bool
+    username*: string
+    password*: Password
 
   ServerConfig* = object
     host*: string
@@ -38,6 +39,8 @@ type
 
     logs*:     LogConfig
 
+    queryStrategyFile*: Path
+
   ParamTable*  = Table[string, string]
 
   AppContext* = ref object
@@ -57,6 +60,10 @@ func conv(val: string, typ: type Port): Port =
 func conv(val: string, typ: type Path): Path = 
   # FIXME check is a valid path
   Path val
+
+func conv(val: string, typ: type Password): Password = 
+  Password val
+
 
 func conv(val: string, typ: type bool): bool = 
   case val
@@ -125,7 +132,7 @@ proc buildConfig*(ctx: AppContext): AppConfig =
     admin: AdminConfig(
       enabled:  v(ctx, "--admin-enabled",  "SPQL_ADMIN_ENABLED",  "admin.enabled",  "false", bool),
       username: v(ctx, "--admin-username", "SPQL_ADMIN_USERNAME", "admin.username", "admin", string),
-      password: v(ctx, "--admin-password", "SPQL_ADMIN_PASSWORD", "admin.password", "1234",  string),
+      password: v(ctx, "--admin-password", "SPQL_ADMIN_PASSWORD", "admin.password", "1234",  Password),
     ),
     storage: StorageConfig(
       appDbFile:  v(ctx, "--app-db-file",  "SPQL_APP_DB_FILE",  "storage.app_db_file", "./temp/graph.db", Path),
@@ -135,7 +142,9 @@ proc buildConfig*(ctx: AppContext): AppConfig =
     logs: LogConfig(
       sql:         v(ctx, "--log-generated-sql",  "SPQL_LOG_GENERATED_SQL",  "logs.sql",         "false", bool),
       performance: v(ctx, "--log-performance",    "SPQL_LOG_PERFORMANCE",    "logs.performance", "false", bool),
-    )
+    ),
+
+    queryStrategyFile: v(ctx, "--query-strategy-file-path", "SPQL_QS_FPATH", "query_strategy_file_path", "[invalid]", Path),
   )
 
 proc toParamTable*(params: seq[string]): ParamTable = 

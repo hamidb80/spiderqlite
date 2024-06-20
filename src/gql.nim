@@ -694,8 +694,8 @@ proc parseToml*(s: string): TomlValueRef =
   ignore:
     parseToml.parseString s
 
-func parseQueryStrategies*(tv: TomlValueRef): QueryStrategies =
-  let col = tv["queries"].getElems.map parseQueryStrategy
+func parseQueryStrategies*(elems: seq[TomlValueRef]): QueryStrategies =
+  let col = elems.map parseQueryStrategy
   QueryStrategies(
     collection: col,
     table     : makeTabBy(col, it.key, it, true)

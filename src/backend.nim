@@ -3,6 +3,7 @@ import std/[strutils, strformat, tables, json, monotimes, os, times, with, sugar
 import db_connector/db_sqlite
 import mummy, mummy/routers
 import webby
+import parsetoml
 
 import gql
 import ./utils/other
@@ -29,7 +30,10 @@ func jsonError(msg: string): string =
   "{\"error\": {\"message\": " & msg.escapeJson & "}}"
 
 
-proc initApp(ctx: AppContext, config: AppConfig): App = 
+func extractStrategies(tv: TomlValueRef): seq[TomlValueRef] = 
+  getElems tv["strategies"]
+
+proc initApp(config: AppConfig): App = 
   var app = App(config: config)
 
   template logSql(q): untyped =
@@ -298,7 +302,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
 
 
   app.server                 = newServer initRouter()
-  app.defaultQueryStrategies = parseQueryStrategies ctx.tomlConf
+  app.defaultQueryStrategies = parseQueryStrategies extractStrategies parseTomlFile config.queryStrategyFile
   app
 
 proc run(app: App) = 
@@ -318,7 +322,7 @@ when isMainModule:
       cmdParams: cmdParams,
       tomlConf:  parseTomlFile confPath
     )
-    conf = buildConfig    ctx
-    app  = initApp(ctx, conf)
+    conf = buildConfig ctx
+    app  = initApp     conf
 
   run app
