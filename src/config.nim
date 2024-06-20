@@ -21,6 +21,10 @@ type
   FrontendConfig* = object
     enabled*: bool
 
+  LogConfig* = object
+    sql*: bool
+    performance*: bool
+
   AppConfig* = ref object
     # TODO load from numble file at compile file
     # version:
@@ -31,6 +35,8 @@ type
     frontend*: FrontendConfig
 
     storage*:  StorageConfig
+
+    logs*:     LogConfig
 
   ParamTable  = Table[string, string]
 
@@ -54,8 +60,8 @@ func conv(val: string, typ: type Path): Path =
 
 func conv(val: string, typ: type bool): bool = 
   case val
-  of "t", "true",  "True",  "TRUE", "yes", "Y": true
-  of "f", "false", "False", "FALSE", "no", "N": false
+  of "t", "T", "true",  "True",  "TRUE", "yes", "Y", "1": true
+  of "f", "F", "false", "False", "FALSE", "no", "N", "0": false
   else: raisee "invalid bool value: " & val
   
 
@@ -110,23 +116,26 @@ proc v[T](ctx: AppContext, cmd, env, path, def: string, convType: typedesc[T]): 
 proc buildConfig*(ctx: AppContext): AppConfig = 
   AppConfig(
     server: ServerConfig(
-      host:  v(ctx, "--host", "SPIDERSQL_HOST", "server.host", "0.0.0.0", string),
-      port:  v(ctx, "--port", "SPIDERSQL_PORT", "server.port", "6001",    Port),
+      host:  v(ctx, "--host", "SPQL_HOST", "server.host", "0.0.0.0", string),
+      port:  v(ctx, "--port", "SPQL_PORT", "server.port", "6001",    Port),
     ),
     frontend: FrontendConfig(
-      enabled:  v(ctx, "--frontend-enabled", "SPIDERSQL_FRONTEND_ENABLED", "frontend.enabled", "true", bool),
+      enabled:  v(ctx, "--frontend-enabled", "SPQL_FRONTEND_ENABLED", "frontend.enabled", "true", bool),
     ),
     admin: AdminConfig(
-      enabled:  v(ctx, "--admin-enabled",  "SPIDERSQL_ADMIN_ENABLED",  "admin.enabled",  "false", bool),
-      username: v(ctx, "--admin-username", "SPIDERSQL_ADMIN_USERNAME", "admin.username", "admin", string),
-      password: v(ctx, "--admin-password", "SPIDERSQL_ADMIN_PASSWORD", "admin.password", "1234",  string),
+      enabled:  v(ctx, "--admin-enabled",  "SPQL_ADMIN_ENABLED",  "admin.enabled",  "false", bool),
+      username: v(ctx, "--admin-username", "SPQL_ADMIN_USERNAME", "admin.username", "admin", string),
+      password: v(ctx, "--admin-password", "SPQL_ADMIN_PASSWORD", "admin.password", "1234",  string),
     ),
     storage: StorageConfig(
-      appDbFile:  v(ctx, "--app-db-file",  "SPIDERSQL_APP_DB_FILE",  "storage.app_db_file", "./temp/graph.db", Path),
-      usersDbDir: v(ctx, "--users-db-dir", "SPIDERSQL_USERS_DB_DIR", "admin.users_db_dir",  "./temp/users/", Path),
+      appDbFile:  v(ctx, "--app-db-file",  "SPQL_APP_DB_FILE",  "storage.app_db_file", "./temp/graph.db", Path),
+      usersDbDir: v(ctx, "--users-db-dir", "SPQL_USERS_DB_DIR", "admin.users_db_dir",  "./temp/users/", Path),
     ),
 
-
+    logs: LogConfig(
+      sql:         v(ctx, "--log-generated-sql",  "SPQL_LOG_GENERATED_SQL",  "logs.sql",         "false", bool),
+      performance: v(ctx, "--log-performance",    "SPQL_LOG_PERFORMANCE",    "logs.performance", "false", bool),
+    )
   )
 
 proc toParamTable(params: seq[string]): ParamTable = 

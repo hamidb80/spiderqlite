@@ -32,6 +32,19 @@ func jsonError(msg: string): string =
 proc initApp(ctx: AppContext, config: AppConfig): App = 
   var app: App
 
+  template logSql(q): untyped =
+    if app.config.logs.sql:
+      echo q
+
+  # TODO open & close db
+  template withDb(dbpath, body): untyped =
+    discard
+    
+  # TODO echo time spent
+  template logPerf(body): untyped =
+    discard
+    
+
   unwrap controllers:
     proc indexPage(req: Request) =
       req.respond 200, jsonHeader(), "hey! use APIs for now!"
@@ -62,7 +75,8 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
             s => $ctx[s])
           tquery          = getMonoTime()
 
-        debugEcho sql
+        logSql sql
+
         var rows = 0
         var acc = newStringOfCap 1024 * 100 # 100 KB
         acc.add "{\"result\": ["
@@ -129,9 +143,10 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         thead = getMonoTime()
         id    = parseInt     req.queryParams["id"]
         db    = openSqliteDB app.config.storage.appDbFile
-        row   = db.getRow(prepareGetQuery ent, id)
+        q     = prepareGetQuery ent
+        row   = db.getRow(q, id)
         tdone = getMonoTime()
-
+      logSql q
       close db
       req.respond 200, jsonHeader(), row[0]
       debugEcho inMicroseconds(tdone - thead), "us"
@@ -142,21 +157,21 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
     proc getEdge(req: Request) =
       getEntity req, edges
 
+
     proc insertNodes(req: Request) =
       let
         thead  = getMonoTime()
         j      = parseJson req.body
         db     = openSqliteDB app.config.storage.appDbFile
+        q      = prepareNodeInsertQuery()
       
+      logSql q
       var ids: seq[int]
       for a in j:
         let
           tag    = parseTag getstr a["tag"]
           doc    =                $a["doc"]
-          id     = db.insertID(
-            prepareNodeInsertQuery(), 
-            tag, doc)
-        
+          id     = db.insertID(q, tag, doc)
         ids.add id
 
       close db
@@ -170,7 +185,9 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         thead  = getMonoTime()
         j      = parseJson req.body
         db     = openSqliteDB app.config.storage.appDbFile
+        q      = prepareEdgeInsertQuery()
       
+      logSql q
       var ids: seq[int]
       for a in j:
         let
@@ -178,9 +195,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
           source =          getInt a["source"]
           target =          getInt a["target"]
           doc    =                $a["doc"]
-          id     = db.insertID(
-            prepareEdgeInsertQuery(), 
-            tag, source, target, doc)
+          id     = db.insertID(q, tag, source, target, doc)
         
         ids.add id
 
@@ -194,23 +209,28 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
     proc updateEntity(req: Request, ent: Entity) =
       let
         j   = parseJson req.body
-        db  = openSqliteDB    app.config.storage.appDbFile
+        q   = prepareUpdateQuery ent
 
-      assert j.kind == JObject
-      var acc: seq[int]
-      for k, v in j:
-        let 
-          id       = parseint k
-          doc      = $v
-          affected = db.execAffectedRows(
-            prepareUpdateQuery ent, 
-            doc, id)
+      logSql q
 
-        if affected == 1:
-          acc.add id
+      if j.kind == JObject:
+        let db  = openSqliteDB    app.config.storage.appDbFile
+        
+        var acc: seq[int]
+        for k, v in j:
+          let 
+            id       = parseint k
+            doc      = $v
+            affected = db.execAffectedRows(q, doc, id)
 
-      close db
-      req.respond 200, jsonHeader(), jsonAffectedRows(acc.len, acc)
+          if affected == 1:
+            acc.add id
+
+        close db
+        req.respond 200, jsonHeader(), jsonAffectedRows(acc.len, acc)
+        
+      else:
+        raisee "invalid json object for update. it should be object of {id => new_doc}"
 
     proc updateNodes(req: Request) =
       updateEntity req, nodes
@@ -224,7 +244,9 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         j        = parseJson req.body
         ids      = j["ids"].to seq[int]
         db       = openSqliteDB    app.config.storage.appDbFile
-        affected = db.execAffectedRows prepareDeleteQuery(ent, ids)
+        q        = prepareDeleteQuery(ent, ids)
+        affected = db.execAffectedRows q
+      logSql q
       close db
       req.respond 200, jsonHeader(), jsonAffectedRows affected
 

@@ -5,6 +5,9 @@ desc   = '''
 '''
 
 [config]
+[config.logs]
+sql = true
+
 [config.frontend]
 enabled  = true
 
