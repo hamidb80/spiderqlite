@@ -1,4 +1,4 @@
-import std/[tables, sequtils, paths]
+import std/[tables, sequtils, strutils, paths]
 import db_connector/db_sqlite
 
 
@@ -11,6 +11,13 @@ template raisee*(reason): untyped =
   raise newException(ValueError, reason)
 
 # funcs ----------------------------------------
+
+func isNumber*(s: string): bool = 
+  try:
+    discard parseFloat s
+    true
+  except:
+    false
 
 # ---- convertor
 
@@ -29,6 +36,10 @@ func `mod`*[M: static int](n: int, m: type M): range[0 .. M-1] =
   system.`mod` n, m
 
 # ---- seq
+
+func joinComma*(s: sink seq): string = 
+  s.join ","  
+
 
 func last*[T](s: openArray[T]): T = 
   s[^1]

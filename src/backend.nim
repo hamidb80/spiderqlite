@@ -1,8 +1,7 @@
-import std/[tables, strutils, strformat, json, monotimes, times, with, sugar]
+import std/[strutils, strformat, json, monotimes, times, with, sugar]
 
 import db_connector/db_sqlite
 import mummy, mummy/routers
-import parsetoml
 import webby
 
 import gql
@@ -15,14 +14,7 @@ type
     server*: Server
     config*: AppConfig
     defaultQueryStrategies*: QueryStrategies
-    systemSqlQueries*:       Table[string, seq[SqlPatSep]]
 
-
-func joinComma(s: sink seq): string = 
-  s.join ","  
-
-func sqlize(s: seq[int]): string = 
-  '(' & s.joinComma & ')'
 
 func jsonAffectedRows(n: int, ids: seq[int] = @[]): string = 
   "{\"affected_rows\":" & $n & ", \"ids\": [" & ids.joinComma & "]}"
@@ -37,19 +29,6 @@ func jsonError(msg: string): string =
   "{\"error\": {\"message\": " & msg.escapeJson & "}}"
 
 
-
-func isNumber(s: string): bool = 
-  try:
-    discard parseFloat s
-    true
-  except:
-    false
-
-func parseSystemQueries*(tv: TomlValueRef): Table[string, seq[SqlPatSep]] =
-  for k, v in tv["system"].tableVal:
-    result[k] = preProcessRawSql getstr v["sql"]
-
-  
 proc initApp(ctx: AppContext, config: AppConfig): App = 
   var app: App
 
@@ -145,17 +124,12 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         debugEcho jsonError e
 
 
-    proc getEntity(req: Request, def, ret: string) =
+    proc getEntity(req: Request, ent: Entity) =
       let
         thead = getMonoTime()
         id    = parseInt     req.queryParams["id"]
         db    = openSqliteDB app.config.storage.appDbFile
-        query = fmt"""
-          SELECT {ret}
-          FROM   {def}
-          WHERE  id = ?
-        """
-        row   = db.getRow(sql query, id)
+        row   = db.getRow(prepareGetQuery ent, id)
         tdone = getMonoTime()
 
       close db
@@ -163,10 +137,10 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
       debugEcho inMicroseconds(tdone - thead), "us"
 
     proc getNode(req: Request) =
-      getEntity req, "nodes", sqlJsonNodeExpr "" 
+      getEntity req, nodes
 
     proc getEdge(req: Request) =
-      getEntity req, "edges", sqlJsonEdgeExpr ""
+      getEntity req, edges
 
     proc insertNodes(req: Request) =
       let
@@ -179,11 +153,9 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         let
           tag    = parseTag getstr a["tag"]
           doc    =                $a["doc"]
-          id     = db.insertID(sql """
-            INSERT INTO
-            nodes  (tag, doc) 
-            VALUES (?,   ?)
-          """, tag, doc)
+          id     = db.insertID(
+            prepareNodeInsertQuery(), 
+            tag, doc)
         
         ids.add id
 
@@ -206,11 +178,9 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
           source =          getInt a["source"]
           target =          getInt a["target"]
           doc    =                $a["doc"]
-          id     = db.insertID(sql """
-            INSERT INTO
-            edges  (tag, source, target, doc) 
-            VALUES (?,   ?,      ?,      ?)
-          """, tag, source, target, doc)
+          id     = db.insertID(
+            prepareEdgeInsertQuery(), 
+            tag, source, target, doc)
         
         ids.add id
 
@@ -221,7 +191,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
       req.respond 200, jsonHeader(), jsonIds ids
 
 
-    proc updateEntity(req: Request, ent: string) =
+    proc updateEntity(req: Request, ent: Entity) =
       let
         j   = parseJson req.body
         db  = openSqliteDB    app.config.storage.appDbFile
@@ -232,11 +202,9 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
         let 
           id       = parseint k
           doc      = $v
-          affected = db.execAffectedRows(sql fmt"""
-            UPDATE {ent}
-            SET    doc = ?
-            WHERE  id  = ?
-          """, doc, id)
+          affected = db.execAffectedRows(
+            prepareUpdateQuery ent, 
+            doc, id)
 
         if affected == 1:
           acc.add id
@@ -245,29 +213,26 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
       req.respond 200, jsonHeader(), jsonAffectedRows(acc.len, acc)
 
     proc updateNodes(req: Request) =
-      updateEntity req, "nodes"
+      updateEntity req, nodes
 
     proc updateEdges(req: Request) =
-      updateEntity req, "edges"
+      updateEntity req, edges
 
 
-    proc deleteEntity(req: Request, ent: string) =
+    proc deleteEntity(req: Request, ent: Entity) =
       let
         j        = parseJson req.body
         ids      = j["ids"].to seq[int]
         db       = openSqliteDB    app.config.storage.appDbFile
-        affected = db.execAffectedRows sql fmt"""
-          DELETE FROM  {ent}
-          WHERE  id in {sqlize ids}
-        """
+        affected = db.execAffectedRows prepareDeleteQuery(ent, ids)
       close db
       req.respond 200, jsonHeader(), jsonAffectedRows affected
 
     proc deleteNodes(req: Request) =
-      deleteEntity req, "nodes"
+      deleteEntity req, nodes
 
     proc deleteEdges(req: Request) =
-      deleteEntity req, "edges"
+      deleteEntity req, edges
 
   proc initRouter: Router = 
     with result:
@@ -312,7 +277,6 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
     server:                 newServer initRouter(),
     config:                 config,
     defaultQueryStrategies: parseQueryStrategies ctx.tomlConf,
-    systemSqlQueries:       parseSystemQueries   ctx.tomlConf
   )
   app
 

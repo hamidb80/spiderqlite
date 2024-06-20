@@ -1258,5 +1258,53 @@ func parseTag*(s: string): string =
   elif s[0] in {'#', '@'}: s.substr 1
   else:                    s
 
+
+func sqlize(s: seq[int]): string {.inline.} = 
+  '(' & s.joinComma & ')'
+
+
+type 
+  Entity* = enum
+    nodes = "nodes"
+    edges = "edges"
+
+func prepareGetQuery*(entity: Entity): SqlQuery {.inline.} = 
+  let select = case entity
+  of nodes: sqlJsonNodeExpr "" 
+  of edges: sqlJsonEdgeExpr ""
+
+  sql fmt"""
+    SELECT {select}
+    FROM   {entity}
+    WHERE  id = ?
+  """
+
+func prepareUpdateQuery*(entity: Entity): SqlQuery {.inline.} = 
+  sql fmt"""
+    UPDATE {entity}
+    SET    doc = ?
+    WHERE  id  = ?
+  """
+
+func prepareNodeInsertQuery*: SqlQuery {.inline.} = 
+  sql """
+    INSERT INTO
+    nodes  (tag, doc) 
+    VALUES (?,   ?)
+  """
+
+func prepareEdgeInsertQuery*: SqlQuery {.inline.} = 
+  sql """
+    INSERT INTO
+    edges  (tag, source, target, doc) 
+    VALUES (?,   ?,      ?,      ?)
+  """
+
+func prepareDeleteQuery*(entity: Entity, ids: seq[int]): SqlQuery {.inline.} = 
+  sql fmt"""
+    DELETE FROM  {entity}
+    WHERE  id in {sqlize ids}
+  """
+
 # TODO faster parser
 # TODO add guard
