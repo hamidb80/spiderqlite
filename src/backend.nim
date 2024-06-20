@@ -30,7 +30,7 @@ func jsonError(msg: string): string =
 
 
 proc initApp(ctx: AppContext, config: AppConfig): App = 
-  var app: App
+  var app = App(config: config)
 
   template logSql(q): untyped =
     if app.config.logs.sql:
@@ -202,6 +202,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
 
         req.respond 200, jsonHeader(), jsonIds ids
 
+
     proc updateEntity(req: Request, ent: Entity) =
       logPerf:
         let
@@ -296,11 +297,8 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
       # delete "/api/database/index/",    gqlService
 
 
-  app = App(
-    server:                 newServer initRouter(),
-    config:                 config,
-    defaultQueryStrategies: parseQueryStrategies ctx.tomlConf,
-  )
+  app.server                 = newServer initRouter()
+  app.defaultQueryStrategies = parseQueryStrategies ctx.tomlConf
   app
 
 proc run(app: App) = 
