@@ -272,6 +272,7 @@ proc initApp(config: AppConfig): App =
 
       # get    "/api/database/backups/",  backup
       # post   "/api/database/init/",     initDB
+      # post   "/api/database/validate/", validate blueprint
       # get    "/api/databases/",         apiDatabasesOfUser
       # post   "/api/database/",          apiDatabasesOfUser
       # delete "/api/database/",          delete database

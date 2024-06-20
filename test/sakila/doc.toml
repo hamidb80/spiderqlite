@@ -2,13 +2,19 @@
 blueprint = '''
 
   #movie     m
-    name! :: string
-    name! :: string
+    title :: string
   
   #person    p
+    name  :: string
+    pass  :: string
   
   @acted_in  a
     p->m
+
+  @actor    ~a
+
+  @friendship f
+   p->p
 
 '''
 
@@ -62,4 +68,33 @@ movies_of_people = '''
 
       "no_movies"
       no_movies
+'''
+
+mutual_friends   = '''
+  #person     p
+  #person     q
+  #person     x
+
+  @friendship f
+
+  MATCH
+    p>-f->q>-f->p
+    p>-f->x<-f-<q
+
+  GROUPED
+    ++
+      MIN
+        p.id
+        q.id
+      ","
+      MAX
+        p.id
+        q.id
+
+  RETURN
+    []
+      p
+      q
+      [].
+        o    
 '''
