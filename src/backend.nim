@@ -1,4 +1,4 @@
-import std/[strutils, strformat, json, monotimes, times, with, sugar]
+import std/[strutils, strformat, tables, json, monotimes, os, times, with, sugar]
 
 import db_connector/db_sqlite
 import mummy, mummy/routers
@@ -47,7 +47,7 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
     let ttail = getMonoTime()
     if app.config.logs.performance:
       let tdelta = ttail - thead
-      debugEcho inMicroseconds tdelta, "us"
+      echo inMicroseconds tdelta, "us"
     
 
   unwrap controllers:
@@ -64,8 +64,8 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
           j               = parseJson req.body
           ctx             = j["context"]
 
-        debugEcho j.pretty
-        debugEcho getstr j["query"]
+        echo j.pretty
+        echo getstr j["query"]
 
         let
           tparsejson      = getMonoTime()
@@ -135,13 +135,13 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
 
         close db
         req.respond 200, jsonHeader(), acc
-        debugEcho inMicroseconds(tcollect - thead), "us"
+        echo inMicroseconds(tcollect - thead), "us"
 
       except:
         let e = getCurrentExceptionMsg()
         req.respond 400, jsonHeader(), jsonError e
-        debugEcho "did error ", e
-        debugEcho jsonError e
+        echo "did error ", e
+        echo jsonError e
 
 
     proc getEntity(req: Request, ent: Entity) =
@@ -303,14 +303,23 @@ proc initApp(ctx: AppContext, config: AppConfig): App =
   )
   app
 
-proc run(app: App) {.noreturn.} = 
+proc run(app: App) = 
   echo fmt"running in {app.config.url}"
   serve app.server, app.config.server.port, app.config.server.host
 
 
 when isMainModule:
   let
-    ctx  = loadAppContext "./config.toml"
+    cmdParams = toParamTable commandLineParams()
+    confPath  = cmdParams.getOrDefault("", "./config.toml")
+
+  echo "config file path: ", confPath
+
+  let
+    ctx = AppContext(
+      cmdParams: cmdParams,
+      tomlConf:  parseTomlFile confPath
+    )
     conf = buildConfig    ctx
     app  = initApp(ctx, conf)
 

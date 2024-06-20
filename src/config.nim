@@ -38,7 +38,7 @@ type
 
     logs*:     LogConfig
 
-  ParamTable  = Table[string, string]
+  ParamTable*  = Table[string, string]
 
   AppContext* = ref object
     cmdParams*: ParamTable
@@ -129,7 +129,7 @@ proc buildConfig*(ctx: AppContext): AppConfig =
     ),
     storage: StorageConfig(
       appDbFile:  v(ctx, "--app-db-file",  "SPQL_APP_DB_FILE",  "storage.app_db_file", "./temp/graph.db", Path),
-      usersDbDir: v(ctx, "--users-db-dir", "SPQL_USERS_DB_DIR", "admin.users_db_dir",  "./temp/users/", Path),
+      usersDbDir: v(ctx, "--users-db-dir", "SPQL_USERS_DB_DIR", "admin.users_db_dir",  "./temp/users/",   Path),
     ),
 
     logs: LogConfig(
@@ -138,14 +138,13 @@ proc buildConfig*(ctx: AppContext): AppConfig =
     )
   )
 
-proc toParamTable(params: seq[string]): ParamTable = 
+proc toParamTable*(params: seq[string]): ParamTable = 
   var 
     lastWasKey = false
     key        = ""
 
   template setTrue: untyped =
     result[key] = "t"
-    
 
   for i, p in params:
     if p.startsWith "--":
@@ -160,11 +159,6 @@ proc toParamTable(params: seq[string]): ParamTable =
   if lastWasKey:
     setTrue()
 
-
-proc loadAppContext*(configFilePath: string): AppContext = 
-  AppContext(
-    cmdParams: toParamTable commandLineParams(),
-    tomlConf:  parseToml.parseFile configFilePath)
 
 func url*(conf: AppConfig): string = 
   fmt"http://{conf.server.host}:{conf.server.port.int}"

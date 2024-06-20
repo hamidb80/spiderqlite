@@ -1,6 +1,7 @@
 import std/[tables, sequtils, strutils, paths]
 import db_connector/db_sqlite
 
+import parsetoml
 
 const
   notFound* = -1
@@ -9,6 +10,13 @@ const
 template raisee*(reason): untyped =
   ## raise [e]rror -- just a convention
   raise newException(ValueError, reason)
+
+# procs ----------------------------------------
+
+# ---- libs
+
+proc parseTomlFile*(path: string): TomlValueRef =
+  parseToml.parseFile path
 
 # funcs ----------------------------------------
 
