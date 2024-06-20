@@ -143,15 +143,23 @@ proc toParamTable(params: seq[string]): ParamTable =
     lastWasKey = false
     key        = ""
 
+  template setTrue: untyped =
+    result[key] = "t"
+    
+
   for i, p in params:
     if p.startsWith "--":
       if lastWasKey:
-        result[key] = "t"
+        setTrue()
       key = p
       lastWasKey = true
     else:
       result[key] = p
       lastWasKey = false
+  
+  if lastWasKey:
+    setTrue()
+
 
 proc loadAppContext*(configFilePath: string): AppContext = 
   AppContext(
