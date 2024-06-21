@@ -147,7 +147,9 @@ type
     mark:   char   ## special prefix, is used to differentiate
 
   QueryGraph  = ref object
-    # rawpattern:  seq[string]
+    when defined debug:
+      rawpattern:  seq[string]
+
     nodes:    seq[QueryNode]
     iocounts: seq[IOcount]
     rels:     Mat[seq[QueryNode]]
@@ -695,9 +697,11 @@ func sepQuery(qc: QueryChain): seq[QueryPart] =
     of 1 .. 4: discard
 
 func parseQueryGraph(patts: seq[string]): QueryGraph =
-  result = QueryGraph(
-    # rawpattern: patts.join "\n"
-  )
+  result = QueryGraph()
+
+  when defined debug:
+    result.rawpattern = patts
+    
   
   for p in patts:
     if not isEmptyOrWhitespace p:
