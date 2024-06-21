@@ -188,6 +188,10 @@ type
     byPattern
     byKey
 
+  Entity* = enum
+    nodes = "nodes"
+    edges = "edges"
+
 
 using 
   gn:              GqlNode
@@ -1298,11 +1302,6 @@ func parseTag*(s: string): string =
 func sqlize(s: seq[int]): string {.inline.} = 
   '(' & s.joinComma & ')'
 
-
-type 
-  Entity* = enum
-    nodes = "nodes"
-    edges = "edges"
 
 func prepareGetQuery*(entity: Entity): SqlQuery {.inline.} = 
   let select = case entity
