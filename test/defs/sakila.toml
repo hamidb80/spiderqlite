@@ -1,17 +1,22 @@
 [schema]
 blueprint = '''
 
+  -- nodes
+
   #movie     m
-    title :: string
+    .title :: string
   
   #person    p
-    name  :: string
-    pass  :: string
+    .name  :: string
+    .pass  :: string
+    ...   -- other (key,value)s
   
-  @acted_in  a
+  -- edges
+
+  @acted_in   a
     p->m
 
-  @actor    ~a
+  @actor     ~a
 
   @friendship f
    p->p

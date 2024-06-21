@@ -135,8 +135,8 @@ proc buildConfig*(ctx: AppContext): AppConfig =
       password: v(ctx, "--admin-password", "SPQL_ADMIN_PASSWORD", "admin.password", "1234",  Password),
     ),
     storage: StorageConfig(
-      appDbFile:  v(ctx, "--app-db-file",  "SPQL_APP_DB_FILE",  "storage.app_db_file", "./temp/graph.db", Path),
-      usersDbDir: v(ctx, "--users-db-dir", "SPQL_USERS_DB_DIR", "admin.users_db_dir",  "./temp/users/",   Path),
+      appDbFile:  v(ctx, "--app-db-file",  "SPQL_APP_DB_FILE",  "storage.app_db_file",  "[invalid]", Path),
+      usersDbDir: v(ctx, "--users-db-dir", "SPQL_USERS_DB_DIR", "storage.users_db_dir", "[invalid]",   Path),
     ),
 
     logs: LogConfig(

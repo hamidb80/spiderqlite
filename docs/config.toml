@@ -1,0 +1,27 @@
+[meta]
+about   = '''
+  default config file
+'''
+
+[config]
+
+query_strategy_file_path = "./docs/strategies.toml"
+
+[config.storage]
+app_db_file = "./temp/graph.db"
+users_db_dir = "./temp/"
+
+
+[config.logs]
+sql = true
+
+[config.frontend]
+enabled  = true
+
+[config.server]
+host   = "0.0.0.0"
+port   = 6001
+
+[config.admin]
+enabled  = true
+

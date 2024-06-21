@@ -2,10 +2,12 @@
 
 version       = "0.0.2"
 author        = "hamidb80"
-description   = "Backend as a Service"
+description   = """
+  SpiderQL is a query abstraction library and managed SQLite database server
+"""
 license       = "MIT"
 srcDir        = "src"
-bin           = @["baas"]
+bin           = @["spql_server"]
 
 
 # Dependencies
@@ -17,3 +19,7 @@ requires "questionable"   # https://github.com/codex-storage/questionable
 requires "parsetoml"      # https://github.com/NimParsers/parsetoml
 requires "pretty"         # https://github.com/treeform/pretty
 requires "webby"          # https://github.com/treeform/webby
+
+
+task dev, "development run": 
+  exec "nim --deepcopy:on -d:useMalloc -d:debug r src/server.nim ./docs/config.toml"

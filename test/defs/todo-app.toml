@@ -1,0 +1,36 @@
+schema = '''
+  -- NODEs
+
+  #device d 
+    program
+
+  #person p
+    name
+
+  #task t
+
+  -- EDGEs
+
+  @owner        o
+    p->d 
+
+  @assigned_to  a
+    p->t
+
+  @completed_by c 
+    t->p
+'''
+
+get_uncompleted_tasks_of_user = '''
+  #task         t
+  #completed_by c
+  #assigned_to  a
+  #person       p  
+    ==
+      .id 
+      |user_id|
+
+  MATCH  *p>-a->t>-!c->p
+  RETURN  t
+  ORDER   t.timestamp
+'''
