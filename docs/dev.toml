@@ -1,10 +1,4 @@
-[meta]
-about   = '''
-  default config file
-'''
-
 [config]
-
 query_strategy_file_path = "./docs/strategies.toml"
 
 [config.storage]
@@ -15,6 +9,7 @@ users_db_dir = "./temp/"
 [config.logs]
 sql      = true
 req_body = true
+performance = true
 
 [config.frontend]
 enabled  = true
@@ -24,5 +19,6 @@ host   = "0.0.0.0"
 port   = 6001
 
 [config.admin]
+username = "admin"
+password = "1234"
 enabled  = true
-

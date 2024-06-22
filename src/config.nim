@@ -107,46 +107,43 @@ template `or`[T](a, b: Option[T]): Option[T] =
   if isSome a: a
   else:        b
 
-template `or`[T](a: Option[T], b: T): T = 
-  if isSome a: get a
-  else:            b
-
-
-proc v[T](ctx: AppContext, cmd, env, path, def: string, convType: typedesc[T]): T = 
-  let val = 
+proc v[T](ctx: AppContext, cmd, env, path: string, convType: typedesc[T]): T = 
+  let maybeValue = 
     getParam(ctx.cmdParams, cmd)  or
     getOsEnv(env)                 or
-    getNested(ctx.tomlConf, path) or
-    def
+    getNested(ctx.tomlConf, path) 
 
-  conv val, convType
+  if issome maybeValue:
+    conv get maybeValue, convType
+  else:
+    raisee "none of these config keys found : " & $(cmd, env, path)
 
 proc buildConfig*(ctx: AppContext): AppConfig = 
   AppConfig(
     server: ServerConfig(
-      host:  v(ctx, "--host", "SPQL_HOST", "server.host", "0.0.0.0", string),
-      port:  v(ctx, "--port", "SPQL_PORT", "server.port", "6001",    Port),
+      host:  v(ctx, "--host", "SPQL_HOST", "server.host", string),
+      port:  v(ctx, "--port", "SPQL_PORT", "server.port", Port),
     ),
     frontend: FrontendConfig(
-      enabled:  v(ctx, "--frontend-enabled", "SPQL_FRONTEND_ENABLED", "frontend.enabled", "true", bool),
+      enabled:  v(ctx, "--frontend-enabled", "SPQL_FRONTEND_ENABLED", "frontend.enabled", bool),
     ),
     admin: AdminConfig(
-      enabled:  v(ctx, "--admin-enabled",  "SPQL_ADMIN_ENABLED",  "admin.enabled",  "false", bool),
-      username: v(ctx, "--admin-username", "SPQL_ADMIN_USERNAME", "admin.username", "admin", string),
-      password: v(ctx, "--admin-password", "SPQL_ADMIN_PASSWORD", "admin.password", "1234",  Password),
+      enabled:  v(ctx, "--admin-enabled",  "SPQL_ADMIN_ENABLED",  "admin.enabled",  bool),
+      username: v(ctx, "--admin-username", "SPQL_ADMIN_USERNAME", "admin.username", string),
+      password: v(ctx, "--admin-password", "SPQL_ADMIN_PASSWORD", "admin.password", Password),
     ),
     storage: StorageConfig(
-      appDbFile:  v(ctx, "--app-db-file",  "SPQL_APP_DB_FILE",  "storage.app_db_file",  "[invalid]", Path),
-      usersDbDir: v(ctx, "--users-db-dir", "SPQL_USERS_DB_DIR", "storage.users_db_dir", "[invalid]",   Path),
+      appDbFile:  v(ctx, "--app-db-file",  "SPQL_APP_DB_FILE",  "storage.app_db_file",  Path),
+      usersDbDir: v(ctx, "--users-db-dir", "SPQL_USERS_DB_DIR", "storage.users_db_dir", Path),
     ),
 
     logs: LogConfig(
-      sql:         v(ctx, "--log-generated-sql",  "SPQL_LOG_GENERATED_SQL",  "logs.sql",         "false", bool),
-      reqbody:     v(ctx, "--log-request-body",  "SPQL_LOG_REQUEST_BODY",    "logs.req_body",    "false", bool),
-      performance: v(ctx, "--log-performance",    "SPQL_LOG_PERFORMANCE",    "logs.performance", "false", bool),
+      sql:         v(ctx, "--log-generated-sql", "SPQL_LOG_GENERATED_SQL", "logs.sql",         bool),
+      reqbody:     v(ctx, "--log-request-body",  "SPQL_LOG_REQUEST_BODY",  "logs.req_body",    bool),
+      performance: v(ctx, "--log-performance",   "SPQL_LOG_PERFORMANCE",   "logs.performance", bool),
     ),
 
-    queryStrategyFile: v(ctx, "--query-strategy-file-path", "SPQL_QS_FPATH", "query_strategy_file_path", "[invalid]", Path),
+    queryStrategyFile: v(ctx, "--query-strategy-file-path", "SPQL_QS_FPATH", "query_strategy_file_path", Path),
   )
 
 proc toParamTable*(params: seq[string]): ParamTable = 
