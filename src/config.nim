@@ -24,6 +24,7 @@ type
 
   LogConfig* = object
     sql*: bool
+    reqbody*: bool
     performance*: bool
 
   AppConfig* = ref object
@@ -141,6 +142,7 @@ proc buildConfig*(ctx: AppContext): AppConfig =
 
     logs: LogConfig(
       sql:         v(ctx, "--log-generated-sql",  "SPQL_LOG_GENERATED_SQL",  "logs.sql",         "false", bool),
+      reqbody:     v(ctx, "--log-request-body",  "SPQL_LOG_REQUEST_BODY",    "logs.req_body",    "false", bool),
       performance: v(ctx, "--log-performance",    "SPQL_LOG_PERFORMANCE",    "logs.performance", "false", bool),
     ),
 

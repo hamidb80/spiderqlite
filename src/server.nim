@@ -26,8 +26,8 @@ func jsonHeader: HttpHeaders =
 func jsonIds(ids: seq[int]): string = 
   "{\"ids\": [" & ids.joinComma & "]}"
 
-func jsonError(msg: string): string = 
-  "{\"error\": {\"message\": " & msg.escapeJson & "}}"
+func jsonError(msg, stackTrace: string): string = 
+  "{\"error\": {\"message\": " & msg.escapeJson & "}, \"stack-trace\": " & stackTrace  & "}"
 
 
 func extractStrategies(tv: TomlValueRef): seq[TomlValueRef] = 
@@ -36,12 +36,19 @@ func extractStrategies(tv: TomlValueRef): seq[TomlValueRef] =
 proc initApp(config: AppConfig): App = 
   var app = App(config: config)
 
+  template logBody(q): untyped =
+    if app.config.logs.reqbody:
+      echo q
+
   template logSql(q): untyped =
     if app.config.logs.sql:
       echo q
 
-  template withDb(dbpath, body): untyped =
-    let db {.inject.} = openSqliteDB dbPath
+  template withDb(body): untyped =
+    let 
+      # dbName        = req.queryparams["db"]
+      dbName        = app.config.storage.appDbFile
+      db {.inject.} = openSqliteDB dbName
     body
     close db
     
@@ -67,45 +74,40 @@ proc initApp(config: AppConfig): App =
           thead           = getMonoTime()
           j               = parseJson req.body
           ctx             = j["context"]
-
-        echo j.pretty
-        echo getstr j["query"]
-
-        let
           tparsejson      = getMonoTime()
           gql             = parseGql  getstr  j["query"]
           tparseq         = getMonoTime()
-          db              = openSqliteDB  app.config.storage.appDbFile
-          topenDb         = getMonoTime()
           sql             = toSql(
             gql, 
             app.defaultQueryStrategies, 
             s => $ctx[s])
           tquery          = getMonoTime()
 
+        logBody req.body
         logSql sql
 
         var 
           rows = 0
           acc = newStringOfCap 1024 * 100 # 100 KB
 
-        acc.add "{\"result\": ["
-        
-        for row in db.fastRows sql:
-          inc rows
-          let r   = row[0]
+        withDb:
+          acc.add "{\"result\": ["
 
-          if r[0] in {'[', '{'} or (r.len < 20 and isNumber r):
-            acc.add r
-          else:
-            acc.add escapeJson r
+          for row in db.fastRows sql:
+            inc rows
+            let r   = row[0]
 
-          acc.add ','
+            if r[0] in {'[', '{'} or (r.len < 20 and isNumber r):
+              acc.add r
+            else:
+              acc.add escapeJson r
 
-        if acc[^1] == ',': # check for 0 results
-          acc.less
+            acc.add ','
+
+          if acc[^1] == ',': # check for 0 results
+            acc.less
           
-        acc.add ']'
+          acc.add ']'
 
         let tcollect = getMonoTime()
 
@@ -126,26 +128,24 @@ proc initApp(config: AppConfig): App =
           add "\"parse query\":"
           add $inMicroseconds(tparseq - tparsejson)
           add ','
-          add "\"openning db\":"
-          add $inMicroseconds(topenDb - tparseq)
-          add ','
           add "\"query matching & conversion\":"
-          add $inMicroseconds(tquery - topenDb)
+          add $inMicroseconds(tquery - tparseq)
           add ','
           add "\"exec & collect\":"
           add $inMicroseconds(tcollect - tquery)
           add '}'
           add '}'
 
-        close db
         req.respond 200, jsonHeader(), acc
         echo inMicroseconds(tcollect - thead), "us"
 
       except:
-        let e = getCurrentExceptionMsg()
-        req.respond 400, jsonHeader(), jsonError e
-        echo "did error ", e
-        echo jsonError e
+        let 
+          e  = getCurrentException()
+          me = getCurrentExceptionMsg()
+          je = jsonError(me, e.getStackTrace())
+        req.respond 400, jsonHeader(), je
+        echo "did error ", je
 
 
     proc getEntity(req: Request, ent: Entity) =
@@ -154,7 +154,7 @@ proc initApp(config: AppConfig): App =
           id    = parseInt        req.queryParams["id"]
           q     = prepareGetQuery ent
 
-        withDB app.config.storage.appDbFile:
+        withDB:
           let row = getRow(db, q, id)
         
         logSql q
@@ -173,8 +173,9 @@ proc initApp(config: AppConfig): App =
           j      = parseJson req.body
           q      = prepareNodeInsertQuery()
 
+        logBody req.body
         logSql q
-        withDB app.config.storage.appDbFile:
+        withDB:
           var ids: seq[int]
           for a in j:
             let
@@ -192,7 +193,8 @@ proc initApp(config: AppConfig): App =
           q      = prepareEdgeInsertQuery()
         
         logSql q
-        withDB app.config.storage.appDbFile:
+        logBody req.body
+        withDB:
           var ids: seq[int]
           for a in j:
             let
@@ -213,11 +215,12 @@ proc initApp(config: AppConfig): App =
           j   = parseJson req.body
           q   = prepareUpdateQuery ent
 
+        logBody req.body
         logSql q
 
         if j.kind == JObject:
 
-          withDB app.config.storage.appDbFile:
+          withDB:
 
             var acc: seq[int]
             for k, v in j:
@@ -248,8 +251,9 @@ proc initApp(config: AppConfig): App =
           ids      = j["ids"].to seq[int]
           q        = prepareDeleteQuery(ent, ids)
 
+        logBody req.body
         logSql q
-        withDB app.config.storage.appDbFile:
+        withDB:
           let affected = db.execAffectedRows q
         req.respond 200, jsonHeader(), jsonAffectedRows affected
 
@@ -259,6 +263,7 @@ proc initApp(config: AppConfig): App =
     proc deleteEdges(req: Request) =
       deleteEntity req, edges
 
+
   proc initRouter: Router = 
     with result:
       get    "/",                       indexPage
@@ -266,36 +271,27 @@ proc initApp(config: AppConfig): App =
 
       # get    "/api/login/",             apiDatabasesOfUser
       # get    "/api/signup/",            apiDatabasesOfUser
-
       # get    "/api/users/",             apiDatabasesOfUser
       # get    "/api/user/",              apiDatabasesOfUser
 
-      # get    "/api/database/backups/",  backup
-      # post   "/api/database/init/",     initDB
-      # post   "/api/database/validate/", validate blueprint
-      # get    "/api/databases/",         apiDatabasesOfUser
-      # post   "/api/database/",          apiDatabasesOfUser
-      # delete "/api/database/",          delete database
-
+      # post   "/api/database/",            initDB
+      # get    "/api/databases/",         
+      # delete "/api/database/",            delete database
       # get    "/api/database/blueprint/",  gqlService
       # post   "/api/database/blueprint/",  gqlService
+      # post   "/api/database/validate/",   validate database based on blueprint
+      # get    "/api/database/stats/",      stats
+      # get    "/api/database/backups/",    backup
 
-      # get    "/api/database/stats/",    gqlService
-
-      post   "/api/database/query/",    askQuery
-
-
-      get    "/api/database/node/",     getNode
-      get    "/api/database/edge/",     getEdge
-
-      post   "/api/database/nodes/",    insertNodes
-      post   "/api/database/edges/",    insertEdges
-
-      put    "/api/database/nodes/",    updateNodes
-      put    "/api/database/nodes/",    updateEdges
-
-      delete "/api/database/nodes/",    deleteNodes
-      delete "/api/database/edges/",    deleteEdges
+      post   "/api/database/query/",      askQuery
+      get    "/api/database/node/",       getNode
+      get    "/api/database/edge/",       getEdge
+      post   "/api/database/nodes/",      insertNodes
+      post   "/api/database/edges/",      insertEdges
+      put    "/api/database/nodes/",      updateNodes
+      put    "/api/database/nodes/",      updateEdges
+      delete "/api/database/nodes/",      deleteNodes
+      delete "/api/database/edges/",      deleteEdges
 
       # get    "/api/database/indexes/",  gqlService
       # post   "/api/database/index/",    gqlService

@@ -13,7 +13,8 @@ users_db_dir = "./temp/"
 
 
 [config.logs]
-sql = true
+sql      = true
+req_body = true
 
 [config.frontend]
 enabled  = true

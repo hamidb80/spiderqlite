@@ -445,7 +445,6 @@ func parseInlineNumbersOrVars(line: string): seq[GqlNode] =
         of '|':      parseVar    part
         else:        raisee "inline child is not number or var"
 
-
 func parseInlineParamsAsIdents(line: string): seq[GqlNode] = 
   let parts = line.splitwhitespace
   for i, p in parts: 
