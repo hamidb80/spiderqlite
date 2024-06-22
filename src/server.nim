@@ -36,9 +36,9 @@ func extractStrategies(tv: TomlValueRef): seq[TomlValueRef] =
 proc initApp(config: AppConfig): App = 
   var app = App(config: config)
 
-  template logBody(q): untyped =
+  template logBody: untyped =
     if app.config.logs.reqbody:
-      echo q
+      echo req.body
 
   template logSql(q): untyped =
     if app.config.logs.sql:
@@ -70,6 +70,8 @@ proc initApp(config: AppConfig): App =
       
     proc askQuery(req: Request) {.gcsafe.} =
       try:
+        logBody()
+
         let 
           thead           = getMonoTime()
           j               = parseJson req.body
@@ -83,7 +85,6 @@ proc initApp(config: AppConfig): App =
             s => $ctx[s])
           tquery          = getMonoTime()
 
-        logBody req.body
         logSql sql
 
         var 
@@ -169,11 +170,12 @@ proc initApp(config: AppConfig): App =
 
     proc insertNodes(req: Request) =
       logPerf:
+        logBody()
+
         let
           j      = parseJson req.body
           q      = prepareNodeInsertQuery()
 
-        logBody req.body
         logSql q
         withDB:
           var ids: seq[int]
@@ -188,12 +190,13 @@ proc initApp(config: AppConfig): App =
 
     proc insertEdges(req: Request) =
       logPerf:
+        logBody()
+
         let
           j      = parseJson req.body
           q      = prepareEdgeInsertQuery()
         
         logSql q
-        logBody req.body
         withDB:
           var ids: seq[int]
           for a in j:
@@ -211,11 +214,12 @@ proc initApp(config: AppConfig): App =
 
     proc updateEntity(req: Request, ent: Entity) =
       logPerf:
+        logBody()
+
         let
           j   = parseJson req.body
           q   = prepareUpdateQuery ent
 
-        logBody req.body
         logSql q
 
         if j.kind == JObject:
@@ -246,12 +250,13 @@ proc initApp(config: AppConfig): App =
 
     proc deleteEntity(req: Request, ent: Entity) =
       logPerf:
+        logBody()
+
         let
           j        = parseJson req.body
           ids      = j["ids"].to seq[int]
           q        = prepareDeleteQuery(ent, ids)
 
-        logBody req.body
         logSql q
         withDB:
           let affected = db.execAffectedRows q
