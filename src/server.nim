@@ -327,4 +327,7 @@ when isMainModule:
     conf = buildConfig ctx
     app  = initApp     conf
 
+  if "--dump-config" in cmdParams:
+    echo conf[]
+
   run app

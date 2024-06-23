@@ -1,4 +1,4 @@
-import std/[os, options, paths, strutils, strformat, tables]
+import std/[os, options, paths, strutils, strformat, tables, nativesockets]
 
 import ./utils/other
 
@@ -42,12 +42,20 @@ type
 
     queryStrategyFile*: Path
 
+
   ParamTable*  = Table[string, string]
 
   AppContext* = ref object
     cmdParams*: ParamTable
     tomlConf*:  TomlValueRef
-    
+
+
+func `$`*(p: Port): string = 
+  $p.int
+
+func `$`*(p: Path): string = 
+  p.string
+
 
 func conv(val: string, typ: type string): string = 
   val
@@ -64,7 +72,6 @@ func conv(val: string, typ: type Path): Path =
 
 func conv(val: string, typ: type Password): Password = 
   Password val
-
 
 func conv(val: string, typ: type bool): bool = 
   case val
@@ -117,6 +124,8 @@ proc v[T](ctx: AppContext, cmd, env, path: string, convType: typedesc[T]): T =
     conv get maybeValue, convType
   else:
     raisee "none of these config keys found : " & $(cmd, env, path)
+
+
 
 proc buildConfig*(ctx: AppContext): AppConfig = 
   AppConfig(
