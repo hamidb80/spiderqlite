@@ -1342,3 +1342,8 @@ func prepareDeleteQuery*(entity: Entity, ids: seq[int]): SqlQuery {.inline.} =
 
 # TODO faster parser
 # TODO add guard
+
+# TODO optimize if just selects the ID. e.g.
+#    WHERE (b.tag == 'device' AND (b.id == 1503))
+# can be reduced to 
+#    WHERE (b.id == 1503)
