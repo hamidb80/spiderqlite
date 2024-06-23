@@ -1341,9 +1341,24 @@ func prepareDeleteQuery*(entity: Entity, ids: seq[int]): SqlQuery {.inline.} =
   """
 
 # TODO faster parser
-# TODO add guard
+
+# TODO add guard for insertion
 
 # TODO optimize if just selects the ID. e.g.
 #    WHERE (b.tag == 'device' AND (b.id == 1503))
 # can be reduced to 
 #    WHERE (b.id == 1503)
+
+# TODO optimize according to schema when there is only one type of relation, 
+#      miss the tag condition. e.g.
+# 
+# schema:
+#   #person p
+#   #items  t
+#   @owner
+#     t -1-> p
+#   
+# query:
+#   JOIN nodes b WHERE b.tag == 'person' and ...
+# to:
+#   JOIN nodes b WHERE ...

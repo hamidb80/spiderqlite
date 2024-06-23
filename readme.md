@@ -33,6 +33,7 @@ It aims to bring best of SQLite, Neo4j, CouchDB together.
 - https://github.com/dpapathanasiou/simple-graph
 - CouchDB
 - Neo4j
+- ArangoDB
 - https://github.com/krisajenkins/yesql
 
 ### Sample Databases
