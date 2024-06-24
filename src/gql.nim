@@ -539,6 +539,7 @@ func parseGql*(content: string): GqlNode =
               "OR", "NOR",
               "XOR", "IS", "ISNOT",
               "NOTIN", "IN",
+              "LIKE", 
               "BETWEEN":                        parseInfix       lineee
 
             of "$", "NOT":                       parsePrefix      lineee          
