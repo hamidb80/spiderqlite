@@ -23,3 +23,6 @@ requires "webby"          # https://github.com/treeform/webby
 
 task dev, "development run": 
   exec "nim --deepcopy:on -d:useMalloc -d:debug r src/server.nim ./docs/dev.toml --dump-config"
+
+task rel, "release run": 
+  exec "nim --deepcopy:on -d:useMalloc -d:release r src/server.nim ./docs/dev.toml --dump-config"

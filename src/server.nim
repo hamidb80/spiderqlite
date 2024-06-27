@@ -29,6 +29,16 @@ func jsonIds(ids: seq[int]): string =
 func jsonError(msg, stackTrace: string): string = 
   "{\"error\": {\"message\": " & msg.escapeJson & "}, \"stack-trace\": " & stackTrace  & "}"
 
+func jsonToSql(j: JsonNode): string = 
+  case j.kind
+  of JInt:    $j.getInt
+  of JFloat:  $j.getFloat
+  of JNull:   "NULL"
+  of JString: dbQuote getStr j
+  of JBool:   $j.getBool
+  else: 
+    raisee "invalid json kind: " & $j.kind
+
 
 func extractStrategies(tv: TomlValueRef): seq[TomlValueRef] = 
   getElems tv["strategies"]
@@ -67,7 +77,7 @@ proc initApp(config: AppConfig): App =
 
     # proc staticFiles(req: Request) =
     #   discard
-      
+
     proc askQuery(req: Request) {.gcsafe.} =
       try:
         logBody()
