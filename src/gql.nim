@@ -1294,10 +1294,9 @@ func toSql*(gn; queryStrategies; varResolver): SqlQuery {.effectsOf: varResolver
     return toSqlImpl(gn, qs, imap, varResolver)
 
 func parseTag*(s: string): string = 
-  normalize:
-    if s.isEmptyOrWhitespace: raisee "empty tag"
-    elif s[0] in {'#', '@'}:  s.substr 1
-    else:                     s
+  if s.isEmptyOrWhitespace: raisee "empty tag"
+  elif s[0] in {'#', '@'}:  s.substr 1
+  else:                     s
 
 
 func sqlize(s: seq[int]): string {.inline.} = 
