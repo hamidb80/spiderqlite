@@ -1,4 +1,4 @@
-# SpiderQL
+# S<sub>pider</sub>QL
 
 SpiderQL or `SpQL is a query abstraction library. 
 
