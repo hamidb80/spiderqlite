@@ -1,11 +1,18 @@
 # S<sub>pider</sub>QL
 
-SpiderQL or `SpQL is a query abstraction library. 
+S<sub>pider</sub>QL or *SpQL* for short, is a query abstraction library which aims to make SQL as frictionless as possible.
 
 <p align="center">
   <img src="./assets/logo.png" alt="spiderQlite Logo" width="300px">
 </p>
 
+## Motivation
+The author found the SQL tables too rigid, and felt something is missing in document-based databases like MongoDB and CouchDB which makes them unconventional to use. At the same time, graph databases like Neo4j and ArangoDB made more sense to him. Because his projects are mostly small, using mentioned databases is not worth it since they require lots of RAM and computational power.
+
+At this point, he dreamt of something that is compatible to SQL as it can be put upon SQLite; and SpQL is found!
+
+## Terminology
+Spider is well-known instinct which walks on his network (🕸). The network is metaphore of graph. 
 
 ## Modes
 ### as Library
@@ -15,7 +22,10 @@ Just converting `spql` to `sql` format.
 It aims to bring best of SQLite, Neo4j, CouchDB together.
 
 ## Examples
+see examples in ...
 
+## Usage
+see usages in ...
 
 ## What I Found along the way
 ### links
