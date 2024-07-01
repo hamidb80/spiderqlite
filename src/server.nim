@@ -326,7 +326,7 @@ proc run(app: App) =
 when isMainModule:
   let
     cmdParams = toParamTable commandLineParams()
-    confPath  = cmdParams.getOrDefault("", "./config.toml")
+    confPath  = getOrDefault(cmdParams, "", "./config.toml")
 
   echo "config file path: ", confPath
 
@@ -338,7 +338,7 @@ when isMainModule:
     conf = buildConfig ctx
     app  = initApp     conf
 
-  if "--dump-config" in cmdParams:
+  if conf.logs.config:
     echo conf[]
 
   run app
