@@ -1,6 +1,8 @@
 # S<sub>pider</sub>QL
 
-S<sub>pider</sub>QL or *SpQL* for short, is a query abstraction library which aims to make SQL as frictionless as possible.
+S<sub>pider</sub>QL or *SpQL* for short, is:
+1. query abstraction library which aims to make SQL as frictionless as possible
+2. simple SQLite DB manager server
 
 <p align="center">
   <img src="./assets/logo.png" alt="spiderQlite Logo" width="300px">
