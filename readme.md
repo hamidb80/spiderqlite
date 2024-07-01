@@ -12,7 +12,7 @@ The author found the SQL tables too rigid, and felt something is missing in docu
 At this point, he dreamt of something that is compatible to SQL as it can be put upon SQLite; and SpQL is found!
 
 ## Terminology
-Spider is well-known instinct which walks on his network (🕸). The network is metaphore of graph. 
+Spider is well-known instinct which walks on his network (🕸). The network is metaphore for *graph*. 
 
 ## Modes
 ### as Library

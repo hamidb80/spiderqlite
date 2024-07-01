@@ -461,6 +461,128 @@ func parseUse        (line: string): GqlNode =
   gNode gkUse, parseInlineParamsAsIdents line
 
 
+type
+  LexKind = enum
+    lkIndent
+    lkDeIndent
+    lkIdent
+    lkInt
+    lkFloat
+    lkStr
+    lkComment
+
+  File2dPos = object
+    line, col: Natural
+
+  Token = object
+    loc: Slice[File2dPos]
+
+    case kind: LexKind 
+    of lkInt:
+      ival: int
+    
+    of lkFloat:
+      fval: float
+    
+    of lkStr, lkIdent:
+      sval: string
+    
+    else: 
+      discard
+
+  
+  LexerState = enum
+    lsInit
+    lsNeutral
+
+
+func firstLineIndentation(s: string): tuple[indent, firstCharIndex: Natural] = 
+  var 
+    lineStartIndex = 0
+    ind            = 0
+
+  # skips empty lines
+  for i, ch in s:
+    if ch == '\n':
+      lineStartIndex = i+1
+      ind            = 0
+    
+    elif ch == ' ':
+      inc ind
+    
+    else:
+      return (ind, i)
+  
+  raisee "N/A"
+
+# TODO toward faster parser
+func lexGql(content: string): seq[Token] = 
+  let
+    indentInfo = firstLineIndentation content
+
+  var 
+    last        = lsInit
+    sz          = len content
+    i           = indentInfo.firstCharIndex
+    indLevel    = indentInfo.indent
+
+  while i <= sz:
+    let ch = content[i]
+
+    case ch
+    of ' ':
+      # skip white spaces
+      discard
+
+    of '#', '@':
+      # ident def
+      discard
+
+    of Letters:
+      # ident
+      discard
+
+    of Digits:
+      # ident: 0d or number(int or float)
+      discard
+
+    of '.':
+      # field access
+      discard
+
+    of '"':
+      # string
+      discard
+
+    of '|':
+      # |var| or string concat ||
+      discard
+
+    of '-':
+      # comment or negative number or subtraction
+      discard
+
+    of '^', '$':
+      discard
+
+    of '*':
+      discard
+
+    of '/', '+', '=', '<', '>':
+      discard
+
+    of  '(':
+      # call
+      discard
+
+    of '{', '}', '[', ']':
+      # ident
+      discard
+
+    # of '~', '`', ':', ';', '?', '%', ',', '!':
+    else:
+      raisee "invalid char"
+    
 
 func parseGql*(content: string): GqlNode =
   result = GqlNode(kind: gkWrapper)
@@ -1343,3 +1465,18 @@ func prepareDeleteQuery*(entity: Entity, ids: seq[int]): SqlQuery {.inline.} =
 
 # TODO faster parser
 # TODO add guard for insertion
+
+
+when isMainModule:
+  echo firstLineIndentation """
+
+    dasdks
+      ds
+    ads
+    ad
+  """
+  echo firstLineIndentation """
+  
+    
+    
+  """
