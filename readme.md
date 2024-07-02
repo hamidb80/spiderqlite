@@ -2,7 +2,7 @@
 
 S<sub>pider</sub>QL or *SpQL* for short, is:
 1. query abstraction library which aims to make SQL as frictionless as possible
-2. simple SQLite DB manager server
+2. simple SQLite manager server
 
 <p align="center">
   <img src="./assets/logo.png" alt="spiderQlite Logo" width="300px">
@@ -16,18 +16,21 @@ At this point, he dreamt of something that is compatible to SQL as it can be put
 ## Terminology
 Spider is well-known instinct which walks on his network (🕸). The network is metaphore for *graph*. 
 
-## Modes
+Since this library works with SQL, there must be SQL in the name. 
+
+## Usage
 ### as Library
 Just converting `spql` to `sql` format.
 
 ### as Server
 It aims to bring best of SQLite, Neo4j, CouchDB together.
 
-## Examples
+#### Config
+
+## Query Language
+### Examples
 see examples in ...
 
-## Usage
-see usages in ...
 
 ## What I Found along the way
 ### links

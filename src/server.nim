@@ -6,7 +6,7 @@ import webby
 import parsetoml
 # TODO use waterpark
 
-import gql
+import gql, core
 import ./utils/other
 import ./config
 
@@ -18,17 +18,23 @@ type
     defaultQueryStrategies*: QueryStrategies
 
 
-func jsonAffectedRows(n: int, ids: seq[int] = @[]): string = 
-  "{\"affected_rows\":" & $n & ", \"ids\": [" & ids.joinComma & "]}"
 
 func jsonHeader: HttpHeaders = 
   toWebby @{"Content-Type": "application/json"}
 
-func jsonIds(ids: seq[int]): string = 
-  "{\"ids\": [" & ids.joinComma & "]}"
+
+func jsonAffectedRows(n: int, ids: seq[int] = @[]): string = 
+  "{" & 
+  "\"affected_rows\":" & $n & ", " & 
+  "\"ids\": [" & ids.joinComma & "] " & 
+  "}"
 
 func jsonError(msg, stackTrace: string): string = 
-  "{\"error\": {\"message\": " & msg.escapeJson & "}, \"stack-trace\": " & stackTrace  & "}"
+  "{" & 
+  "\"error\": {\"message\": " & msg.escapeJson & "}, " & 
+  "\"stack-trace\": " &         stackTrace             & 
+  "}"
+
 
 func jsonToSql(j: JsonNode): string = 
   case j.kind
@@ -197,7 +203,7 @@ proc initApp(config: AppConfig): App =
               id     = db.insertID(q, tag, doc)
             ids.add id
 
-        req.respond 200, jsonHeader(), jsonIds ids
+        req.respond 200, jsonHeader(), jsonAffectedRows(len ids, ids)
 
     proc insertEdges(req: Request) =
       logPerf:
@@ -220,7 +226,7 @@ proc initApp(config: AppConfig): App =
             
             ids.add id
 
-        req.respond 200, jsonHeader(), jsonIds ids
+        req.respond 200, jsonHeader(), jsonAffectedRows(len ids, ids)
 
 
     proc updateEntity(req: Request, ent: Entity) =
@@ -320,21 +326,20 @@ proc initApp(config: AppConfig): App =
 
 proc run(app: App) = 
   echo fmt"running in {app.config.url}"
-  serve app.server, app.config.server.port, app.config.server.host
+  serve app.server, app.config.server.port, app.config.server.host.string
 
 
 when isMainModule:
   let
     cmdParams = toParamTable commandLineParams()
-    confPath  = getOrDefault(cmdParams, "", "./config.toml")
+    confPath  = cmdParams.getOrDefault("", "./config.toml")
 
   echo "config file path: ", confPath
 
   let
-    ctx = AppContext(
+    ctx  = AppContext(
       cmdParams: cmdParams,
-      tomlConf:  parseTomlFile confPath
-    )
+      tomlConf:  parseTomlFile confPath)
     conf = buildConfig ctx
     app  = initApp     conf
 

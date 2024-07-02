@@ -12,7 +12,7 @@ type
     password*: Password
 
   ServerConfig* = object
-    host*: string
+    host*: Host
     port*: Port
 
   StorageConfig* = object
@@ -70,6 +70,10 @@ func conv(val: string, typ: type Port): Port =
 func conv(val: string, typ: type Path): Path = 
   # FIXME check is a valid path
   Path val
+
+func conv(val: string, typ: type Host): Host = 
+  # FIXME check is a valid Host
+  Host val
 
 func conv(val: string, typ: type Password): Password = 
   Password val
@@ -131,7 +135,7 @@ proc v[T](ctx: AppContext, cmd, env, path: string, convType: typedesc[T]): T =
 proc buildConfig*(ctx: AppContext): AppConfig = 
   AppConfig(
     server: ServerConfig(
-      host:  v(ctx, "--host", "SPQL_HOST", "server.host", string),
+      host:  v(ctx, "--host", "SPQL_HOST", "server.host", Host),
       port:  v(ctx, "--port", "SPQL_PORT", "server.port", Port),
     ),
     frontend: FrontendConfig(
@@ -148,7 +152,7 @@ proc buildConfig*(ctx: AppContext): AppConfig =
     ),
 
     logs: LogConfig(
-      config:      v(ctx, "--dump-config",       "SPQL_DUMP_CONFIG",       "config",           bool),
+      config:      v(ctx, "--dump-config",       "SPQL_DUMP_CONFIG",       "logs.config",      bool),
       sql:         v(ctx, "--log-generated-sql", "SPQL_LOG_GENERATED_SQL", "logs.sql",         bool),
       reqbody:     v(ctx, "--log-request-body",  "SPQL_LOG_REQUEST_BODY",  "logs.req_body",    bool),
       performance: v(ctx, "--log-performance",   "SPQL_LOG_PERFORMANCE",   "logs.performance", bool),
@@ -180,4 +184,4 @@ proc toParamTable*(params: seq[string]): ParamTable =
 
 
 func url*(conf: AppConfig): string = 
-  fmt"http://{conf.server.host}:{conf.server.port.int}"
+  fmt"http://{conf.server.host}:{conf.server.port}"

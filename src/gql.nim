@@ -8,94 +8,6 @@ import parsetoml
 
 
 type
-  GqlKind* = enum
-    gkDef         # #tag
-    gkFieldPred   # inside def
-    gkAsk         # ask [query]
-    gkReturn      # return
-    gkUpdate      # update
-    gkDelete      # delete
-
-    gkCase
-    gkWhen
-    gkElse
-
-    gkUnique      # unique
-
-    gkTypes       # types
-    gkSort        # sort
-
-    gkInsert      # insert node
-
-    gkDeleteIndex # delete index
-    gkCreateIndex # create index
-
-    gkListIndexes # list indexes
-
-    gkInfix       # a + 2
-    gkPrefix      # not good
-
-    gkIdent       # name
-    gkIntLit      # 13
-    gkFloatLit    # 3.14
-    gkBool        # true false
-    gkStrLit      # "salam"
-
-    gkNull        # .
-    gkInf         # inf
-
-    gkVar         # |var|
-    gkChain       # 1-r->p
-
-    gkParams
-    gkUse
-    gkGroupBy     # GROUP BY
-    gkTake        # select take
-    gkFrom        # from
-    gkHaving      # HAVING
-    gkOrderBy     # ORDER BY
-    gkLimit       # LIMIT
-    gkOffset      # OFFSET
-    gkAlias       # AS; named expressions
-    gkCall        # count(a)
-
-    gkNameSpace   # namespace
-    gkDataBase    # database
-    gkTable       # table
-    gkRelation    # references, ref, rel, relation
-    gkProcedure   # procedure, func
-    
-    gkComment     # --
-
-    gkFieldAccess # .field
-
-    gkWrapper
-
-  GqlDefKind* = enum
-    defNode
-    defEdge
-
-  GqlNode* = ref object
-    children*: seq[GqlNode]
-
-    case kind*: GqlKind
-    of gkDef:
-      defKind*: GqlDefKind
-
-    of gkIdent, gkStrLit, gkComment, gkVar:
-      sval*: string
-
-    of gkIntLit:
-      ival*: int
-
-    of gkFloatLit:
-      fval*: float
-
-    of gkBool:
-      bval*: bool
-
-    else:
-      discard
 
   AskPatKind = enum
     apkNode
@@ -204,38 +116,6 @@ const
   markChars        = {'0' .. '9', '^', '$', '+'}
   invalidIndicator = '\0'
 
-  initdb = """
-    PRAGMA encoding="UTF-8";
-
-    -- tables
-
-    CREATE TABLE IF NOT EXISTS nodes (
-        id          INTEGER PRIMARY KEY,
-        tag         TEXT,
-        doc         JSON NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS edges (
-        id          INTEGER PRIMARY KEY,
-        tag         TEXT,
-        doc         JSON    DEFAULT '{}',
-        source      INTEGER,
-        target      INTEGER,
-
-        FOREIGN KEY (source) REFERENCES nodes(id),
-        FOREIGN KEY (target) REFERENCES nodes(id)
-    );
-
-    -- indexes
-
-    CREATE INDEX IF NOT EXISTS node_index         ON nodes(id);
-    CREATE INDEX IF NOT EXISTS node_tag_index     ON nodes(tag);
-
-    CREATE INDEX IF NOT EXISTS edges_index        ON edges(id);
-    CREATE INDEX IF NOT EXISTS edges_source_index ON edges(source);
-    CREATE INDEX IF NOT EXISTS edges_target_index ON edges(target);
-  """
-
 
 func `$`(p: AskPatNode): string =
   case p.kind
@@ -314,9 +194,6 @@ func cmd(ind: int, line: string): string =
     .toUpperAscii
 
 
-func gNode(k: GqlKind, children: seq[GqlNode] = @[]): GqlNode =
-  GqlNode(kind: k, children: children)
-
 func gIdent(s: string): GqlNode =
   GqlNode(kind: gkIdent, sval: s)
 
@@ -371,36 +248,6 @@ func parsePrefix     (line: string): GqlNode =
   GqlNode(
     kind: gkPrefix,
     children: @[parseIdent line])
-
-func parseCallToJson           (): GqlNode =
-  GqlNode(
-    kind: gkCall, 
-    children: @[
-      GqlNode(kind: gkIdent, sval: "json")])
-
-func parseCallToJsonObject     (): GqlNode =
-  GqlNode(
-    kind: gkCall, 
-    children: @[
-      GqlNode(kind: gkIdent, sval: "json_object")])
-
-func parseCallToJsonObjectGroup(): GqlNode =
-  GqlNode(
-    kind: gkCall, 
-    children: @[
-      GqlNode(kind: gkIdent, sval: "json_group_object")])
-
-func parseCallToJsonArray      (): GqlNode =
-  GqlNode(
-    kind: gkCall, 
-    children: @[
-      GqlNode(kind: gkIdent, sval: "json_array")])
-
-func parseCallToJsonArrayGroup (): GqlNode =
-  GqlNode(
-    kind: gkCall, 
-    children: @[
-      GqlNode(kind: gkIdent, sval: "json_group_array")])
 
 func parseVar        (line: string): GqlNode =
   GqlNode(
@@ -461,128 +308,6 @@ func parseUse        (line: string): GqlNode =
   gNode gkUse, parseInlineParamsAsIdents line
 
 
-type
-  LexKind = enum
-    lkIndent
-    lkDeIndent
-    lkIdent
-    lkInt
-    lkFloat
-    lkStr
-    lkComment
-
-  File2dPos = object
-    line, col: Natural
-
-  Token = object
-    loc: Slice[File2dPos]
-
-    case kind: LexKind 
-    of lkInt:
-      ival: int
-    
-    of lkFloat:
-      fval: float
-    
-    of lkStr, lkIdent:
-      sval: string
-    
-    else: 
-      discard
-
-  
-  LexerState = enum
-    lsInit
-    lsNeutral
-
-
-func firstLineIndentation(s: string): tuple[indent, firstCharIndex: Natural] = 
-  var 
-    lineStartIndex = 0
-    ind            = 0
-
-  # skips empty lines
-  for i, ch in s:
-    if ch == '\n':
-      lineStartIndex = i+1
-      ind            = 0
-    
-    elif ch == ' ':
-      inc ind
-    
-    else:
-      return (ind, i)
-  
-  raisee "N/A"
-
-# TODO toward faster parser
-func lexGql(content: string): seq[Token] = 
-  let
-    indentInfo = firstLineIndentation content
-
-  var 
-    last        = lsInit
-    sz          = len content
-    i           = indentInfo.firstCharIndex
-    indLevel    = indentInfo.indent
-
-  while i <= sz:
-    let ch = content[i]
-
-    case ch
-    of ' ':
-      # skip white spaces
-      discard
-
-    of '#', '@':
-      # ident def
-      discard
-
-    of Letters:
-      # ident
-      discard
-
-    of Digits:
-      # ident: 0d or number(int or float)
-      discard
-
-    of '.':
-      # field access
-      discard
-
-    of '"':
-      # string
-      discard
-
-    of '|':
-      # |var| or string concat ||
-      discard
-
-    of '-':
-      # comment or negative number or subtraction
-      discard
-
-    of '^', '$':
-      discard
-
-    of '*':
-      discard
-
-    of '/', '+', '=', '<', '>':
-      discard
-
-    of  '(':
-      # call
-      discard
-
-    of '{', '}', '[', ']':
-      # ident
-      discard
-
-    # of '~', '`', ':', ';', '?', '%', ',', '!':
-    else:
-      raisee "invalid char"
-    
 
 func parseGql*(content: string): GqlNode =
   result = GqlNode(kind: gkWrapper)
@@ -1415,68 +1140,5 @@ func toSql*(gn; queryStrategies; varResolver): SqlQuery {.effectsOf: varResolver
 
     return toSqlImpl(gn, qs, imap, varResolver)
 
-func parseTag*(s: string): string = 
-  if s.isEmptyOrWhitespace: raisee "empty tag"
-  elif s[0] in {'#', '@'}:  s.substr 1
-  else:                     s
 
-
-func sqlize(s: seq[int]): string {.inline.} = 
-  '(' & s.joinComma & ')'
-
-
-func prepareGetQuery*(entity: Entity): SqlQuery {.inline.} = 
-  let select = case entity
-  of nodes: sqlJsonNodeExpr "" 
-  of edges: sqlJsonEdgeExpr ""
-
-  sql fmt"""
-    SELECT {select}
-    FROM   {entity}
-    WHERE  id = ?
-  """
-
-func prepareUpdateQuery*(entity: Entity): SqlQuery {.inline.} = 
-  sql fmt"""
-    UPDATE {entity}
-    SET    doc = ?
-    WHERE  id  = ?
-  """
-
-func prepareNodeInsertQuery*: SqlQuery {.inline.} = 
-  sql """
-    INSERT INTO
-    nodes  (tag, doc) 
-    VALUES (?,   ?)
-  """
-
-func prepareEdgeInsertQuery*: SqlQuery {.inline.} = 
-  sql """
-    INSERT INTO
-    edges  (tag, source, target, doc) 
-    VALUES (?,   ?,      ?,      ?)
-  """
-
-func prepareDeleteQuery*(entity: Entity, ids: seq[int]): SqlQuery {.inline.} = 
-  sql fmt"""
-    DELETE FROM  {entity}
-    WHERE  id in {sqlize ids}
-  """
-
-# TODO faster parser
 # TODO add guard for insertion
-
-
-when isMainModule:
-  echo firstLineIndentation """
-
-    dasdks
-      ds
-    ads
-    ad
-  """
-  echo firstLineIndentation """
-  
-    
-    
-  """

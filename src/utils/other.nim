@@ -9,9 +9,18 @@ const
 
 type
   Password* = distinct string
+  Host*     = distinct string
+
 
 func `$`*(p: Password): string = 
   repeat '*', p.string.len
+
+func `$`*(h: Host): string = 
+  h.string
+
+func `$`*(s: SqlQuery): string =
+  s.string
+
 
 
 template raisee*(reason): untyped =
@@ -36,11 +45,6 @@ func isNumber*(s: string): bool =
     true
   except:
     false
-
-# ---- convertor
-
-func `$`*(s: SqlQuery): string =
-  s.string
 
 # ---- numbers
 
@@ -143,6 +147,9 @@ template ignore*(body): untyped {.dirty.} =
 
 template `<<`*(thing): untyped {.dirty.} =
   add result, thing
+
+template `++`*(ivar): untyped =
+  inc ivar
 
 template `~>`*(lst, op): untyped =
   lst.mapit op
