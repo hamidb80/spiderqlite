@@ -3,6 +3,7 @@ import std/[strutils, options]
 import ../utils/other
 
 import questionable
+import pretty
 
 
 type
@@ -95,12 +96,6 @@ type
     gkAlias       # AS; named expressions
     gkCall        # count(a)
 
-    gkNameSpace   # namespace
-    gkDataBase    # database
-    gkTable       # table
-    gkRelation    # references, ref, rel, relation
-    gkProcedure   # procedure, func
-    
     gkComment     # --
 
     gkFieldAccess # .field
@@ -376,26 +371,26 @@ func parseGql(tokens: seq[Token]): GqlNode =
   var 
     stack   = @[gWrapper()]
     i       = 0
-    isFirst = false
+    isFirst = true
 
   while i < tokens.len:
     let t = tokens[i]
+    var node = none GqlNode
+    # debugEcho (t, isFirst)
+    # print stack[0]
 
     case t.kind
+    of lkComment:  discard
     of lkSep:      discard
     of lkIndent:   
       let l = stack[^1].children[^1]
       stack.add l
 
     of lkDeIndent: 
-      if empty stack:
-        raisee "whattt ?"
-      else:
-        stack.less
+      stack.less
 
-    
     of lkIdent:
-      let n = 
+      node = some: 
         case t.sval
         of "ASK", "MATCH", "FROM":           gNode gkAsk
         of "TAKE", "SELECT", "RETURN":       gNode gkTake
@@ -442,19 +437,41 @@ func parseGql(tokens: seq[Token]): GqlNode =
         
         else:                                gIdent     t.sval
 
+    of lkDefNode:
+      node = some GqlNode(kind: gkDef)
 
-      stack[^1].children.add n
+    of lkDefEdge:
+      node = some GqlNode(kind: gkDef)
 
-    else:
-      discard
+    of lkint:
+      node = some GqlNode(kind: gkIntLit, ival: t.ival)
+
+    of lkFloat:
+      node = some GqlNode(kind: gkFloatLit, fval: t.fval)
+
+    of lkStr:
+      node = some GqlNode(kind: gkStrLit, sval: t.sval)
+
+    of lkVar: discard         # TODO
+    of lkFieldAccess: discard # TODO
+
 
     ++i
-    
-    isFirst = t.kind in {lkSep, lkIndent, lkDeIndent}
 
+    if n =? node:
+      if isFirst:
+        stack[^1].children.add n
+      else:
+        stack[^1].children[^1].children.add n
+
+    isFirst = t.kind in {lkSep, lkIndent, lkDeIndent}
+    reset node
+
+    # ignore:
+    #   discard stdin.readLine
 
   stack[0]
-
+  
 func parseGql*(content: string): GqlNode = 
   parseGql lexGql content
 
@@ -508,10 +525,6 @@ when isMainModule:
 
   let tokens = lexGql sample
 
-  for t in tokens:
-    echo t
-
-  import pretty
   let ggg  = parseGql tokens
 
   print ggg
