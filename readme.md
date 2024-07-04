@@ -40,7 +40,7 @@ see examples in ...
 - https://stackoverflow.com/questions/12526194/mysql-inner-join-select-only-one-row-from-second-table
 - https://neo4j.com/docs/cypher-manual/current/functions/aggregating/
 - https://sqlite.org/json1.html
-
+- https://github.com/Nhogs/popoto
 
 ### Inspirations
 - https://github.com/arturo-lang/grafito/
