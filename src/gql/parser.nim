@@ -14,19 +14,19 @@ type
     lkIndent
     lkDeIndent
 
-    lkDefNode
-    lkDefEdge
+    lkHashTag
+    lkAtSign
     
     lkIdent
     lkInt
     lkFloat
     lkStr
     
-    lkVar
-    lkFieldAccess
+    lkAbs
+    lkDot
 
-  FilePos = tuple
-    line, col: Natural
+  # FilePos = tuple
+  #   line, col: Natural
 
   Token = object
     # loc: Slice[File2dPos]
@@ -38,7 +38,7 @@ type
     of lkFloat:
       fval: float
     
-    of lkStr, lkIdent, lkVar:
+    of lkStr, lkIdent, lkAbs:
       sval: string
     
     else: 
@@ -215,13 +215,10 @@ func lexGql(content: string): seq[Token] =
     indLevels     = @[indentInfo.indent]
     lastLineIndex = 0
 
+  # for i, ch in content:
+  #   debugEcho (i, ch)
 
-  # TODO do not emit repeative lkSep
-
-  for i, ch in content:
-    debugEcho (i, ch)
-
-  debugEcho "------------------"
+  # debugEcho "------------------"
 
   while i <= sz:
     let ch = content{i}
@@ -251,15 +248,15 @@ func lexGql(content: string): seq[Token] =
       inc i, step
 
     of '#':
-      << Token(kind: lkDefNode)
+      << Token(kind: lkHashTag)
       ++i
     
     of '@':
-      << Token(kind: lkDefEdge) 
+      << Token(kind: lkAtSign) 
       ++i
   
     of '.':
-      << Token(kind: lkFieldAccess)
+      << Token(kind: lkDot)
       ++i
   
     of Letters, '/', '+', '=', '<', '>', '^', '~', '$', '[', '{', '(':
@@ -292,7 +289,7 @@ func lexGql(content: string): seq[Token] =
 
     of '|': # TODO
       # |var| or string concat ||
-      << Token(kind: lkVar, sval: "")
+      << Token(kind: lkAbs, sval: "")
       discard
 
     of '-':
@@ -369,19 +366,26 @@ func parseCallToJsonArrayGroup* (): GqlNode =
 
 func parseGql(tokens: seq[Token]): GqlNode = 
   var 
-    stack   = @[gWrapper()]
+    node    = gWrapper()
+    stack   = @[node]
     i       = 0
     isFirst = true
+    isNode  = false
+
+  template newNode(n): untyped =
+    isNode = true
+    node   = n
 
   while i < tokens.len:
     let t = tokens[i]
-    var node = none GqlNode
+
     # debugEcho (t, isFirst)
     # print stack[0]
 
     case t.kind
     of lkComment:  discard
     of lkSep:      discard
+
     of lkIndent:   
       let l = stack[^1].children[^1]
       stack.add l
@@ -389,8 +393,30 @@ func parseGql(tokens: seq[Token]): GqlNode =
     of lkDeIndent: 
       stack.less
 
+    of lkDot: 
+      newNode GqlNode(kind: gkFieldAccess)
+
+    of lkHashTag:
+      newNode GqlNode(kind: gkDef, defKind: defNode)
+
+    of lkAtSign:
+      newNode GqlNode(kind: gkDef, defKind: defEdge)
+
+
+    of lkInt:
+      newNode GqlNode(kind: gkIntLit, ival: t.ival)
+
+    of lkFloat:
+      newNode GqlNode(kind: gkFloatLit, fval: t.fval)
+
+    of lkStr:
+      newNode GqlNode(kind: gkStrLit, sval: t.sval)
+
+    of lkAbs: 
+      newNode GqlNode(kind: gkVar, sval: t.sval)
+
     of lkIdent:
-      node = some: 
+      newNode:
         case t.sval
         of "ASK", "MATCH", "FROM":           gNode gkAsk
         of "TAKE", "SELECT", "RETURN":       gNode gkTake
@@ -435,37 +461,21 @@ func parseGql(tokens: seq[Token]): GqlNode =
           "BETWEEN":                         infixNode  t.sval
         of "$", "NOT":                       prefixNode t.sval
         
-        else:                                gIdent     t.sval
-
-    of lkDefNode:
-      node = some GqlNode(kind: gkDef)
-
-    of lkDefEdge:
-      node = some GqlNode(kind: gkDef)
-
-    of lkint:
-      node = some GqlNode(kind: gkIntLit, ival: t.ival)
-
-    of lkFloat:
-      node = some GqlNode(kind: gkFloatLit, fval: t.fval)
-
-    of lkStr:
-      node = some GqlNode(kind: gkStrLit, sval: t.sval)
-
-    of lkVar: discard         # TODO
-    of lkFieldAccess: discard # TODO
+        else:
+          # TODO dot have idents: movie.
+          gIdent     t.sval
 
 
     ++i
 
-    if n =? node:
+    if isNode:
       if isFirst:
-        stack[^1].children.add n
+        stack[^1].children.add node
       else:
-        stack[^1].children[^1].children.add n
+        stack[^1].children[^1].children.add node
 
     isFirst = t.kind in {lkSep, lkIndent, lkDeIndent}
-    reset node
+    isNode  = false
 
     # ignore:
     #   discard stdin.readLine
@@ -505,7 +515,7 @@ when isMainModule:
 
     -- *a means that include `p`s that may not have any edge `a` connected to `a` movie at all
 
-    MATCH  ^p>-*a->m
+    MATCH   ^p>-*a->m
     GROUP   p.id
 
     ORDER no_movies
