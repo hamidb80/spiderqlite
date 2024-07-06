@@ -287,14 +287,22 @@ func lexGql(content: string): seq[Token] =
       << Token(kind: lkStr, sval: content[i+1..i+step-1])
       inc i, step+1
 
-    of '|': # TODO
-      # |var| or string concat ||
-      << Token(kind: lkAbs, sval: "")
-      discard
+    of '|': 
+      # string concat opertor ||
+      if content{i+1} == '|':
+        << Token(kind: lkIdent, sval: "||")
+        inc i, 2
+
+      # |var|
+      else:
+        let
+          size = parseIdent(content, i)
+          word = content[i..i+size]
+        << Token(kind: lkAbs, sval: word)
+        inc i, size+1
 
     of '-':
-      # comment or negative number or subtraction
-
+      # comment
       if content{i+1} == '-':
         let ni = find(content, '\n', i+2)
         
@@ -302,12 +310,13 @@ func lexGql(content: string): seq[Token] =
           if ni == -1: content.high
           else:        ni
 
+      # negative number(float or int)
       elif content{i+1} in Digits:
         discard
         ++i
       
+      # subtraction
       else:
-        # infix
         ++i
     
     of '*':
