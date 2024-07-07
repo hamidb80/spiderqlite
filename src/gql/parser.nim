@@ -25,6 +25,8 @@ type
     lkAbs
     lkDot
 
+    lkOperator
+
   # FilePos = tuple
   #   line, col: Natural
 
@@ -38,7 +40,7 @@ type
     of lkFloat:
       fval: float
     
-    of lkStr, lkIdent, lkAbs:
+    of lkOperator, lkStr, lkIdent, lkAbs:
       sval: string
     
     else: 
@@ -260,23 +262,28 @@ func lexGql(content: string): seq[Token] =
       ++i
   
     of Letters, '/', '+', '=', '<', '>', '^', '~', '$', '[', '{', '(':
-      let size = parseIdent(content, i)
-      << Token(kind: lkIdent, sval: content[i..i+size])
+      let 
+        size = parseIdent(content, i)
+        word = content[i..i+size]
+      
+      # TODO nested idents e.g. m.id
+      << Token(kind: lkIdent, sval: word)
       inc i, size+1
 
     of Digits:
-      # ident or int or float
-
       let 
         size = parseIdent(content, i)
         word = content[i..i+size]
 
+      # int
       if val =? tryParseInt word:
         << Token(kind: lkInt, ival: val)
 
+      # float
       elif val =? tryParseFloat word:
         << Token(kind: lkFloat, fval: val)
 
+      # ident e.g. 0a
       else:
         << Token(kind: lkIdent, sval: word)
 
@@ -290,14 +297,14 @@ func lexGql(content: string): seq[Token] =
     of '|': 
       # string concat opertor ||
       if content{i+1} == '|':
-        << Token(kind: lkIdent, sval: "||")
+        << Token(kind: lkOperator, sval: "||")
         inc i, 2
 
       # |var|
       else:
         let
           size = parseIdent(content, i)
-          word = content[i..i+size]
+          word = content[i+1..i+size-1]
         << Token(kind: lkAbs, sval: word)
         inc i, size+1
 
@@ -312,16 +319,39 @@ func lexGql(content: string): seq[Token] =
 
       # negative number(float or int)
       elif content{i+1} in Digits:
-        discard
+        let 
+          size = parseIdent(content, i)
+          word = content[i..i+size]
+
+        if val =? tryParseInt word:
+          << Token(kind: lkInt, ival: val)
+
+        elif val =? tryParseFloat word:
+          << Token(kind: lkFloat, fval: val)
+
+        else:
+          raisee "invalid ident: '" & word & "'"
+
         ++i
       
       # subtraction
       else:
+        << Token(kind: lkOperator, sval: "-")
         ++i
     
     of '*':
-      # ident ( *d ) or multipication
-      discard
+      # multipication
+      if content{i+1} in Whitespace:
+        << Token(kind: lkOperator, sval: "*")
+        ++i
+
+      # ident e.g. *d
+      else:
+        let
+          size = parseIdent(content, i)
+          word = content[i..i+size]
+        << Token(kind: lkIdent, sval: word)
+        inc i, size+1
 
     else:
       # of '~', '`', ':', ';', '?', '%', ',', '!':
@@ -424,7 +454,7 @@ func parseGql(tokens: seq[Token]): GqlNode =
     of lkAbs: 
       newNode GqlNode(kind: gkVar, sval: t.sval)
 
-    of lkIdent:
+    of lkIdent, lkOperator:
       newNode:
         case t.sval
         of "ASK", "MATCH", "FROM":           gNode gkAsk
@@ -514,6 +544,8 @@ when isMainModule:
   const sample =   """
     #person   p
     #movie    m
+      == m.id |mid|
+
     @acted_in a
 
     AS
