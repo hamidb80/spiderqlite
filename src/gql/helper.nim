@@ -2,8 +2,8 @@ import std/[strformat, strutils]
 
 import db_connector/db_sqlite
 
-import gql
-import ./utils/other
+import core
+import ../utils/other
 
 # --------- utils ------------------------------------
 

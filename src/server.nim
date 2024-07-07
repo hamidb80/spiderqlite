@@ -6,7 +6,7 @@ import webby
 import parsetoml
 # TODO use waterpark
 
-import gql, core
+import gql/[parser, core, helper]
 import ./utils/other
 import ./config
 
