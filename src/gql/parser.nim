@@ -266,7 +266,6 @@ func lexGql(content: string): seq[Token] =
         size = parseIdent(content, i)
         word = content[i..i+size]
       
-      # TODO nested idents e.g. m.id
       << Token(kind: lkIdent, sval: word)
       inc i, size+1
 
@@ -498,6 +497,7 @@ func parseGql(tokens: seq[Token]): GqlNode =
           "NOTIN", "IN",
           "LIKE", 
           "BETWEEN":                         infixNode  t.sval
+   
         of "$", "NOT":                       prefixNode t.sval
         
         else:
