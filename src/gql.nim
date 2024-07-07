@@ -404,6 +404,7 @@ func parseGql*(content: string): GqlNode =
       parent.children.add n
       nested.add (n, ind)
 
+
 func infoLevel(n: QueryNode): int =
   if n.mark != invalidIndicator:
     inc result

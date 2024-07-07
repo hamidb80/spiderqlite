@@ -431,7 +431,7 @@ func parseGql(tokens: seq[Token]): GqlNode =
     of lkDeIndent: 
       stack.less
 
-    of lkDot: 
+    of lkDot:
       newNode GqlNode(kind: gkFieldAccess)
 
     of lkHashTag:
@@ -501,9 +501,20 @@ func parseGql(tokens: seq[Token]): GqlNode =
         of "$", "NOT":                       prefixNode t.sval
         
         else:
-          # TODO dot have idents: movie.
-          gIdent     t.sval
+          # idents with dot: movie.id
+          let parts = t.sval.split('.', maxsplit=1)
 
+          GqlNode(
+            kind: gkIdent,
+            sval: parts[0],
+            children: 
+              case parts.len
+              of 1: @[]
+              else: @[
+                GqlNode(
+                  kind: gkFieldAccess,
+                  children: @[
+                    gIdent parts[1]])])
 
     ++i
 
