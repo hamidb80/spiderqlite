@@ -45,9 +45,10 @@ The above code says it first looks at if there is any CLI parameter with key of 
 ... 
 
 ## Concepts
+### Entities
 In graph theory, there are 2 types of entities: nodes and edges.
 
-### Node
+#### Node
 A node is something that holds data. 
 Here's the internal structure of a node:
 
@@ -57,7 +58,7 @@ Here's the internal structure of a node:
 | 2         | person        | {"name": "Mostafa Zamani"} |
 | 3         | movie         | {"title": "Prophet Joseph"} |
 
-### Edge
+#### Edge
 An edge is somehting that relates source node to the target node. 
 Tt may contain data.   
 Here's the internal structure of an edge:
@@ -72,7 +73,8 @@ The above edge shows following relations:
 - node 2 acted in node 3 
 
 ### Tag
-A tag is similar to ***table name*** in SQL or ***collection*** in document-based databases. 
+A tag is similar to ***table name*** in SQL or ***collection*** in document-based databases.
+It is indexed and efficient to query about.
 
 ## Query Language
 The query language is heavily inspired by Cypher ([query language of Neo4j](https://neo4j.com/docs/cypher-cheat-sheet/5/auradb-enterprise/)), you can think of it as a mix of Lisp and SQL and Cypher. 
@@ -410,7 +412,12 @@ if you define guard for your database, you will get error when the object model 
 ### Examples
 more examples in `tests/defs`.
 
-## What I Found along the way
+## Indexes
+...
+
+## Other
+Here are some of the things that I found worth mentioning.
+
 ### links
 - https://www.delphitools.info/2021/06/17/sqlite-as-a-no-sql-database/
 - https://www.sqlitetutorial.net/sqlite-index/sqlite-drop-index/
