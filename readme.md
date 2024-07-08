@@ -110,7 +110,7 @@ to define a node with tag `tag` and alias of `alias` with optional condition, yo
 Same as the way you define a node, the only difference is that you put `@` instead of `#`. 
 
 #### Alias
-You may define alias for repeative expressions or readability.
+You may define alias for repeative expressions or readability. you can think of it as `#define` macro in C.
 ```sql
 AS
   ident1
