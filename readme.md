@@ -24,7 +24,7 @@ Just converts `spql` to `sql` language.
 ### as Server
 It aims to bring best of SQLite, Neo4j, CouchDB together.
 
-#### Front end
+#### Front end [TODO]
 
 #### Config
 To use as server, it is mandatory to provide a config file which is written in [TOML](https://toml.io/) format. You can you the one that use for development or you write your own. The values in config file can be overwritten by environment variables or flags which are passed as command line arguemnts.
@@ -375,7 +375,7 @@ PARAMS p m a
 ```
 
 #### Defining Object Model
-##### Guards
+##### Guards [TODO]
 if you define guard for your database, you will get error when the object model does not match with it on update or delete.
 
 ```sql
@@ -402,6 +402,10 @@ if you define guard for your database, you will get error when the object model 
 
 ### Examples
 more examples in `tests/defs`.
+
+## Integrations
+### Python Driver :: SpqlClient
+... 
 
 ## What I Found along the way
 ### links
