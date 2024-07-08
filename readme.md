@@ -16,6 +16,7 @@ He dreamed of something that is compatible to SQL as it can be used upon SQLite.
 ## Terminology
 Spider (🕷) is well-known instinct which walks on his network (🕸). The network is metaphore for *graph*. Since its actions/queries is converted to SQL, its name may be mix of these 2 words; Hence Sp<sub>ider</sub>QL or SpQL.
 
+
 ## Usage
 ### as Library
 Just converts `spql` to `sql` language.
@@ -39,6 +40,35 @@ server: ServerConfig(
 
 The above code says it first looks at if there is any CLI parameter with key of `--host`, if not, look for `SPQL_HOST` environment variable, if can't find it, then look at `server.host` in config file. If still can't find the value, it throws error, saying the config value is missing.
 
+## Concepts
+In graph theory there are 2 types of entities: nodes and edges.
+
+### Nodes
+A node is something that holds data. 
+Here's the internal structure of a node:
+
+| id: `int` | tag: `string` | data: `JSON` |
+|-----------|---------------|--------------|
+| 1         | person        | {"name": "Farajollah Salahshoor"} |
+| 2         | person        | {"name": "Mostafa Zamani"} |
+| 3         | movie         | {"title": "Prophet Joseph"} |
+
+### Edges
+An edge is somehting that relates 2 nodes to each other and may contain data.   
+Here's the internal structure of an edge:
+
+| id: int | tag: string | data: JSON | source: int | target: int |
+|---------|-------------|------------|-------------|-------------|
+| 1       | directed_by | {}         | 3           | 1           |
+| 2       | acted_in    | {}         | 2           | 3           |
+
+The above edge shows following relations:
+- `#movie`(3) is `directed by` `#person`(1) 
+- `#person`(1) acted in `#movie`(3) 
+
+### Tag
+What is tag in above structures? A tag is similar to table in SQL or collection in document-based databases. 
+
 ## Query Language
 The query language is heavily inspired by Cypher ([query language of Neo4j](https://neo4j.com/docs/cypher-cheat-sheet/5/auradb-enterprise/)), you can think of it as a mix of Lisp and SQL and Neo4j. 
 
@@ -46,59 +76,190 @@ The query language is heavily inspired by Cypher ([query language of Neo4j](http
 
 #### Nesting and passing parameters
 Nesting can be done in 2 ways:
-  1. going next line with indentation
-  2. 
+
+##### 1. going next line with indentation
+```sql
+AND
+  a
+  2
+```
+
+##### 2. writing in sequence 
+```sql
+AND a 2
+```
+
+**note**: the latter is used for simple expressions/statements. Most of the times you should go with indentations. 
 
 #### comment
-one line string that starts with `--`
+One line string that starts with `--`
+```sql
+-- this is comment 🐣
+```
 
-#### Ident Def
-##### Def Node 
-`#`
+#### Defining identifier
+##### Node 
+pattern:
+to define a node with tag `tag` and alias of `alias` with optional condition, you should write:
+```sql
+#tag alias
+  ...
+```
 
-##### Def Edge 
-`@`
+##### Edge 
+Same as the way you define a node, the only difference is that you put `@` instead of `#`. 
 
 #### Alias
-`AS`
+You may define alias for repeative expressions or readability.
+```sql
+AS
+  ident1
+  expr1
 
-#### With expression
+  ident2
+  expr2
+
+  ...
+```
+
+e.g.
+```sql
+AS 
+  age
+  - 2024 p.birth.year 
+```
 
 #### USE, TEMPLATE
+```sql
+USE      template_name
+-- or 
+TEMPLATE template_name
+```
+
+#### PARAMS, PARAMETERS
+```sql
+PARAMS      p1 p2 ...
+-- or
+PARAMETERS  p1 p2 ...
+``` 
 
 #### ASK, MATCH, FROM
+```sql
+ASK node
+-- or
+ASK
+  relation_1
+  relation_2
+  ...
+```
 
 #### TAKE, SELECT, RETURN
-
-##### PARAMS, PARAMETERS
+```sql
+TAKE expr
+-- or
+TAKE
+  expr
+```
 
 #### Field access 
-`.`
+```sql
+.field
+.field.subfield
+doc.field
+doc.field.subfield
+```
 
 #### Infix
+```sql
+OPERATOR left_hand_side right_hand_side
+-- or
+OPERATOR
+  left_hand_side
+  right_hand_side
+```
 
 #### Prefix
+```sql
+OPERATOR right_hand_side
+-- or
+OPERATOR
+  right_hand_side
+```
 
 #### Function Call 
-`()`
+```sql
+() FUNCTION arg1 arg2 ...
+-- or
+() 
+  FUNCTION 
+  arg1 
+  arg2 
+  ...
+```
 
 ##### Special functions
-
-- `>>` : 
-- `[]` : 
-- `[].`: 
-- `{}` : 
-- `{}.`:
+here's are sugar for some functions with their equivalent SQLite function name.
+- `>>` : `json`
+- `{}` : `json_object`
+- `{}.`: `json_group_object`
+- `[]` : `json_array`
+- `[].`: `json_group_array`
 
 #### GROUP, GROUPE_BY
-#### HAVING
-#### SORT, SORT_BY
-#### ORDER, ORDER_BY
-#### LIMIT
-#### OFFSET
+same as `GROUP BY` in SQL.
 
-#### CASE
+```sql
+GROUP ident
+-- or
+GROUP_BY ident
+```
+
+#### HAVING
+same as `HAVING` in SQL.
+
+```sql
+HAVING cond
+-- or 
+HAVING
+  cond
+```
+
+#### ORDER, ORDER_BY
+same as `ORDER BY` in SQL but only idents.
+```sql
+ORDER     ident_1 ident_2 ... 
+-- or
+ORDER_BY  ident_1 ident_2 ...
+```
+
+#### SORT, SORT_BY
+corresponding direction `ASC`(ascending) or `DESC`(descending) for each ident that is in `ORDER` clause.
+```sql
+SORT     dir_for_ident_1 dir_for_ident_2 ... 
+-- or
+SORT_BY 
+  dir_for_ident_1 
+  dir_for_ident_2 
+  ... 
+```
+
+#### LIMIT
+same as `LIMIT` in SQL.
+```sql
+LIMIT integer
+```
+
+#### OFFSET
+same as `OFFSET` in SQL.
+```sql
+OFFSET integer
+```
+
+#### CASE, WHEN, ELSE
+same as `CASE`` in SQL.
+
 #### IF
+same as `IFF` in SQL.
 
 #### Other
 - **prefix operators**: 
@@ -115,7 +276,7 @@ one line string that starts with `--`
 
 - **int**: `321`
 - **float**: `321`
-- **string**: `"salam"`
+- **string**: `"string"`
 - **variable**: `|varname|`
 - **ident**: `random_ident`
 
@@ -123,20 +284,124 @@ one line string that starts with `--`
 ### Semantic
 
 #### Context
+A context object is used to resolve variables in SpQL queries.
+
+#### Query Strategy File
+a file defining query patterns.
+
+```toml
+[[strategies]]
+key        = "single-edge-node-head"
+parameters = "a b c"
+pattern    = "^a>-c->b"
+selectable = "a b c"
+sql        = '''
+  SELECT 
+    |select_fields|
+  FROM
+    nodes a
+  INNER JOIN 
+    edges c,
+    nodes b
+  ON
+    |check_conds c|     AND
+    |check_rels c a b|
+  WHERE 
+    |check_conds a| AND
+    |check_conds b| 
+
+  |group_statement|
+  |having_statement|
+  |order_statement|
+  |limit_statement|
+  |offset_statement|
+'''
+```
 
 #### Matching by topology
 
-##### Query Strategy File
+##### query for single node
+returns all of the nodes with tag `person`
+```sql
+#person p
+ASK     p
+RETURN  p
+```
+
+##### qeury for relation
+###### syntax
+```sql
+a>-x->b
+a<-x-<b
+```
+
+```sql
+a<-x-<b<-y-<c
+-- is equivalent to
+a<-x-<b
+b<-y-<c
+```
+
+###### Usage
+```sql
+#movie    m
+@acted_in a
+#person   p
+  ==
+    .name
+    "Davood Mir-Bagheri"
+
+ASK 
+  p>-+a->m
+
+RETURN 
+  {}
+    "person"
+    p
+
+    "movies"
+    [].
+      m
+```
 
 #### Using template
+```sql
+#person    p
+#movie     m
+#acted_in  a
 
-##### Query Strategy File
+USE    single-edge-node-head
+PARAMS p m a
+```
 
 #### Defining Object Model
 ##### Guards
+if you define guard for your database, you will get error when the object model does not match with it on update or delete.
+
+```sql
+~Sex
+  "male"
+  "female"
+
+#movie   m
+  .title     string
+  .published unixtime
+
+#person  p
+  .name  -- nested
+    .first string
+    .last  string
+  
+  .nicknames  string[] -- array
+
+  .birth     unixtime
+  .sex       Sex
+
+  .has_diploma? boolean -- optional  
+```
 
 ### Examples
-more examples in `...``
+more examples in `tests/defs`.
 
 ## What I Found along the way
 ### links
@@ -144,7 +409,6 @@ more examples in `...``
 - https://www.sqlitetutorial.net/sqlite-index/sqlite-drop-index/
 - https://database.guide/list-indexes-in-sqlite-database/
 - https://stackoverflow.com/questions/12526194/mysql-inner-join-select-only-one-row-from-second-table
-- https://neo4j.com/docs/cypher-manual/current/functions/aggregating/
 - https://sqlite.org/json1.html
 - https://github.com/Nhogs/popoto
 
@@ -166,4 +430,4 @@ more examples in `...``
 ## Footnotes
 > I don't have brain to write more SQLs anymore -- *me*
 
-> Friends don't let friends use SQL -- *MongoDB ads*
+> Friends don't let friends write SQL -- *MongoDB ads*

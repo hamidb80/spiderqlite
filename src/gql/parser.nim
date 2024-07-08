@@ -496,7 +496,7 @@ func parseGql(tokens: seq[Token]): GqlNode =
           # "BETWEEN",
           "LIKE":                 infixNode  t.sval
    
-        of "$", "NOT":                       prefixNode t.sval
+        of "$", "NOT":            prefixNode t.sval
         
         else:
           # idents with dot: movie.id
