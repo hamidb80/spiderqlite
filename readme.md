@@ -40,10 +40,14 @@ server: ServerConfig(
 
 The above code says it first looks at if there is any CLI parameter with key of `--host`, if not, look for `SPQL_HOST` environment variable, if can't find it, then look at `server.host` in config file. If still can't find the value, it throws error, saying the config value is missing.
 
-## Concepts
-In graph theory there are 2 types of entities: nodes and edges.
+### Integrations
+#### Python Driver :: SpqlClient
+... 
 
-### Nodes
+## Concepts
+In graph theory, there are 2 types of entities: nodes and edges.
+
+### Node
 A node is something that holds data. 
 Here's the internal structure of a node:
 
@@ -53,8 +57,9 @@ Here's the internal structure of a node:
 | 2         | person        | {"name": "Mostafa Zamani"} |
 | 3         | movie         | {"title": "Prophet Joseph"} |
 
-### Edges
-An edge is somehting that relates 2 nodes to each other and may contain data.   
+### Edge
+An edge is somehting that relates source node to the target node. 
+Tt may contain data.   
 Here's the internal structure of an edge:
 
 | id: int | tag: string | data: JSON | source: int | target: int |
@@ -63,14 +68,14 @@ Here's the internal structure of an edge:
 | 2       | acted_in    | {}         | 2           | 3           |
 
 The above edge shows following relations:
-- `#movie`(3) is `directed by` `#person`(1) 
-- `#person`(1) acted in `#movie`(3) 
+- ndoe 3 is `directed by` node 1 
+- node 2 acted in node 3 
 
 ### Tag
-What is tag in above structures? A tag is similar to table in SQL or collection in document-based databases. 
+A tag is similar to ***table name*** in SQL or ***collection*** in document-based databases. 
 
 ## Query Language
-The query language is heavily inspired by Cypher ([query language of Neo4j](https://neo4j.com/docs/cypher-cheat-sheet/5/auradb-enterprise/)), you can think of it as a mix of Lisp and SQL and Neo4j. 
+The query language is heavily inspired by Cypher ([query language of Neo4j](https://neo4j.com/docs/cypher-cheat-sheet/5/auradb-enterprise/)), you can think of it as a mix of Lisp and SQL and Cypher. 
 
 ### Syntax
 
@@ -147,11 +152,27 @@ PARAMETERS  p1 p2 ...
 ```sql
 ASK node
 -- or
+ASK edge
+-- or
 ASK
   relation_1
   relation_2
   ...
 ```
+
+##### relation
+```sql
+a>-x->b
+a<-x-<b
+```
+
+```sql
+a<-x-<b<-y-<c
+-- is equivalent to
+a<-x-<b
+b<-y-<c
+```
+
 
 #### TAKE, SELECT, RETURN
 ```sql
@@ -329,20 +350,6 @@ RETURN  p
 ```
 
 ##### qeury for relation
-###### syntax
-```sql
-a>-x->b
-a<-x-<b
-```
-
-```sql
-a<-x-<b<-y-<c
--- is equivalent to
-a<-x-<b
-b<-y-<c
-```
-
-###### Usage
 ```sql
 #movie    m
 @acted_in a
@@ -402,10 +409,6 @@ if you define guard for your database, you will get error when the object model 
 
 ### Examples
 more examples in `tests/defs`.
-
-## Integrations
-### Python Driver :: SpqlClient
-... 
 
 ## What I Found along the way
 ### links
