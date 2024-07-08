@@ -434,4 +434,4 @@ more examples in `tests/defs`.
 ## Footnotes
 > I don't have brain to write more SQLs anymore -- *me*
 
-> Friends don't let friends write SQL -- *MongoDB ads*
+> Friends don't let friends write SQL -- *MongoDB ads*, [WTF](https://www.linkedin.com/pulse/friends-dont-let-use-mongodb-constantin-a-alexander)
