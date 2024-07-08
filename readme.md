@@ -49,14 +49,20 @@ Nesting can be done in 2 ways:
   1. going next line with indentation
   2. 
 
+#### comment
+one line string that starts with `--`
+
 #### Ident Def
+##### Def Node 
+`#`
 
-### With expression
-
-### 
+##### Def Edge 
+`@`
 
 #### Alias
 `AS`
+
+#### With expression
 
 #### USE, TEMPLATE
 
@@ -65,12 +71,6 @@ Nesting can be done in 2 ways:
 #### TAKE, SELECT, RETURN
 
 ##### PARAMS, PARAMETERS
-
-##### Def Node 
-`#`
-
-##### Def Edge 
-`@`
 
 #### Field access 
 `.`
@@ -108,11 +108,10 @@ Nesting can be done in 2 ways:
 - **infix  operators**: 
   - `-`, `+`, `*`, `/`: common math operations
   - `%`: modulo
-  - `<`, `<=`, `==`, `!=`, `=>`, `>`
+  - `<`, `<=`, `==`, `!=`, `=>`, `>`, `IS`, `ISNOT`: comparison operators
   - `||`: string concatination
   - `LIKE`: string match
-  - `AND`, `OR`, `NAND`, `NOR`, `XOR`, `IS`, `ISNOT`: 
-  - `BETWEEN`, `IN`, `NOTIN`:  
+  - `AND`, `OR`, `NAND`, `NOR`, `XOR`: Logical operators
 
 - **int**: `321`
 - **float**: `321`
@@ -130,6 +129,8 @@ Nesting can be done in 2 ways:
 ##### Query Strategy File
 
 #### Using template
+
+##### Query Strategy File
 
 #### Defining Object Model
 ##### Guards

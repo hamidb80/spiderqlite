@@ -492,8 +492,9 @@ func parseGql(tokens: seq[Token]): GqlNode =
           "OR",  "NOR",
           "XOR", 
           "IS", "ISNOT",
-          "IN", "NOTIN",
-          "LIKE", "BETWEEN":                 infixNode  t.sval
+          # "IN", "NOTIN", 
+          # "BETWEEN",
+          "LIKE":                 infixNode  t.sval
    
         of "$", "NOT":                       prefixNode t.sval
         
