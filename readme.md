@@ -81,35 +81,83 @@ The query language is heavily inspired by Cypher ([query language of Neo4j](http
 
 ### Syntax
 
-#### Nesting and passing parameters
-Nesting can be done in 2 ways:
-
-##### 1. going next line with indentation
-```sql
-AND
-  a
-  2
-```
-
-##### 2. writing in sequence 
-```sql
-AND a 2
-```
-
-**note**: the latter is used for simple expressions/statements. Most of the times you should go with indentations. 
-
 #### comment
 One line string that starts with `--`
 ```sql
 -- this is comment 🐣
 ```
 
+#### numbers
+##### int
+`321`
+
+##### float
+`3.1412`
+
+#### string
+`"string"`
+
+#### variable
+`|varname|`
+
+#### ident
+anything that starts with 
+
+#### Nesting and passing parameters
+Nesting can be done in 2 ways:
+
+##### 1. indentation
+```sql
+AND
+  a
+  2
+```
+
+##### 2. in sequence 
+```sql
+AND a 2
+```
+
+**note**: the latter is used for simple expressions/statements. Most of the times you should go with indentations. 
+
+
+#### Prefix
+pattern
+```sql
+OPERATOR right_hand_side
+-- or
+OPERATOR
+  right_hand_side
+```
+
+operators:
+- `NOT`: negates
+- `$`:   converts to string
+
+
+#### Infix 
+usage:
+```sql
+OPERATOR left_hand_side right_hand_side
+-- or
+OPERATOR
+  left_hand_side
+  right_hand_side
+```
+
+operators:
+- `-`, `+`, `*`, `/`: common math operations
+- `%`: modulo
+- `<`, `<=`, `==`, `!=`, `=>`, `>`, `IS`, `ISNOT`: comparison operators
+- `||`: string concatination
+- `LIKE`: string match
+- `AND`, `OR`, `NAND`, `NOR`, `XOR`: Logical operators
+
+
 #### Defining identifier
 ##### Node 
-pattern:
-to define a node with tag `tag` and alias of `alias` with optional condition, you should write:
 ```sql
-#tag alias
+#tag nickname
   ...
 ```
 
@@ -135,6 +183,36 @@ AS
   age
   - 2024 p.birth.year 
 ```
+
+you can use this alias later in your query, like:
+```sql
+RETURN 
+  {}
+    "is_adult"
+    >=
+      age
+      18
+```
+
+#### Function Call 
+```sql
+() FUNCTION arg1 arg2 ...
+-- or
+() 
+  FUNCTION 
+  arg1 
+  arg2 
+  ...
+```
+
+##### Special functions
+here's are sugar for some functions with their equivalent SQLite function name.
+- `>>` : `json`
+- `{}` : `json_object`
+- `{}.`: `json_group_object`
+- `[]` : `json_array`
+- `[].`: `json_group_array`
+
 
 #### USE, TEMPLATE
 ```sql
@@ -185,48 +263,26 @@ TAKE
 ```
 
 #### Field access 
+##### standard
 ```sql
 .field
 .field.subfield
-doc.field
-doc.field.subfield
 ```
 
-#### Infix
+##### sugar
 ```sql
-OPERATOR left_hand_side right_hand_side
--- or
-OPERATOR
-  left_hand_side
-  right_hand_side
+name.field
+name.field.subfield
 ```
 
-#### Prefix
+converts to:
+
 ```sql
-OPERATOR right_hand_side
--- or
-OPERATOR
-  right_hand_side
+name
+  .field
+name
+  .field.subfield
 ```
-
-#### Function Call 
-```sql
-() FUNCTION arg1 arg2 ...
--- or
-() 
-  FUNCTION 
-  arg1 
-  arg2 
-  ...
-```
-
-##### Special functions
-here's are sugar for some functions with their equivalent SQLite function name.
-- `>>` : `json`
-- `{}` : `json_object`
-- `{}.`: `json_group_object`
-- `[]` : `json_array`
-- `[].`: `json_group_array`
 
 #### GROUP, GROUPE_BY
 same as `GROUP BY` in SQL.
@@ -279,30 +335,31 @@ OFFSET integer
 ```
 
 #### CASE, WHEN, ELSE
-same as `CASE`` in SQL.
+same as `CASE` in SQL.
+
+```sql
+CASE
+  WHEN 
+    >= amount 10000 
+    "Large Order"
+  WHEN 
+    < amount 10000
+    "Small Order"
+  ELSE
+    "N/A"
+```
 
 #### IF
-same as `IFF` in SQL.
-
-#### Other
-- **prefix operators**: 
-  - `NOT`: negates
-  - `$`:   converts to string
-
-- **infix  operators**: 
-  - `-`, `+`, `*`, `/`: common math operations
-  - `%`: modulo
-  - `<`, `<=`, `==`, `!=`, `=>`, `>`, `IS`, `ISNOT`: comparison operators
-  - `||`: string concatination
-  - `LIKE`: string match
-  - `AND`, `OR`, `NAND`, `NOR`, `XOR`: Logical operators
-
-- **int**: `321`
-- **float**: `321`
-- **string**: `"string"`
-- **variable**: `|varname|`
-- **ident**: `random_ident`
-
+same as [`IFF` in SQL](
+https://www.sqlitetutorial.net/sqlite-functions/sqlite-iif/).
+```sql
+IF cond true_expr false_expr
+-- or
+IF 
+  cond 
+  true_expr 
+  false_expr
+```
 
 ### Semantic
 
