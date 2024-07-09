@@ -89,19 +89,23 @@ One line string that starts with `--`
 
 #### numbers
 ##### int
+only decimal integers are supported for now.
 `321`
 
 ##### float
+normal floating point number:
 `3.1412`
 
 #### string
+normal string literal:
 `"string"`
 
 #### variable
+An ident between 2 `|`s:  
 `|varname|`
 
 #### ident
-anything that starts with 
+anything that starts with letters, or cannot be matched with other rules :D.
 
 #### Nesting and passing parameters
 Nesting can be done in 2 ways:
