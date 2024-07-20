@@ -22,6 +22,7 @@ requires "mummy"          # https://github.com/guzba/mummy
 requires "waterpark"      # https://github.com/guzba/waterpark
 requires "parsetoml"      # https://github.com/NimParsers/parsetoml
 requires "questionable"   # https://github.com/codex-storage/questionable
+requires "cookiejar"      # https://github.com/planety/cookiejar
 
 requires "pretty"         # https://github.com/treeform/pretty
 

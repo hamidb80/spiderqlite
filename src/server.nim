@@ -1,9 +1,10 @@
-import std/[strutils, strformat, tables, json, monotimes, os, times, with, sugar]
+import std/[strutils, strformat, tables, json, monotimes, os, times, with, sugar, uri]
 
 import db_connector/db_sqlite
 import mummy, mummy/routers
 import webby
 import parsetoml
+import cookiejar
 # TODO use waterpark
 
 import gql/[parser, core, helper]
@@ -43,6 +44,13 @@ func jsonError(msg, stackTrace: string): string =
   "\"stack-trace\": " &         stackTrace             & 
   "}"
 
+func decodedQuery(body: string): Table[string, string] = 
+  for (key, val) in decodeQuery body:
+    result[key] = val
+
+
+func isPost(req: Request): bool = 
+  req.httpmethod == "POST"
 
 func jsonToSql(j: JsonNode): string = 
   case j.kind
@@ -300,10 +308,30 @@ proc initApp(config: AppConfig): App =
       req.respond 200, emptyHttpHeaders(), landingPageHtml()
 
     proc signupPage(req: Request) =
-      req.respond 200, emptyHttpHeaders(), signupPageHtml()
+      req.respond 200, emptyHttpHeaders(), signinPageHtml()
+
+
+    const authKey = "auth"
+
+    proc signOutCookieSet: webby.HttpHeaders =
+      result["Set-Cookie"] = $initCookie(authKey, "", path = "/")
+
+    proc signOutHandler(req: Request) =
+      req.respond 200, signOutCookieSet(), ""
+
+
+    # proc signin
+
 
     proc signinPage(req: Request) =
-      req.respond 200, emptyHttpHeaders(), signupPageHtml()
+      if isPost req:
+        let form  = decodedQuery req.body
+        echo form
+        # form["username"]
+        # form["password"]
+
+      else:
+        req.respond 200, emptyHttpHeaders(), signinPageHtml()
 
 
     proc apiHomePage(req: Request) =
@@ -323,9 +351,15 @@ proc initApp(config: AppConfig): App =
       get    "/api/",                   apiHomePage
       get    "/static/**",                staticFilesServ
 
-      get    "/api/sign-in/",            signinApi
+      post   "/api/sign-in/",            signinApi
+      
       get    "/sign-in/",                signinPage
+      post   "/sign-in/",                signinPage
+
       get    "/sign-up/",                signupPage
+      post   "/sign-up/",                signupPage
+      
+      # get    "/docs/",                signupPage
       
       # get    "/users/",                 listUsersPage
       # get    "/user/",                  userInfoPage

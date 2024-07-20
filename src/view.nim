@@ -13,20 +13,15 @@ func navPartial: string =
     <ul class="nav">
     
       <li class="nav-item">
-        <a class="nav-link active" href="">Home</a>
+        <a class="nav-link active" href="/">Home</a>
       </li>
     
       <li class="nav-item">
-        <a class="nav-link" href=" ">Documentations</a>
+        <a class="nav-link" href="/docs/">Docs</a>
       </li>
-      
+          
       <li class="nav-item">
-        <a class="nav-link" href=" ">API</a>
-      </li>
-    
-    
-      <li class="nav-item">
-        <a class="nav-link" href=" ">sign-in</a>
+        <a class="nav-link" href="/sign-in/">sign-in</a>
       </li>
     
     </ul>
@@ -64,7 +59,7 @@ func wrapHtml(title, inner: string): string =
 
 
   </head>
-  <body>
+  <body class="bg-light">
 
     <main>
       {navPartial()}
@@ -349,9 +344,18 @@ func landingPageHtml*: string =
             </code></pre>
 
         </div>
-
       </div>
     </div>
+
+    
+    <div class="bg-white">
+      <div class="container p-4">
+        <h3>
+          Frequently Asked Questions :: FAQ
+        </h3>
+      </div>
+    </div>
+
 
     <footer class="footer bg-dark text-white">
       <div class="container py-4 px-2">
@@ -380,9 +384,9 @@ func landingPageHtml*: string =
     </div>
     """
 
-func signupPageHtml*(): string =
+func signinPageHtml*(): string =
   wrapHtml "sign up", """
-  <div class="card mt-4 mx-auto shadow-sm" style="max-width: 600px;">
+    <div class="card mt-4 mx-auto shadow-sm" style="max-width: 600px;">
       <div class="card-header">
         <h3>
           <span>Sign Up</span>
@@ -390,13 +394,13 @@ func signupPageHtml*(): string =
         </h3>
       </div>
       <div class="card-body">
-        <form action="">
+        <form action="." up-submit method="POST>
           <fieldset class="my-2">
             <label for="">
               <i class="bi bi-at"></i>
               <i>username</i>
             </label>
-            <input type="text" class="form-control bg-light">
+            <input type="text" name="username" class="form-control bg-light">
           </fieldset>
 
           <fieldset class="my-2">
@@ -404,7 +408,7 @@ func signupPageHtml*(): string =
               <i class="bi bi-asterisk"></i>
               <i>password</i>
             </label>
-            <input type="password" class="form-control bg-light">
+            <input type="password" name="password" class="form-control bg-light">
           </fieldset>
 
           <center>
