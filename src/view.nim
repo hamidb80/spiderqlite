@@ -5,7 +5,7 @@ import std/[strformat]
 func navPartial: string =
   """
   <nav class="navbar navbar-expand-lg bg-primary px-3 py-1" data-bs-theme="dark">
-    <a class="text-white mb-1 text-decoration-none" href="/">
+    <a class="text-white mb-1 text-decoration-none" href="/" up-follow up-transition="cross-fade">
       <i class="h3  ms-1">
         Sp<sub>ider</sub>QL
       </i>
@@ -13,15 +13,17 @@ func navPartial: string =
     <ul class="nav">
     
       <li class="nav-item">
-        <a class="nav-link active" href="/">Home</a>
-      </li>
-    
-      <li class="nav-item">
-        <a class="nav-link" href="/docs/">Docs</a>
+        <a class="nav-link" href="/docs/" up-follow up-transition="cross-fade">
+          Docs
+          <i class="bi bi-journal-text"></i>
+        </a>
       </li>
           
       <li class="nav-item">
-        <a class="nav-link" href="/sign-in/">sign-in</a>
+        <a class="nav-link" href="/sign-in/" up-follow up-transition="cross-fade">
+          sign-in
+          <i class="bi bi-box-arrow-in-right"></i>
+        </a>
       </li>
     
     </ul>
@@ -119,7 +121,7 @@ func landingPageHtml*: string =
                 <div class="h4">Schema Less</div>
                 <p class="text-muted">
                   Store your data as simple JSON. 
-                  Here's <a href="https://www.delphitools.info/2021/06/17/sqlite-as-a-no-sql-database/">how</a>.
+                  Here's <a target="_blank" href="https://www.delphitools.info/2021/06/17/sqlite-as-a-no-sql-database/">how</a>.
                 </p>
               </div>
             </div>
@@ -192,7 +194,7 @@ func landingPageHtml*: string =
                 <div class="h4">Worry About Performance?</div>
                 <p class="text-muted">
                   it is based on SQLite which has years of development and optimization. 
-                  read <a href="https://antonz.org/sqlite-is-not-a-toy-database/">SQLite is not a toy database</a>.
+                  read <a target="_blank" href="https://antonz.org/sqlite-is-not-a-toy-database/">SQLite is not a toy database</a>.
                 </p>
               </div>
             </div>
@@ -256,7 +258,7 @@ func landingPageHtml*: string =
               <div class="description">
                 <div class="h4">Query Language</div>
                 <p class="text-muted">
-                  it's intuitive as hell. with respect to <a href="https://antonz.org/fancy-ql/">I don't need your query language</a>.
+                  it's intuitive as hell. with respect to <a target="_blank" href="https://antonz.org/fancy-ql/">I don't need your query language</a>.
                 </p>
               </div>
             </div>
@@ -270,7 +272,7 @@ func landingPageHtml*: string =
                 <div class="h4">Easily Configurable</div>
                 <p class="text-muted">
                   you can config it using enviroment variables, CLI flags or simple 
-                  <a href="https://toml.io/">.toml</a>
+                  <a target="_blank" href="https://toml.io/">.toml</a>
                   file. 
                   you can tweak it the way you want.
                 </p>
@@ -389,7 +391,7 @@ func signinPageHtml*(): string =
     <div class="card mt-4 mx-auto shadow-sm" style="max-width: 600px;">
       <div class="card-header">
         <h3>
-          <span>Sign Up</span>
+          <span>Sign In</span>
           <i class="bi bi-box-arrow-in-right"></i>
         </h3>
       </div>
@@ -413,7 +415,7 @@ func signinPageHtml*(): string =
 
           <center>
             <button class="btn btn-primary mt-4">
-              <span class="mx-2">Login</span>
+              <span class="mx-2">Sign In</span>
               <i class="bi bi-box-arrow-in-right"></i>
             </button>
           </center>

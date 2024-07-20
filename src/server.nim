@@ -316,9 +316,8 @@ proc initApp(config: AppConfig): App =
     proc signOutCookieSet: webby.HttpHeaders =
       result["Set-Cookie"] = $initCookie(authKey, "", path = "/")
 
-    proc signOutHandler(req: Request) =
-      req.respond 200, signOutCookieSet(), ""
-
+    proc signoutPage(req: Request) =
+      req.respond 200, signOutCookieSet(), "redirecting to ... XXX"
 
     # proc signin
 
@@ -352,12 +351,15 @@ proc initApp(config: AppConfig): App =
       get    "/static/**",                staticFilesServ
 
       post   "/api/sign-in/",            signinApi
-      
+
+      post   "/sign-out/",               signoutPage
+
       get    "/sign-in/",                signinPage
       post   "/sign-in/",                signinPage
 
       get    "/sign-up/",                signupPage
       post   "/sign-up/",                signupPage
+      
       
       # get    "/docs/",                signupPage
       
