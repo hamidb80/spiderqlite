@@ -456,18 +456,15 @@ func parseGql(tokens: seq[Token]): GqlNode =
     of lkIdent, lkOperator:
       newNode:
         case t.sval
-        of "ASK", "MATCH", "FROM":           gNode gkAsk
+        of "ASK",  "MATCH",  "FROM":         gNode gkAsk
         of "TAKE", "SELECT", "RETURN":       gNode gkTake
 
-        of "PARAM", "PARAMS",  
-          "PARAMETER", "PARAMETERS":         gNode gkParams
-        
+        of "PARAMS", "PARAMETERS":           gNode gkParams
         of "USE", "TEMPLATE":                gNode gkUse
 
         of "GROUP", "GROUP_BY":              gNode gkGroupBy
         of "ORDER", "ORDER_BY":              gNode gkOrderBy
-
-        of "SORT":                           gNode gkSort
+        of "SORT", "SORT_BY":                gNode gkSort
         of "HAVING":                         gNode gkHaving
         of "LIMIT":                          gNode gkLimit
         of "OFFSET":                         gNode gkOffset
@@ -478,7 +475,6 @@ func parseGql(tokens: seq[Token]): GqlNode =
         of "ELSE":                           gNode gkElse
 
         of "()":                             gNode gkCall
-        # special calls
         of ">>":                             parseCallToJson()
         of "{}":                             parseCallToJsonObject()
         of "{}.":                            parseCallToJsonObjectGroup()
@@ -487,18 +483,20 @@ func parseGql(tokens: seq[Token]): GqlNode =
 
         of "||", "%",
           "==", "!=",
-          "<", "<=",
+          "<",  "<=",
           ">=", ">",
           "+" , "-",
-          "*", "/",
+          "*",  "/",
+          
           "AND", "NAND",
-          "OR", "NOR",
-          "XOR", "IS", "ISNOT",
-          "NOTIN", "IN",
-          "LIKE", 
-          "BETWEEN":                         infixNode  t.sval
+          "OR",  "NOR",
+          "XOR", 
+          "IS", "ISNOT",
+          # "IN", "NOTIN", 
+          # "BETWEEN",
+          "LIKE":                 infixNode  t.sval
    
-        of "$", "NOT":                       prefixNode t.sval
+        of "$", "NOT":            prefixNode t.sval
         
         else:
           # idents with dot: movie.id

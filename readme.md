@@ -1,44 +1,489 @@
-# S<sub>pider</sub>QL
+> Truth saves you even though you're afraid of it, and mendacity destroys you even though you don't see any danger -- Imam Ali
 
-S<sub>pider</sub>QL or *SpQL* for short, is:
-1. query abstraction library which aims to make SQL as frictionless as possible
-2. simple SQLite manager server
+# SpQL 🕷
+*SpQL* is graph abstraction over SQL. 
+Making SQL frictionless by removing the pain of schema changes and bringing the joy of graph theory.
 
 <p align="center">
   <img src="./assets/logo-cc.svg" alt="spiderQlite Logo" width="z00px">
 </p>
 
-## Motivation
-The author found the SQL tables too rigid, and felt something is missing in document-based databases like MongoDB and CouchDB which makes them unconventional to use. At the same time, graph databases like Neo4j and ArangoDB made more sense to him. Because his projects are mostly small, using mentioned databases is not worth it since they require lots of RAM and computational power.
+## Initial Motivation
+The author found the SQL tables too rigid, and felt something is missing in document-based databases like MongoDB and CouchDB which makes them unconventional to use (not mentioning their wierd query language). At that time, graph databases like Neo4j and ArangoDB made more sense to him. Because his projects were mostly small size, using mentioned databases is not worth it since they require lots of RAM and computational power.
 
-At this point, he dreamt of something that is compatible to SQL as it can be put upon SQLite; and SpQL is found!
+He dreamed of something that is compatible to SQL as it can be used upon SQLite.
 
 ## Terminology
-Spider is well-known instinct which walks on his network (🕸). The network is metaphore for *graph*. 
+Spider (🕷) is well-known instinct which walks on his network (🕸). The network is metaphore for *graph*. Since its actions/queries is converted to SQL, its name may be mix of these 2 words; Hence Sp<sub>ider</sub>QL or SpQL.
 
-Since this library works with SQL, there must be SQL in the name. 
 
 ## Usage
 ### as Library
-Just converting `spql` to `sql` format.
+Just converts `spql` to `sql` language.
 
 ### as Server
 It aims to bring best of SQLite, Neo4j, CouchDB together.
 
+#### Front end [TODO]
+
 #### Config
+To use as server, it is mandatory to provide a config file which is written in [TOML](https://toml.io/) format. You can you the one that use for development or you write your own. The values in config file can be overwritten by environment variables or flags which are passed as command line arguemnts.
+
+You can look `src/config.nim` to see full list of available configs, but for introduction let's take a look at few of them.
+
+```nim
+server: ServerConfig(
+  host:  v(ctx, "--host", "SPQL_HOST", "server.host", Host),
+  port:  v(ctx, "--port", "SPQL_PORT", "server.port", Port),
+)
+```
+
+The above code says it first looks at if there is any CLI parameter with key of `--host`, if not, look for `SPQL_HOST` environment variable, if can't find it, then look at `server.host` in config file. If still can't find the value, it throws error, saying the config value is missing.
+
+### Integrations
+#### Python Driver :: SpqlClient
+... 
+
+## Concepts
+### Entities
+In graph theory, there are 2 types of entities: nodes and edges.
+
+#### Node
+A node is something that holds data. 
+Here's the internal structure of a node:
+
+| id: `int` | tag: `string` | data: `JSON` |
+|-----------|---------------|--------------|
+| 1         | person        | {"name": "Farajollah Salahshoor"} |
+| 2         | person        | {"name": "Mostafa Zamani"} |
+| 3         | movie         | {"title": "Prophet Joseph"} |
+
+#### Edge
+An edge is somehting that relates source node to the target node. 
+Tt may contain data.   
+Here's the internal structure of an edge:
+
+| id: int | tag: string | data: JSON | source: int | target: int |
+|---------|-------------|------------|-------------|-------------|
+| 1       | directed_by | {}         | 3           | 1           |
+| 2       | acted_in    | {}         | 2           | 3           |
+
+The above edge shows following relations:
+- ndoe 3 is `directed by` node 1 
+- node 2 acted in node 3 
+
+### Tag
+A tag is similar to ***table name*** in SQL or ***collection*** in document-based databases.
+It is indexed and efficient to query about.
 
 ## Query Language
+The query language is heavily inspired by Cypher ([query language of Neo4j](https://neo4j.com/docs/cypher-cheat-sheet/5/auradb-enterprise/)), you can think of it as a mix of Lisp and SQL and Cypher. 
+
+### Syntax
+
+#### comment
+One line string that starts with `--`
+```sql
+-- this is comment 🐣
+```
+
+#### numbers
+##### int
+only decimal integers are supported for now.
+`321`
+
+##### float
+normal floating point number:
+`3.1412`
+
+#### string
+normal string literal:
+`"string"`
+
+#### variable
+An ident between 2 `|`s:  
+`|varname|`
+
+#### ident
+anything that starts with letters, or cannot be matched with other rules :D.
+
+#### Nesting and passing parameters
+Nesting can be done in 2 ways:
+
+##### 1. indentation
+```sql
+AND
+  a
+  2
+```
+
+##### 2. in sequence 
+```sql
+AND a 2
+```
+
+**note**: the latter is used for simple expressions/statements. Most of the times you should go with indentations. 
+
+
+#### Prefix
+pattern
+```sql
+OPERATOR right_hand_side
+-- or
+OPERATOR
+  right_hand_side
+```
+
+operators:
+- `NOT`: negates
+- `$`:   converts to string
+
+
+#### Infix 
+usage:
+```sql
+OPERATOR left_hand_side right_hand_side
+-- or
+OPERATOR
+  left_hand_side
+  right_hand_side
+```
+
+operators:
+- `-`, `+`, `*`, `/`: common math operations
+- `%`: modulo
+- `<`, `<=`, `==`, `!=`, `=>`, `>`, `IS`, `ISNOT`: comparison operators
+- `||`: string concatination
+- `LIKE`: string match
+- `AND`, `OR`, `NAND`, `NOR`, `XOR`: Logical operators
+
+
+#### Defining identifier
+##### Node 
+```sql
+#tag nickname
+  ...
+```
+
+##### Edge 
+Same as the way you define a node, the only difference is that you put `@` instead of `#`. 
+
+#### Alias
+You may define alias for repeative expressions or readability. you can think of it as `#define` macro in C.
+```sql
+AS
+  ident1
+  expr1
+
+  ident2
+  expr2
+
+  ...
+```
+
+e.g.
+```sql
+AS 
+  age
+  - 2024 p.birth.year 
+```
+
+you can use this alias later in your query, like:
+```sql
+RETURN 
+  {}
+    "is_adult"
+    >=
+      age
+      18
+```
+
+#### Function Call 
+```sql
+() FUNCTION arg1 arg2 ...
+-- or
+() 
+  FUNCTION 
+  arg1 
+  arg2 
+  ...
+```
+
+##### Special functions
+here's are sugar for some functions with their equivalent SQLite function name.
+- `>>` : `json`
+- `{}` : `json_object`
+- `{}.`: `json_group_object`
+- `[]` : `json_array`
+- `[].`: `json_group_array`
+
+
+#### USE, TEMPLATE
+```sql
+USE      template_name
+-- or 
+TEMPLATE template_name
+```
+
+#### PARAMS, PARAMETERS
+```sql
+PARAMS      p1 p2 ...
+-- or
+PARAMETERS  p1 p2 ...
+``` 
+
+#### ASK, MATCH, FROM
+```sql
+ASK node
+-- or
+ASK edge
+-- or
+ASK
+  relation_1
+  relation_2
+  ...
+```
+
+##### relation
+```sql
+a>-x->b
+a<-x-<b
+```
+
+```sql
+a<-x-<b<-y-<c
+-- is equivalent to
+a<-x-<b
+b<-y-<c
+```
+
+
+#### TAKE, SELECT, RETURN
+```sql
+TAKE expr
+-- or
+TAKE
+  expr
+```
+
+#### Field access 
+##### standard
+```sql
+.field
+.field.subfield
+```
+
+##### sugar
+```sql
+name.field
+name.field.subfield
+```
+
+converts to:
+
+```sql
+name
+  .field
+name
+  .field.subfield
+```
+
+#### GROUP, GROUPE_BY
+same as `GROUP BY` in SQL.
+
+```sql
+GROUP ident
+-- or
+GROUP_BY ident
+```
+
+#### HAVING
+same as `HAVING` in SQL.
+
+```sql
+HAVING cond
+-- or 
+HAVING
+  cond
+```
+
+#### ORDER, ORDER_BY
+same as `ORDER BY` in SQL but only idents.
+```sql
+ORDER     ident_1 ident_2 ... 
+-- or
+ORDER_BY  ident_1 ident_2 ...
+```
+
+#### SORT, SORT_BY
+corresponding direction `ASC`(ascending) or `DESC`(descending) for each ident that is in `ORDER` clause.
+```sql
+SORT     dir_for_ident_1 dir_for_ident_2 ... 
+-- or
+SORT_BY 
+  dir_for_ident_1 
+  dir_for_ident_2 
+  ... 
+```
+
+#### LIMIT
+same as `LIMIT` in SQL.
+```sql
+LIMIT integer
+```
+
+#### OFFSET
+same as `OFFSET` in SQL.
+```sql
+OFFSET integer
+```
+
+#### CASE, WHEN, ELSE
+same as `CASE` in SQL.
+
+```sql
+CASE
+  WHEN 
+    >= amount 10000 
+    "Large Order"
+  WHEN 
+    < amount 10000
+    "Small Order"
+  ELSE
+    "N/A"
+```
+
+#### IF
+same as [`IFF` in SQL](
+https://www.sqlitetutorial.net/sqlite-functions/sqlite-iif/).
+```sql
+IF cond true_expr false_expr
+-- or
+IF 
+  cond 
+  true_expr 
+  false_expr
+```
+
+### Semantic
+
+#### Context
+A context object is used to resolve variables in SpQL queries.
+
+#### Query Strategy File
+a file defining query patterns.
+
+```toml
+[[strategies]]
+key        = "single-edge-node-head"
+parameters = "a b c"
+pattern    = "^a>-c->b"
+selectable = "a b c"
+sql        = '''
+  SELECT 
+    |select_fields|
+  FROM
+    nodes a
+  INNER JOIN 
+    edges c,
+    nodes b
+  ON
+    |check_conds c|     AND
+    |check_rels c a b|
+  WHERE 
+    |check_conds a| AND
+    |check_conds b| 
+
+  |group_statement|
+  |having_statement|
+  |order_statement|
+  |limit_statement|
+  |offset_statement|
+'''
+```
+
+#### Matching by topology
+
+##### query for single node
+returns all of the nodes with tag `person`
+```sql
+#person p
+ASK     p
+RETURN  p
+```
+
+##### qeury for relation
+```sql
+#movie    m
+@acted_in a
+#person   p
+  ==
+    .name
+    "Davood Mir-Bagheri"
+
+ASK 
+  p>-+a->m
+
+RETURN 
+  {}
+    "person"
+    p
+
+    "movies"
+    [].
+      m
+```
+
+#### Using template
+```sql
+#person    p
+#movie     m
+#acted_in  a
+
+USE    single-edge-node-head
+PARAMS p m a
+```
+
+#### Defining Object Model
+##### Guards [TODO]
+if you define guard for your database, you will get error when the object model does not match with it on update or delete.
+
+```sql
+~Sex
+  "male"
+  "female"
+
+#movie   m
+  .title     string
+  .published unixtime
+
+#person  p
+  .name  -- nested
+    .first string
+    .last  string
+  
+  .nicknames  string[] -- array
+
+  .birth     unixtime
+  .sex       Sex
+
+  .has_diploma? boolean -- optional  
+```
+
 ### Examples
-see examples in ...
+more examples in `tests/defs`.
 
+## Indexes
+...
 
-## What I Found along the way
+## Other
+Here are some of the things that I found worth mentioning.
+
 ### links
 - https://www.delphitools.info/2021/06/17/sqlite-as-a-no-sql-database/
 - https://www.sqlitetutorial.net/sqlite-index/sqlite-drop-index/
 - https://database.guide/list-indexes-in-sqlite-database/
 - https://stackoverflow.com/questions/12526194/mysql-inner-join-select-only-one-row-from-second-table
-- https://neo4j.com/docs/cypher-manual/current/functions/aggregating/
 - https://sqlite.org/json1.html
 - https://github.com/Nhogs/popoto
 
@@ -56,7 +501,11 @@ see examples in ...
 - https://github.com/siara-cc/sakila_sqlite3/
 - https://antonz.org/sqlean-define/
 
-
 ## credits
 - https://www.svgrepo.com/svg/383453/spider-web
 - https://www.svgrepo.com/svg/471314/database-01
+
+## Footnotes
+> I don't have brain to write more SQLs anymore -- *me*
+
+> Friends don't let friends write SQL -- *MongoDB ads*, [WTF](https://www.linkedin.com/pulse/friends-dont-let-use-mongodb-constantin-a-alexander)
