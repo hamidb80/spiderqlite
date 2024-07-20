@@ -7,6 +7,7 @@ import parsetoml
 # TODO use waterpark
 
 import gql/[parser, core, helper]
+import ./view
 import ./utils/other
 import ./config
 
@@ -17,6 +18,13 @@ type
     config*: AppConfig
     defaultQueryStrategies*: QueryStrategies
 
+
+import std/mimetypes
+
+proc getMimetype(ext: string): string = 
+  # XXX move out for performance
+  var m = newMimetypes()
+  m.getMimetype ext
 
 
 func jsonHeader: HttpHeaders = 
@@ -79,12 +87,6 @@ proc initApp(config: AppConfig): App =
     
 
   unwrap controllers:
-    proc indexPage(req: Request) =
-      req.respond 200, jsonHeader(), "hey! use APIs for now!"
-
-    # proc staticFiles(req: Request) =
-    #   discard
-
     proc askQuery(req: Request) {.gcsafe.} =
       try:
         logBody()
@@ -286,15 +288,48 @@ proc initApp(config: AppConfig): App =
       deleteEntity req, edges
 
 
+    proc staticFilesServ(req: Request) =
+      let
+        fname   = "./assets/" & req.uri.splitPath.tail
+        ext     = fname.splitFile.ext.strip(chars= {'.'}, trailing = false)
+        content = readfile fname
+
+      req.respond 200, toWebby @{"Content-Type": getMimetype ext} , content
+
+    proc indexPage(req: Request) =
+      req.respond 200, emptyHttpHeaders(), landingPageHtml()
+
+    proc signupPage(req: Request) =
+      req.respond 200, emptyHttpHeaders(), signupPageHtml()
+
+    proc signinPage(req: Request) =
+      req.respond 200, emptyHttpHeaders(), signupPageHtml()
+
+
+    proc apiHomePage(req: Request) =
+      req.respond 200, emptyHttpHeaders(), "hey"
+
+    proc signinApi(req: Request) =
+      discard
+
+    # get    "/users/",                 listUsersPage
+    # get    "/user/",                  userInfoPage
+    # get    "/profile/",               profileDispatcher
+
+
   proc initRouter: Router = 
     with result:
       get    "/",                       indexPage
-      # get    "/static/",                staticFiles
+      get    "/api/",                   apiHomePage
+      get    "/static/**",                staticFilesServ
 
-      # get    "/api/login/",             apiDatabasesOfUser
-      # get    "/api/signup/",            apiDatabasesOfUser
-      # get    "/api/users/",             apiDatabasesOfUser
-      # get    "/api/user/",              apiDatabasesOfUser
+      get    "/api/sign-in/",            signinApi
+      get    "/sign-in/",                signinPage
+      get    "/sign-up/",                signupPage
+      
+      # get    "/users/",                 listUsersPage
+      # get    "/user/",                  userInfoPage
+      # get    "/profile/",               profileDispatcher
 
       # post   "/api/database/",            initDB
       # get    "/api/databases/",         

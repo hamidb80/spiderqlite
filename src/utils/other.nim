@@ -175,5 +175,8 @@ template findit*(s, cond): untyped =
 
 
 template unwrap*(name, body): untyped =
+  ## just a wrapper
+  ## 
+  ## unwrap SECTION_NAME: ...
   body
   

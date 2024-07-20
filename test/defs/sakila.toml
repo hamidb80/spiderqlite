@@ -62,7 +62,7 @@ movies_of_people = '''
 
   ORDER no_movies
   SORT  DESC 
-  RETURN  
+  RETURN  w
     {}
       "person"
       p

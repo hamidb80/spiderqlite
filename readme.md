@@ -5,7 +5,7 @@ S<sub>pider</sub>QL or *SpQL* for short, is:
 2. simple SQLite manager server
 
 <p align="center">
-  <img src="./assets/logo.png" alt="spiderQlite Logo" width="300px">
+  <img src="./assets/logo-cc.svg" alt="spiderQlite Logo" width="z00px">
 </p>
 
 ## Motivation
@@ -55,3 +55,8 @@ see examples in ...
 - https://www.sqlitetutorial.net/sqlite-sample-database/
 - https://github.com/siara-cc/sakila_sqlite3/
 - https://antonz.org/sqlean-define/
+
+
+## credits
+- https://www.svgrepo.com/svg/383453/spider-web
+- https://www.svgrepo.com/svg/471314/database-01
