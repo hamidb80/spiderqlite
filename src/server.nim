@@ -1,4 +1,4 @@
-import std/[strutils, strformat, tables, json, monotimes, os, times, with, sugar, uri]
+import std/[strutils, strformat, tables, json, monotimes, os, times, with, sugar, uri, mimetypes]
 
 import db_connector/db_sqlite
 import mummy, mummy/routers
@@ -20,7 +20,6 @@ type
     defaultQueryStrategies*: QueryStrategies
 
 
-import std/mimetypes
 
 proc getMimetype(ext: string): string = 
   # XXX move out for performance
@@ -95,7 +94,7 @@ proc initApp(config: AppConfig): App =
     
 
   unwrap controllers:
-    proc askQuery(req: Request) {.gcsafe.} =
+    proc askQueryApi(req: Request) {.gcsafe.} =
       try:
         logBody()
 
@@ -188,14 +187,14 @@ proc initApp(config: AppConfig): App =
         logSql q
         req.respond 200, jsonHeader(), row[0]
 
-    proc getNode(req: Request) =
+    proc getNodeApi(req: Request) =
       getEntity req, nodes
 
-    proc getEdge(req: Request) =
+    proc getEdgeApi(req: Request) =
       getEntity req, edges
 
 
-    proc insertNodes(req: Request) =
+    proc insertNodesApi(req: Request) =
       logPerf:
         logBody()
 
@@ -215,7 +214,7 @@ proc initApp(config: AppConfig): App =
 
         req.respond 200, jsonHeader(), jsonAffectedRows(len ids, ids)
 
-    proc insertEdges(req: Request) =
+    proc insertEdgesApi(req: Request) =
       logPerf:
         logBody()
 
@@ -268,10 +267,10 @@ proc initApp(config: AppConfig): App =
         else:
           raisee "invalid json object for update. it should be object of {id => new_doc}"
 
-    proc updateNodes(req: Request) =
+    proc updateNodesApi(req: Request) =
       updateEntity req, nodes
 
-    proc updateEdges(req: Request) =
+    proc updateEdgesApi(req: Request) =
       updateEntity req, edges
 
 
@@ -289,10 +288,10 @@ proc initApp(config: AppConfig): App =
           let affected = db.execAffectedRows q
         req.respond 200, jsonHeader(), jsonAffectedRows affected
 
-    proc deleteNodes(req: Request) =
+    proc deleteNodesApi(req: Request) =
       deleteEntity req, nodes
 
-    proc deleteEdges(req: Request) =
+    proc deleteEdgesApi(req: Request) =
       deleteEntity req, edges
 
 
@@ -346,9 +345,9 @@ proc initApp(config: AppConfig): App =
 
   proc initRouter: Router = 
     with result:
-      get    "/",                       indexPage
-      get    "/api/",                   apiHomePage
-      get    "/static/**",                staticFilesServ
+      get    "/",                        indexPage
+      get    "/api/",                    apiHomePage
+      get    "/static/**",               staticFilesServ
 
       post   "/api/sign-in/",            signinApi
 
@@ -376,15 +375,15 @@ proc initApp(config: AppConfig): App =
       # get    "/api/database/stats/",      stats
       # get    "/api/database/backups/",    backup
 
-      post   "/api/database/query/",      askQuery
-      get    "/api/database/node/",       getNode
-      get    "/api/database/edge/",       getEdge
-      post   "/api/database/nodes/",      insertNodes
-      post   "/api/database/edges/",      insertEdges
-      put    "/api/database/nodes/",      updateNodes
-      put    "/api/database/nodes/",      updateEdges
-      delete "/api/database/nodes/",      deleteNodes
-      delete "/api/database/edges/",      deleteEdges
+      post   "/api/database/query/",      askQueryApi
+      get    "/api/database/node/",       getNodeApi
+      get    "/api/database/edge/",       getEdgeApi
+      post   "/api/database/nodes/",      insertNodesApi
+      post   "/api/database/edges/",      insertEdgesApi
+      put    "/api/database/nodes/",      updateNodesApi
+      put    "/api/database/nodes/",      updateEdgesApi
+      delete "/api/database/nodes/",      deleteNodesApi
+      delete "/api/database/edges/",      deleteEdgesApi
 
       # get    "/api/database/indexes/",  gqlService
       # post   "/api/database/index/",    gqlService
