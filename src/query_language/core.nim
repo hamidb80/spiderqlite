@@ -93,7 +93,7 @@ type
     collection*: seq[QueryStrategy]
     table*     : Table[string, QueryStrategy]
 
-  AliasLookup = Table[string, GqlNode]
+  AliasLookup = Table[string, SpqlNode]
 
   IOcount = tuple
     inward, outward: Natural
@@ -108,7 +108,7 @@ type
 
 
 using 
-  gn:              GqlNode
+  gn:              SpqlNode
   imap:            IdentMap
   varResolver:     string -> string
   queryStrategies: QueryStrategies
@@ -176,12 +176,11 @@ func `$`*(g: QueryGraph): string =
 
   less result
 
-func `$`(gn): string = 
-  raisee "TODO"
+# func `$`(gn): string = 
+#   raisee "TODO"
 
-
-func repr(qc: QueryChain): string =
-  qc.join " "
+# func repr(qc: QueryChain): string =
+#   qc.join " "
     
 
 
@@ -531,7 +530,7 @@ func sqlJsonEdgeExpr*(s: string): string =
   ",'target', "   & fi & "target " &
   ")"
 
-func resolveSql(node: GqlNode, relIdents: seq[string], mode: string, name: string, varResolver): string {.effectsOf: varResolver.} = 
+func resolveSql(node: SpqlNode, relIdents: seq[string], mode: string, name: string, varResolver): string {.effectsOf: varResolver.} = 
   case node.kind
   of gkInfix:       [
     resolveSql(node.children[1], relIdents, mode, name, varResolver), 
@@ -692,7 +691,7 @@ func deepIdentReplace(gn; imap) =
   else:
     discard
 
-func findNode(gn; kind: GqlKind): Option[GqlNode] = 
+func findNode(gn; kind: GqlKind): Option[SpqlNode] = 
   for ch in gn.children:
     if ch.kind == kind: 
       return some ch
@@ -701,7 +700,7 @@ func askedQuery(gn): QueryGraph =
   let n = get gn.findNode gkAsk
   parseQueryGraph n.children.mapIt it.sval
 
-func getTake(gn): GqlNode =
+func getTake(gn): SpqlNode =
   get:
     findNode gn, gkTake
 
@@ -711,14 +710,14 @@ func getUse(gn): string =
 func getParams(gn): seq[string] =
   gn.findNode(gkParams).get.children ~> it.sval
 
-func getGroup(gn): Option[GqlNode] = 
+func getGroup(gn): Option[SpqlNode] = 
   findNode gn, gkGroupBy
 
 
 func toSqlSelectImpl(gn; relsIdent: seq[string]): string = 
   resolveSql gn, relsIdent, "select", "???", s => "!!!"
 
-func toSqlSelect(take: GqlNode, relsIdent: seq[string], imap): string = 
+func toSqlSelect(take: SpqlNode, relsIdent: seq[string], imap): string = 
   deepIdentReplace take, imap
   let mappedRels = relsIdent.map imap
   take
@@ -839,7 +838,7 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
           raisee "invalid gql pattern: " & $p
 
 
-func replaceDeepImpl(father: GqlNode, index: int, gn; lookup: AliasLookup) = 
+func replaceDeepImpl(father: SpqlNode, index: int, gn; lookup: AliasLookup) = 
   case gn.kind
   of gkIdent: 
     let id = gn.sval

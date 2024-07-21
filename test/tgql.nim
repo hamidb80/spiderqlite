@@ -40,3 +40,59 @@ when isMainModule:
     echo   sql
     # print  parsedGql
     echoRows graphDB, sql
+
+
+when defined test_for_fns:
+  echo firstLineIndentation """
+
+    dasdks
+      ds
+    ads
+    ad
+  """
+  echo firstLineIndentation """
+  
+    
+    
+  """
+
+when isMainModule:
+
+  const sample =   """
+    #person   p
+    #movie    m
+      == m.id |mid|
+
+    @acted_in a
+
+    AS
+      no_movies
+      ()
+        COUNT
+        m.id
+
+    -- *a means that include `p`s that may not have any edge `a` connected to `a` movie at all
+
+    MATCH   ^p>-*a->m
+    GROUP   p.id
+
+    ORDER no_movies
+    SORT  DESC 
+    RETURN  
+      {}
+        "person"
+        p
+
+        "movies"
+        [].
+          m.title
+
+        "no_movies"
+        no_movies
+  """
+
+  let tokens = lexGql sample
+
+  let ggg  = parseSpQl tokens
+
+  print ggg

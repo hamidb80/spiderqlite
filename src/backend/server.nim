@@ -7,9 +7,11 @@ import parsetoml
 import cookiejar
 # TODO use waterpark
 
-import gql/[parser, core, queries]
+import ../query_language/[parser, core]
+import ../utils/other
+import ../bridge
+
 import ./view
-import ./utils/other
 import ./config
 
 
@@ -19,6 +21,8 @@ type
     config*: AppConfig
     defaultQueryStrategies*: QueryStrategies
 
+using 
+  req: Request
 
 
 proc getMimetype(ext: string): string = 
@@ -48,18 +52,18 @@ func decodedQuery(body: string): Table[string, string] =
     result[key] = val
 
 
-func isPost(req: Request): bool = 
+func isPost(req): bool = 
   req.httpmethod == "POST"
 
-func jsonToSql(j: JsonNode): string = 
-  case j.kind
-  of JInt:    $j.getInt
-  of JFloat:  $j.getFloat
-  of JNull:   "NULL"
-  of JString: dbQuote getStr j
-  of JBool:   $j.getBool
-  else: 
-    raisee "invalid json kind: " & $j.kind
+# func jsonToSql(j: JsonNode): string = 
+#   case j.kind
+#   of JInt:    $j.getInt
+#   of JFloat:  $j.getFloat
+#   of JNull:   "NULL"
+#   of JString: dbQuote getStr j
+#   of JBool:   $j.getBool
+#   else: 
+#     raisee "invalid json kind: " & $j.kind
 
 
 func extractStrategies(tv: TomlValueRef): seq[TomlValueRef] = 
@@ -76,11 +80,12 @@ proc initApp(config: AppConfig): App =
     if app.config.logs.sql:
       echo q
 
+  proc getDB: DbConn = 
+    openSqliteDB app.config.storage.appDbFile
+
   template withDb(body): untyped =
-    let 
-      # dbName        = req.queryparams["db"]
-      dbName        = app.config.storage.appDbFile
-      db {.inject.} = openSqliteDB dbName
+    # TODO error handling
+    let db {.inject.} = getDB()
     body
     close db
     
@@ -94,77 +99,17 @@ proc initApp(config: AppConfig): App =
     
 
   unwrap controllers:
-    proc askQueryApi(req: Request) {.gcsafe.} =
+    # XXX add logPerf and logBody in middleware
+    # XXX insert logSql somehow
+    
+    proc askQueryApi(req) =
       try:
-        logBody()
-
-        let 
-          thead           = getMonoTime()
-          j               = parseJson req.body
-          ctx             = j["context"]
-          tparsejson      = getMonoTime()
-          gql             = parseGql  getstr  j["query"]
-          tparseq         = getMonoTime()
-          sql             = toSql(
-            gql, 
-            app.defaultQueryStrategies, 
-            s => $ctx[s])
-          tquery          = getMonoTime()
-
-        logSql sql
-
-        var 
-          rows = 0
-          acc = newStringOfCap 1024 * 100 # 100 KB
-
-        withDb:
-          acc.add "{\"result\": ["
-
-          for row in db.fastRows sql:
-            inc rows
-            let r   = row[0]
-
-            if r[0] in {'[', '{'} or (r.len < 20 and isNumber r):
-              acc.add r
-            else:
-              acc.add escapeJson r
-
-            acc.add ','
-
-          if acc[^1] == ',': # check for 0 results
-            acc.less
-          
-          acc.add ']'
-
-        let tcollect = getMonoTime()
-
-        with acc:
-          add ','
-          add "\"length\":"
-          add $rows
-          add ','
-          add "\"performance\":{"
-          add "\"unit\": \"us\""
-          add ','
-          add "\"total\":"
-          add $inMicroseconds(tcollect - thead)
-          add ','
-          add "\"parse body\":"
-          add $inMicroseconds(tparsejson - thead)
-          add ','
-          add "\"parse query\":"
-          add $inMicroseconds(tparseq - tparsejson)
-          add ','
-          add "\"query matching & conversion\":"
-          add $inMicroseconds(tquery - tparseq)
-          add ','
-          add "\"exec & collect\":"
-          add $inMicroseconds(tcollect - tquery)
-          add '}'
-          add '}'
-
-        req.respond 200, jsonHeader(), acc
-        echo inMicroseconds(tcollect - thead), "us"
+        let j = parseJson req.body
+        withdb:
+          req.respond 200, jsonHeader(), askQueryDbRaw(db, 
+            j["context"], 
+            parseSpql getstr j["query"], 
+            app.defaultQueryStrategies)
 
       except:
         let 
@@ -175,127 +120,67 @@ proc initApp(config: AppConfig): App =
         echo "did error ", je
 
 
-    proc getEntity(req: Request, ent: Entity) =
-      logPerf:
-        let
-          id    = parseInt        req.queryParams["id"]
-          q     = prepareGetQuery ent
+    proc getEntity(req; ent: Entity) =
+      let id    = parseInt   req.queryParams["id"]
+      withDB:
+        let val   = getEntityDB(db, id, ent)
+    
+      # XXX logSql
+      req.respond 200, jsonHeader(), val
 
+    proc getNodeApi(req) = getEntity req, nodes
+    proc getEdgeApi(req) = getEntity req, edges
+
+
+    proc insertEntities(req; inserter: proc(db: DbConn, t: Tag, doc: JsonNode): Id) {.effectsOf: inserter.} =
+      let j = parseJson req.body
+      withDB:
+        let ids = collect:
+          for n in j:
+            inserter db, parseTag getstr n["tag"], n["doc"]
+
+      req.respond 200, jsonHeader(), jsonAffectedRows(len ids, ids)
+
+    proc insertNodesApi(req) = insertEntities req, insertNodeDB
+    proc insertEdgesApi(req) = insertEntities req, insertEdgeDB
+
+
+    proc updateEntity(req; ent: Entity) =
+      let j = parseJson req.body
+      # logSql q
+
+      case j.kind
+      of JObject:
         withDB:
-          let row = getRow(db, q, id)
-        
-        logSql q
-        req.respond 200, jsonHeader(), row[0]
+          var acc: seq[int]
+          for key, doc in j:
+            let id = parseInt key
+            if updateEntityDocDB(db, ent, id, doc):
+              add acc, id
 
-    proc getNodeApi(req: Request) =
-      getEntity req, nodes
+        req.respond 200, jsonHeader(), jsonAffectedRows(len acc, acc)
+      
+      else:
+        raisee "invalid json object for update. it should be object of {id => new_doc}"
 
-    proc getEdgeApi(req: Request) =
-      getEntity req, edges
-
-
-    proc insertNodesApi(req: Request) =
-      logPerf:
-        logBody()
-
-        let
-          j      = parseJson req.body
-          q      = prepareNodeInsertQuery()
-
-        logSql q
-        withDB:
-          var ids: seq[int]
-          for a in j:
-            let
-              tag    = parseTag getstr a["tag"]
-              doc    =                $a["doc"]
-              id     = db.insertID(q, tag, doc)
-            ids.add id
-
-        req.respond 200, jsonHeader(), jsonAffectedRows(len ids, ids)
-
-    proc insertEdgesApi(req: Request) =
-      logPerf:
-        logBody()
-
-        let
-          j      = parseJson req.body
-          q      = prepareEdgeInsertQuery()
-        
-        logSql q
-        withDB:
-          var ids: seq[int]
-          for a in j:
-            let
-              tag    = parseTag getstr a["tag"]
-              source =          getInt a["source"]
-              target =          getInt a["target"]
-              doc    =                $a["doc"]
-              id     = db.insertID(q, tag, source, target, doc)
-            
-            ids.add id
-
-        req.respond 200, jsonHeader(), jsonAffectedRows(len ids, ids)
+    proc updateNodesApi(req) = updateEntity req, nodes
+    proc updateEdgesApi(req) = updateEntity req, edges
 
 
-    proc updateEntity(req: Request, ent: Entity) =
-      logPerf:
-        logBody()
+    proc deleteEntity(req; ent: Entity) =
+      let
+        j        = parseJson req.body
+        ids      = j["ids"].to seq[int]
+      withDB:
+        let affected = deleteEntitiesDB(db, ent, ids)
+      req.respond 200, jsonHeader(), jsonAffectedRows affected
 
-        let
-          j   = parseJson req.body
-          q   = prepareUpdateQuery ent
+    proc deleteNodesApi(req) = deleteEntity req, nodes
+    proc deleteEdgesApi(req) = deleteEntity req, edges
 
-        logSql q
+    # ------------------------
 
-        if j.kind == JObject:
-
-          withDB:
-
-            var acc: seq[int]
-            for k, v in j:
-              let 
-                id       = parseint k
-                doc      = $v
-                affected = db.execAffectedRows(q, doc, id)
-
-              if affected == 1:
-                acc.add id
-
-          req.respond 200, jsonHeader(), jsonAffectedRows(acc.len, acc)
-        
-        else:
-          raisee "invalid json object for update. it should be object of {id => new_doc}"
-
-    proc updateNodesApi(req: Request) =
-      updateEntity req, nodes
-
-    proc updateEdgesApi(req: Request) =
-      updateEntity req, edges
-
-
-    proc deleteEntity(req: Request, ent: Entity) =
-      logPerf:
-        logBody()
-
-        let
-          j        = parseJson req.body
-          ids      = j["ids"].to seq[int]
-          q        = prepareDeleteQuery(ent, ids)
-
-        logSql q
-        withDB:
-          let affected = db.execAffectedRows q
-        req.respond 200, jsonHeader(), jsonAffectedRows affected
-
-    proc deleteNodesApi(req: Request) =
-      deleteEntity req, nodes
-
-    proc deleteEdgesApi(req: Request) =
-      deleteEntity req, edges
-
-
-    proc staticFilesServ(req: Request) =
+    proc staticFilesServ(req) =
       let
         fname   = "./assets/" & req.uri.splitPath.tail
         ext     = fname.splitFile.ext.strip(chars= {'.'}, trailing = false)
@@ -303,10 +188,10 @@ proc initApp(config: AppConfig): App =
 
       req.respond 200, toWebby @{"Content-Type": getMimetype ext} , content
 
-    proc indexPage(req: Request) =
+    proc indexPage(req) =
       req.respond 200, emptyHttpHeaders(), landingPageHtml()
 
-    proc signupPage(req: Request) =
+    proc signupPage(req) =
       req.respond 200, emptyHttpHeaders(), signinPageHtml()
 
 
@@ -315,13 +200,13 @@ proc initApp(config: AppConfig): App =
     proc signOutCookieSet: webby.HttpHeaders =
       result["Set-Cookie"] = $initCookie(authKey, "", path = "/")
 
-    proc signoutPage(req: Request) =
+    proc signoutPage(req) =
       req.respond 200, signOutCookieSet(), "redirecting to ... XXX"
 
     # proc signin
 
 
-    proc signinPage(req: Request) =
+    proc signinPage(req) =
       if isPost req:
         let form  = decodedQuery req.body
         echo form
@@ -332,10 +217,10 @@ proc initApp(config: AppConfig): App =
         req.respond 200, emptyHttpHeaders(), signinPageHtml()
 
 
-    proc apiHomePage(req: Request) =
+    proc apiHomePage(req) =
       req.respond 200, emptyHttpHeaders(), "hey"
 
-    proc signinApi(req: Request) =
+    proc signinApi(req) =
       discard
 
     # get    "/users/",                 listUsersPage

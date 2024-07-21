@@ -12,17 +12,6 @@ type
   Host*     = distinct string
 
 
-func `$`*(p: Password): string = 
-  repeat '*', p.string.len
-
-func `$`*(h: Host): string = 
-  h.string
-
-func `$`*(s: SqlQuery): string =
-  s.string
-
-
-
 template raisee*(reason): untyped =
   ## raise [e]rror -- just a convention
   raise newException(ValueError, reason)
@@ -58,6 +47,11 @@ func `mod`*[M: static int](n: int, m: type M): range[0 .. M-1] =
   system.`mod` n, m
 
 # ---- seq
+
+
+func `<>`(s: string, c: char): string = 
+  ## wrap string s between char c
+  c & s & c 
 
 func joinComma*(s: sink seq): string = 
   s.join ","  
@@ -180,3 +174,9 @@ template unwrap*(name, body): untyped =
   ## unwrap SECTION_NAME: ...
   body
   
+
+# ---------------------------------------
+
+func `$`*(p: Password): string = repeat('*', p.string.len) <> '"'
+func `$`*(h: Host)    : string = h.string
+func `$`*(s: SqlQuery): string = s.string

@@ -3,7 +3,7 @@ import std/[strutils, options]
 import ../utils/other
 
 import questionable
-import pretty
+# import pretty
 
 
 type
@@ -108,8 +108,8 @@ type
     defNode
     defEdge
 
-  GqlNode* = ref object
-    children*: seq[GqlNode]
+  SpqlNode* = ref object
+    children*: seq[SpqlNode]
 
     case kind*: GqlKind
     of gkDef:
@@ -203,8 +203,8 @@ func `{}`(str; i: int): char =
   else:                  '\n'
 
 
-func gWrapper: GqlNode = 
-  GqlNode(kind: gkWrapper) 
+func gWrapper: SpqlNode = 
+  SpqlNode(kind: gkWrapper) 
 
 
 func lexGql(content: string): seq[Token] = 
@@ -357,52 +357,52 @@ func lexGql(content: string): seq[Token] =
       raisee "invalid char: " & ch
 
 
-template gNode*(k: GqlKind, ch: seq[GqlNode] = @[]): GqlNode =
-  GqlNode(kind: k, children: ch)
+template gNode*(k: GqlKind, ch: seq[SpqlNode] = @[]): SpqlNode =
+  SpqlNode(kind: k, children: ch)
 
-template gIdent*(str): GqlNode =
-  GqlNode(kind: gkIdent, sval: str)
+template gIdent*(str): SpqlNode =
+  SpqlNode(kind: gkIdent, sval: str)
 
-template prefixNode*(str: string): GqlNode =
-  GqlNode(kind: gkPrefix, children: @[gIdent str])
+template prefixNode*(str: string): SpqlNode =
+  SpqlNode(kind: gkPrefix, children: @[gIdent str])
 
-template infixNode*(str: string): GqlNode =
-  GqlNode(kind: gkInfix, children: @[gIdent str])
+template infixNode*(str: string): SpqlNode =
+  SpqlNode(kind: gkInfix, children: @[gIdent str])
 
 
 
-func parseCallToJson*           (): GqlNode =
-  GqlNode(
+func parseCallToJson*           (): SpqlNode =
+  SpqlNode(
     kind: gkCall, 
     children: @[
-      GqlNode(kind: gkIdent, sval: "json")])
+      SpqlNode(kind: gkIdent, sval: "json")])
 
-func parseCallToJsonObject*     (): GqlNode =
-  GqlNode(
+func parseCallToJsonObject*     (): SpqlNode =
+  SpqlNode(
     kind: gkCall, 
     children: @[
-      GqlNode(kind: gkIdent, sval: "json_object")])
+      SpqlNode(kind: gkIdent, sval: "json_object")])
 
-func parseCallToJsonObjectGroup*(): GqlNode =
-  GqlNode(
+func parseCallToJsonObjectGroup*(): SpqlNode =
+  SpqlNode(
     kind: gkCall, 
     children: @[
-      GqlNode(kind: gkIdent, sval: "json_group_object")])
+      SpqlNode(kind: gkIdent, sval: "json_group_object")])
 
-func parseCallToJsonArray*      (): GqlNode =
-  GqlNode(
+func parseCallToJsonArray*      (): SpqlNode =
+  SpqlNode(
     kind: gkCall, 
     children: @[
-      GqlNode(kind: gkIdent, sval: "json_array")])
+      SpqlNode(kind: gkIdent, sval: "json_array")])
 
-func parseCallToJsonArrayGroup* (): GqlNode =
-  GqlNode(
+func parseCallToJsonArrayGroup* (): SpqlNode =
+  SpqlNode(
     kind: gkCall, 
     children: @[
-      GqlNode(kind: gkIdent, sval: "json_group_array")])
+      SpqlNode(kind: gkIdent, sval: "json_group_array")])
 
 
-func parseGql(tokens: seq[Token]): GqlNode = 
+func parseSpQl(tokens: seq[Token]): SpqlNode = 
   var 
     node    = gWrapper()
     stack   = @[node]
@@ -432,26 +432,26 @@ func parseGql(tokens: seq[Token]): GqlNode =
       stack.less
 
     of lkDot:
-      newNode GqlNode(kind: gkFieldAccess)
+      newNode SpqlNode(kind: gkFieldAccess)
 
     of lkHashTag:
-      newNode GqlNode(kind: gkDef, defKind: defNode)
+      newNode SpqlNode(kind: gkDef, defKind: defNode)
 
     of lkAtSign:
-      newNode GqlNode(kind: gkDef, defKind: defEdge)
+      newNode SpqlNode(kind: gkDef, defKind: defEdge)
 
 
     of lkInt:
-      newNode GqlNode(kind: gkIntLit, ival: t.ival)
+      newNode SpqlNode(kind: gkIntLit, ival: t.ival)
 
     of lkFloat:
-      newNode GqlNode(kind: gkFloatLit, fval: t.fval)
+      newNode SpqlNode(kind: gkFloatLit, fval: t.fval)
 
     of lkStr:
-      newNode GqlNode(kind: gkStrLit, sval: t.sval)
+      newNode SpqlNode(kind: gkStrLit, sval: t.sval)
 
     of lkAbs: 
-      newNode GqlNode(kind: gkVar, sval: t.sval)
+      newNode SpqlNode(kind: gkVar, sval: t.sval)
 
     of lkIdent, lkOperator:
       newNode:
@@ -502,14 +502,14 @@ func parseGql(tokens: seq[Token]): GqlNode =
           # idents with dot: movie.id
           let parts = t.sval.split('.', maxsplit=1)
 
-          GqlNode(
+          SpqlNode(
             kind: gkIdent,
             sval: parts[0],
             children: 
               case parts.len
               of 1: @[]
               else: @[
-                GqlNode(
+                SpqlNode(
                   kind: gkFieldAccess,
                   children: @[
                     gIdent parts[1]])])
@@ -530,61 +530,5 @@ func parseGql(tokens: seq[Token]): GqlNode =
 
   stack[0]
   
-func parseGql*(content: string): GqlNode = 
-  parseGql lexGql content
-
-
-when defined test_for_fns:
-  echo firstLineIndentation """
-
-    dasdks
-      ds
-    ads
-    ad
-  """
-  echo firstLineIndentation """
-  
-    
-    
-  """
-
-when isMainModule:
-
-  const sample =   """
-    #person   p
-    #movie    m
-      == m.id |mid|
-
-    @acted_in a
-
-    AS
-      no_movies
-      ()
-        COUNT
-        m.id
-
-    -- *a means that include `p`s that may not have any edge `a` connected to `a` movie at all
-
-    MATCH   ^p>-*a->m
-    GROUP   p.id
-
-    ORDER no_movies
-    SORT  DESC 
-    RETURN  
-      {}
-        "person"
-        p
-
-        "movies"
-        [].
-          m.title
-
-        "no_movies"
-        no_movies
-  """
-
-  let tokens = lexGql sample
-
-  let ggg  = parseGql tokens
-
-  print ggg
+func parseSpQl*(content: string): SpqlNode = 
+  parseSpQl lexGql content

@@ -1,8 +1,9 @@
 import std/[os, options, paths, strutils, strformat, tables, nativesockets]
 
-import ./utils/other
-
 import parsetoml, mummy
+
+import ../utils/other
+
 
 
 type
