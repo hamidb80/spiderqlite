@@ -29,7 +29,7 @@ type
     performance*: bool
 
   AppConfig* = ref object
-    # TODO load from numble file at compile file
+    # TODO load from nimble file at compile file
     # version:
 
     admin*:    AdminConfig

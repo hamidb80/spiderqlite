@@ -7,7 +7,7 @@ import parsetoml
 import cookiejar
 # TODO use waterpark
 
-import gql/[parser, core, helper]
+import gql/[parser, core, queries]
 import ./view
 import ./utils/other
 import ./config

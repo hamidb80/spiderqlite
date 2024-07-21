@@ -91,3 +91,4 @@ func prepareDeleteQuery*(entity: Entity, ids: seq[int]): SqlQuery =
     WHERE  id in {sqlize ids}
   """
 
+# ----------------------------------------------------
