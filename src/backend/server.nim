@@ -1,4 +1,4 @@
-import std/[strutils, strformat, tables, json, monotimes, os, times, with, sugar, uri, mimetypes]
+import std/[strutils, strformat, tables, json, monotimes, os, times, with, sugar, uri, mimetypes, paths]
 
 import db_connector/db_sqlite
 import mummy, mummy/routers
@@ -10,9 +10,7 @@ import cookiejar
 import ../query_language/[parser, core]
 import ../utils/other
 import ../bridge
-
-import ./view
-import ./config
+import ./[model, view, config]
 
 
 type
@@ -69,8 +67,21 @@ func isPost(req): bool =
 func extractStrategies(tv: TomlValueRef): seq[TomlValueRef] = 
   getElems tv["strategies"]
 
+
+proc initDB(fpath: Path) = 
+  initDbSchema openSqliteDB fpath
+
+proc prepareDB(fpath: Path) = 
+  if not fileExists fpath: 
+    initDB fpath
+
 proc initApp(config: AppConfig): App = 
   var app = App(config: config)
+  prepareDB config.storage.appDbFile
+
+  proc getDB: DbConn = 
+    openSqliteDB app.config.storage.appDbFile
+
 
   template logBody: untyped =
     if app.config.logs.reqbody:
@@ -79,9 +90,6 @@ proc initApp(config: AppConfig): App =
   template logSql(q): untyped =
     if app.config.logs.sql:
       echo q
-
-  proc getDB: DbConn = 
-    openSqliteDB app.config.storage.appDbFile
 
   template withDb(body): untyped =
     # TODO error handling
@@ -96,7 +104,7 @@ proc initApp(config: AppConfig): App =
     if app.config.logs.performance:
       let tdelta = ttail - thead
       echo inMicroseconds tdelta, "us"
-    
+
 
   unwrap controllers:
     # XXX add logPerf and logBody in middleware
@@ -123,8 +131,8 @@ proc initApp(config: AppConfig): App =
     proc getEntity(req; ent: Entity) =
       let id    = parseInt   req.queryParams["id"]
       withDB:
-        let val   = getEntityDB(db, id, ent)
-    
+        let val   = getEntityDbRaw(db, id, ent)
+        
       # XXX logSql
       req.respond 200, jsonHeader(), val
 
@@ -178,6 +186,15 @@ proc initApp(config: AppConfig): App =
     proc deleteNodesApi(req) = deleteEntity req, nodes
     proc deleteEdgesApi(req) = deleteEntity req, edges
 
+
+    proc apiHome(req) =
+      req.respond 200, emptyHttpHeaders(), $ %*{
+        "status": "running",
+      }
+
+    proc signinApi(req) =
+      discard
+
     # ------------------------
 
     proc staticFilesServ(req) =
@@ -191,11 +208,62 @@ proc initApp(config: AppConfig): App =
     proc indexPage(req) =
       req.respond 200, emptyHttpHeaders(), landingPageHtml()
 
-    proc signupPage(req) =
-      req.respond 200, emptyHttpHeaders(), signinPageHtml()
+    proc docsPage(req) = 
+      req.respond 200, emptyHttpHeaders(), docsPageHtml()
 
 
     const authKey = "auth"
+
+    proc signupPage(req) =
+      if isPost req:
+        let 
+          form  = decodedQuery req.body
+          uname = form["username"]
+          passw = form["password"]
+          ctx   = %*{"uname": uname}
+
+
+        withDB:
+          let ans = ignore askQueryDB(db, ctx, parseSpQl get_user_by_name, app.defaultQueryStrategies)
+
+          case ans["result"].len
+          of 0:
+            discard insertNodeDB(db, userTag, initUserDoc(uname, passw))
+            req.respond 201, emptyHttpHeaders(), "OK"
+
+          else:
+            req.respond 200, emptyHttpHeaders(), "duplicated username"
+      
+      else:
+        req.respond 200, emptyHttpHeaders(), signinPageHtml()
+
+    proc signinPage(req) =
+      if isPost req:
+        let 
+          form  = decodedQuery req.body
+          uname = form["username"]
+          passw = form["password"]
+          ctx   = %*{"uname": uname}
+
+
+        withDB:
+          let ans = askQueryDB(db, ctx, parseSpQl get_user_by_name, app.defaultQueryStrategies)
+
+          case ans["result"].len
+          of 0:
+            req.respond 200, emptyHttpHeaders(), "no such user"
+
+          else:
+            let u = ans["result"][0]
+
+            if u["doc"]["pass"].getStr == passw:
+              req.respond 200, emptyHttpHeaders(), $u
+            else:
+              req.respond 200, emptyHttpHeaders(), "pass wrong"
+            
+
+      else:
+        req.respond 200, emptyHttpHeaders(), signinPageHtml()
 
     proc signOutCookieSet: webby.HttpHeaders =
       result["Set-Cookie"] = $initCookie(authKey, "", path = "/")
@@ -203,53 +271,35 @@ proc initApp(config: AppConfig): App =
     proc signoutPage(req) =
       req.respond 200, signOutCookieSet(), "redirecting to ... XXX"
 
-    # proc signin
 
+    proc listUsersPage(req) = 
+      withDB:
+        let d = askQueryDbRaw(db, %*{}, parseSpQl all_users, app.defaultQueryStrategies)
+      req.respond 200, jsonHeader(), d
 
-    proc signinPage(req) =
-      if isPost req:
-        let form  = decodedQuery req.body
-        echo form
-        # form["username"]
-        # form["password"]
-
-      else:
-        req.respond 200, emptyHttpHeaders(), signinPageHtml()
-
-
-    proc apiHomePage(req) =
-      req.respond 200, emptyHttpHeaders(), "hey"
-
-    proc signinApi(req) =
-      discard
-
-    # get    "/users/",                 listUsersPage
-    # get    "/user/",                  userInfoPage
-    # get    "/profile/",               profileDispatcher
+    proc userInfoPage(req) = 
+      req.respond 200, signOutCookieSet(), "Nothing yet"
+    
+    proc profileDispatcher(req) = 
+      req.respond 200, signOutCookieSet(), "Nothing yet"
 
 
   proc initRouter: Router = 
     with result:
       get    "/",                        indexPage
-      get    "/api/",                    apiHomePage
       get    "/static/**",               staticFilesServ
-
-      post   "/api/sign-in/",            signinApi
-
-      post   "/sign-out/",               signoutPage
-
-      get    "/sign-in/",                signinPage
-      post   "/sign-in/",                signinPage
+      get    "/docs/",                   docsPage
 
       get    "/sign-up/",                signupPage
       post   "/sign-up/",                signupPage
+      post   "/api/sign-in/",            signinApi
+      get    "/sign-in/",                signinPage
+      post   "/sign-in/",                signinPage
+      post   "/sign-out/",               signoutPage
       
-      
-      # get    "/docs/",                signupPage
-      
-      # get    "/users/",                 listUsersPage
-      # get    "/user/",                  userInfoPage
-      # get    "/profile/",               profileDispatcher
+      get    "/users/",                  listUsersPage
+      get    "/user/",                   userInfoPage
+      get    "/profile/",                profileDispatcher
 
       # post   "/api/database/",            initDB
       # get    "/api/databases/",         
@@ -260,6 +310,7 @@ proc initApp(config: AppConfig): App =
       # get    "/api/database/stats/",      stats
       # get    "/api/database/backups/",    backup
 
+      get    "/api/",                     apiHome
       post   "/api/database/query/",      askQueryApi
       get    "/api/database/node/",       getNodeApi
       get    "/api/database/edge/",       getEdgeApi
@@ -273,6 +324,7 @@ proc initApp(config: AppConfig): App =
       # get    "/api/database/indexes/",  gqlService
       # post   "/api/database/index/",    gqlService
       # delete "/api/database/index/",    gqlService
+
 
 
   app.server                 = newServer initRouter()

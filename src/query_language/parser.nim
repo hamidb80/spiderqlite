@@ -457,17 +457,17 @@ func parseSpQl(tokens: seq[Token]): SpqlNode =
       newNode:
         case t.sval
         of "ASK",  "MATCH",  "FROM":         gNode gkAsk
-        of "TAKE", "SELECT", "RETURN":       gNode gkTake
+        of "TAKE", "SELECT", "RETURN", "RET":gNode gkTake
 
         of "PARAMS", "PARAMETERS":           gNode gkParams
         of "USE", "TEMPLATE":                gNode gkUse
 
-        of "GROUP", "GROUP_BY":              gNode gkGroupBy
-        of "ORDER", "ORDER_BY":              gNode gkOrderBy
-        of "SORT", "SORT_BY":                gNode gkSort
-        of "HAVING":                         gNode gkHaving
-        of "LIMIT":                          gNode gkLimit
-        of "OFFSET":                         gNode gkOffset
+        of "GROUP", "GROUP_BY", "GRP":       gNode gkGroupBy
+        of "ORDER", "ORDER_BY", "ORD":       gNode gkOrderBy
+        of "SORT", "SORT_BY"         :       gNode gkSort
+        of "HAVING",            "HAV":       gNode gkHaving
+        of "LIMIT",             "LIM":       gNode gkLimit
+        of "OFFSET",            "OFF":       gNode gkOffset
         of "AS", "ALIAS", "ALIASES":         gNode gkAlias
 
         of "CASE":                           gNode gkCase

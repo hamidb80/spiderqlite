@@ -425,3 +425,10 @@ func signinPageHtml*(): string =
     </div>
     
   """
+
+
+func docsPageHtml*(): string = 
+  wrapHtml "landing", """
+    This is gonna be docs
+  """
+

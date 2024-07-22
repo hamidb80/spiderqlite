@@ -32,7 +32,7 @@ const schemaInitQueries* = splitSqlQueries """
 
 
   CREATE TABLE IF NOT EXISTS nodes (
-      id          INTEGER PRIMARY KEY,s
+      id          INTEGER PRIMARY KEY,
       tag         TEXT,
       doc         JSON NOT NULL
   );
@@ -121,11 +121,18 @@ proc initDbSchema*(db) =
     exec db, q
 
 
-proc getEntityDB*(db, id, ent): string =
+proc getEntityDbRaw*(db, id, ent): string =
   let
     query = getEntityQuery ent
     row = getRow(db, query, id)
   row[0] # first g
+
+proc getNodeDB*(db, id): JsonNode =
+  parseJson getEntityDbRaw(db, id, nodes)
+
+proc getEdgeDB*(db, id): JsonNode =
+  parseJson getEntityDbRaw(db, id, edges)
+
 
 proc insertNodeDB*(db, tag, doc): Id =
   insertID db, nodeInsertQuery, string tag, $doc
@@ -136,6 +143,18 @@ proc insertEdgeDB*(db, tag, doc): Id =
 
 proc deleteEntitiesDB*(db, ent, ids): Natural =
   execAffectedRows db, deleteEntitiesQuery(ent, ids)
+
+proc deleteNodesDB*(db, ids): Natural =
+  deleteEntitiesDB db, nodes, ids
+
+proc deleteEdgesDB*(db, ids): Natural =
+  deleteEntitiesDB db, edges, ids
+
+proc deleteNodeDB*(db, id): Natural =
+  deleteEntitiesDB db, nodes, @[id]
+
+proc deleteEdgeDB*(db, id): Natural =
+  deleteEntitiesDB db, edges, @[id]
 
 
 proc updateNodeDocDB*(db, id, doc): bool =
@@ -156,7 +175,7 @@ proc askQueryDbRaw*(db, ctx, spql; queryStrateies: QueryStrategies): string =
     sql       = toSql(spql, queryStrateies, ctxGetter)
 
   result = newStringOfCap 1024 * 20 # KB
-  << "{\"result\": ["
+  << "{\"result\":["
 
   var rows = 0
   for row in db.fastRows sql:

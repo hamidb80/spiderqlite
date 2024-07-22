@@ -10,7 +10,6 @@ import ../utils/[other, mat]
 
 
 type
-
   AskPatKind = enum
     apkNode
     apkArrow
@@ -903,7 +902,7 @@ func findByPattern(gn; queryStrategies): tuple[qs: QueryStrategy, imap: IdentMap
 func toSqlImpl(gn; qs: QueryStrategy, imap; varResolver): SqlQuery {.effectsOf: varResolver.} =
   sql resolve(qs.sqlPattern, imap, gn, varResolver)
 
-func toSql*(gn; queryStrategies; varResolver): SqlQuery {.effectsOf: varResolver.} = 
+func toSql*(gn: sink SpqlNode, queryStrategies; varResolver): SqlQuery {.effectsOf: varResolver.} = 
   prepareGQuery gn
 
   case howToFind gn

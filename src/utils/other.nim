@@ -1,4 +1,4 @@
-import std/[tables, sequtils, strutils, paths]
+import std/[tables, sequtils, strutils, paths, os]
 import db_connector/db_sqlite
 
 import parsetoml
@@ -137,7 +137,8 @@ template inspect*(a): untyped =
 
 template ignore*(body): untyped {.dirty.} =
   {.cast(nosideeffect).}:
-    body
+    {.cast(gcsafe).}:
+      body
 
 template `<<`*(thing): untyped {.dirty.} =
   add result, thing
@@ -178,5 +179,11 @@ template unwrap*(name, body): untyped =
 # ---------------------------------------
 
 func `$`*(p: Password): string = repeat('*', p.string.len) <> '"'
+func `$`*(p: Path)    : string = p.string
 func `$`*(h: Host)    : string = h.string
 func `$`*(s: SqlQuery): string = s.string
+
+# ---------------------------------------
+
+proc fileExists*(path: Path): bool = 
+  fileExists path.string
