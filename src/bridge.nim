@@ -109,10 +109,12 @@ using
   tag: Tag
   ent: Entity
   doc: JsonNode
-  ctx: JsonNode
+  ctx: (s: string) -> string
   
   id:      Id
   ids: seq[Id]
+
+  queryStrateies: QueryStrategies
 
 
 
@@ -169,10 +171,8 @@ proc updateEntityDocDB*(db, ent, id, doc): bool =
   of edges: updateEdgeDocDB db, id, doc
 
 
-proc askQueryDbRaw*(db, ctx, spql; queryStrateies: QueryStrategies): string = 
-  let
-    ctxGetter = (s: string) => $ctx[s]
-    sql       = toSql(spql, queryStrateies, ctxGetter)
+proc askQueryDbRaw*(db, ctx, spql, queryStrateies): string = 
+  let sql = toSql(spql, queryStrateies, ctx)
 
   result = newStringOfCap 1024 * 20 # KB
   << "{\"result\":["
@@ -213,5 +213,5 @@ proc askQueryDbRaw*(db, ctx, spql; queryStrateies: QueryStrategies): string =
   # << $inMicroseconds(tcollect - tquery)
   # << '}'
 
-proc askQueryDB*(db, ctx, spql; queryStrateies: QueryStrategies): JsonNode = 
+proc askQueryDB*(db, ctx, spql, queryStrateies): JsonNode = 
   parseJson askQueryDbRaw(db, ctx, spql, queryStrateies)

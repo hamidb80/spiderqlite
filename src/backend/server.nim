@@ -114,8 +114,8 @@ proc initApp(config: AppConfig): App =
       try:
         let j = parseJson req.body
         withdb:
-          req.respond 200, jsonHeader(), askQueryDbRaw(db, 
-            j["context"], 
+          req.respond 200, jsonHeader(), askQueryDbRaw(
+            db, s => $j["context"][s], 
             parseSpql getstr j["query"], 
             app.defaultQueryStrategies)
 
@@ -220,11 +220,11 @@ proc initApp(config: AppConfig): App =
           form  = decodedQuery req.body
           uname = form["username"]
           passw = form["password"]
-          ctx   = %*{"uname": uname}
-
 
         withDB:
-          let ans = ignore askQueryDB(db, ctx, parseSpQl get_user_by_name, app.defaultQueryStrategies)
+          let ans = ignore askQueryDB(db, s => $(%uname), 
+            parseSpQl get_user_by_name, 
+            app.defaultQueryStrategies)
 
           case ans["result"].len
           of 0:
@@ -247,7 +247,9 @@ proc initApp(config: AppConfig): App =
 
 
         withDB:
-          let ans = askQueryDB(db, ctx, parseSpQl get_user_by_name, app.defaultQueryStrategies)
+          let ans = askQueryDB(
+            db, s => $ctx[s], 
+            parseSpQl get_user_by_name, app.defaultQueryStrategies)
 
           case ans["result"].len
           of 0:
@@ -274,7 +276,7 @@ proc initApp(config: AppConfig): App =
 
     proc listUsersPage(req) = 
       withDB:
-        let d = askQueryDbRaw(db, %*{}, parseSpQl all_users, app.defaultQueryStrategies)
+        let d = askQueryDbRaw(db, s => "", parseSpQl all_users, app.defaultQueryStrategies)
       req.respond 200, jsonHeader(), d
 
     proc userInfoPage(req) = 

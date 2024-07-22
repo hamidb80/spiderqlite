@@ -518,9 +518,17 @@ func parseSpQl(tokens: seq[Token]): SpqlNode =
 
     if isNode:
       if isFirst:
-        stack[^1].children.add node
+        add stack[^1].children,              node
+      
+      elif # to prevent [somehting .field] bug which `field` gets into `something` not `.`
+        stack[^1].children[^1].children.len               >  0             and 
+        stack[^1].children[^1].children[^1].kind          == gkFieldAccess and
+        stack[^1].children[^1].children[^1].children.len  == 0
+      :
+        add stack[^1].children[^1].children[^1].children, node
+      
       else:
-        stack[^1].children[^1].children.add node
+        add stack[^1].children[^1].children, node
 
     isFirst = t.kind in {lkSep, lkIndent, lkDeIndent}
     isNode  = false
@@ -532,3 +540,27 @@ func parseSpQl(tokens: seq[Token]): SpqlNode =
   
 func parseSpQl*(content: string): SpqlNode = 
   parseSpQl lexGql content
+
+
+when isMainModule:
+  import pretty
+
+  # TODO write == function
+  # TODO move it to test
+
+  let 
+    multiline = parseSpQl """
+      #user  u
+        == 
+          .name 
+          |uname|
+    """
+    singleline = parseSpQl """
+      #user  u
+        == .name |uname|
+    """
+
+
+  print multiline
+  print singleline
+  assert multiline == singleline
