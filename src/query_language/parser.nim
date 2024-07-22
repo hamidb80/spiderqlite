@@ -482,7 +482,7 @@ func parseSpQl(tokens: seq[Token]): SpqlNode =
         of "[].":                            parseCallToJsonArrayGroup()
 
         of "||", "%",
-          "==", "!=",
+          "=", "==", "!=",
           "<",  "<=",
           ">=", ">",
           "+" , "-",

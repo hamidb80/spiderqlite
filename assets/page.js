@@ -23,9 +23,19 @@ function dedent(text) {
     .trim()
 }
 
-// --------- utils -----------------------------------
+// --------- setup -----------------------------------
 
-up.compiler('code', function (element) {
+up.compiler('code', element => {
   element.innerHTML = dedent(element.innerHTML)
   hljs.highlightElement(element)
+})
+
+up.macro('[smooth-link]', link => {
+  link.setAttribute('up-transition', 'cross-fade')
+  link.setAttribute('up-easing',     'ease-out')
+  link.setAttribute('up-duration',   '350')
+})
+
+up.compiler("[redirect]", link => {
+  up.follow(link)
 })

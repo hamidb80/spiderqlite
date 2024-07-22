@@ -135,6 +135,7 @@ proc v[T](ctx: AppContext, cmd, env, path: string, convType: typedesc[T]): T =
 
 proc buildConfig*(ctx: AppContext): AppConfig = 
   ## TODO add maximum concurrent read connection for a database
+  ## TODO add single view where the user just wanna query and visualize single .db file
   
   AppConfig(
     server: ServerConfig(

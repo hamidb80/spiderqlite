@@ -1,11 +1,20 @@
 import std/[strformat]
 
-# ------------------------------ partials
+# ------------------------------ combinators
+
+proc redirectingHtml*(link: string): string =
+  fmt"""
+    <a href="{link}" smooth-link redirect >
+      redirecting ...
+    </a>
+  """
+
 
 func navPartial: string =
   """
   <nav class="navbar navbar-expand-lg bg-primary px-3 py-1" data-bs-theme="dark">
-    <a class="text-white mb-1 text-decoration-none" href="/" up-follow up-transition="cross-fade">
+    <a class="text-white mb-1 text-decoration-none" href="/" smooth-link>
+      <img src="/static/spider-web-slice.svg" width="40px">
       <i class="h3  ms-1">
         Sp<sub>ider</sub>QL
       </i>
@@ -13,14 +22,14 @@ func navPartial: string =
     <ul class="nav">
     
       <li class="nav-item">
-        <a class="nav-link" href="/docs/" up-follow up-transition="cross-fade">
+        <a class="nav-link" href="/docs/" smooth-link>
           Docs
           <i class="bi bi-journal-text"></i>
         </a>
       </li>
           
       <li class="nav-item">
-        <a class="nav-link" href="/sign-in/" up-follow up-transition="cross-fade">
+        <a class="nav-link" href="/sign-in/" smooth-link>
           sign-in
           <i class="bi bi-box-arrow-in-right"></i>
         </a>
@@ -29,7 +38,6 @@ func navPartial: string =
     </ul>
   </nav>
   """
-
 
 func wrapHtml(title, inner: string): string =
   fmt"""
@@ -69,6 +77,45 @@ func wrapHtml(title, inner: string): string =
     </main>
   </body>
   </html> 
+  """
+
+# ------------------------------ combinators
+
+func formField1(label, icon, name, id, typ: string): string = 
+  fmt"""
+    <fieldset class="my-2">
+
+      <label for="{id}">
+        <i class="bi {icon}"></i>
+        <i>{label}</i>
+      </label>
+      
+      <input 
+        id="{id}" type="{typ}" name="{name}" 
+        class="form-control bg-light">
+
+    </fieldset>
+  """
+
+func texticon(label, icon: string, tcls = "", icls = "", textFirst = true): string =
+    
+  let 
+    t = fmt "<span class=\"{tcls}\">{label}</span>"
+    i = fmt "<i class=\"bi {icon} {icls}\"></i>"
+
+  case textFirst
+  of true:  t & i
+  of false: i & t
+
+func lbtnicon(label, icon: string, cls = "", link = ""): string = 
+  let (tag, attrs) = 
+    if link == "": ("button", "")
+    else:          ("a"     , fmt "smooth-link href=\"{link}\"")
+
+  fmt"""
+    <{tag} {attrs} class="btn {cls}">
+      {texticon(label, icon, "ms-1 me-2")}
+    </{tag}>
   """
 
 # ------------------------------ pages
@@ -313,7 +360,7 @@ func landingPageHtml*: string =
               @acted_in a
               #person   p
               #movie    m
-                == .title "Cobra-11"
+                = .title "Cobra-11"
 
               ASK       p>-a->^m
               RETURN    p
@@ -385,42 +432,9 @@ func landingPageHtml*: string =
     </div>
     """
 
-
-func formField1(label, icon, name, id, typ: string): string = 
-  fmt"""
-    <fieldset class="my-2">
-
-      <label for="{id}">
-        <i class="bi {icon}"></i>
-        <i>{label}</i>
-      </label>
-      
-      <input 
-        id="{id}" type="{typ}" name="{name}" 
-        class="form-control bg-light">
-
-    </fieldset>
-  """
-
-func texticon(label, icon: string, tcls = "", icls = "", textFirst = true): string =
-    
-  let 
-    t = fmt "<span class=\"{tcls}\">{label}</span>"
-    i = fmt "<i class=\"bi {icon} {icls}\"></i>"
-
-  case textFirst
-  of true:  t & i
-  of false: i & t
-
-func lbtnicon(label, icon: string, cls = "", link = ""): string = 
-  let (tag, attrs) = 
-    if link == "": ("button", "")
-    else:          ("a"     , fmt "up-follow href=\"{link}\"")
-
-  fmt"""
-    <{tag} {attrs} class="btn {cls}">
-      {texticon(label, icon, "ms-1 me-2")}
-    </{tag}>
+func docsPageHtml*(): string = 
+  wrapHtml "landing", """
+    This is gonna be docs
   """
 
 
@@ -428,7 +442,14 @@ const
   signinIcon = "bi-box-arrow-in-right"
   signupIcon = "bi-person-add"
 
-func signinupPageHtml*(title, icon, inputs, btns: string): string =
+func signinupPageHtml*(title, icon: string, errors: seq[string], inputs, btns: string): string =
+  var errorsAcc = ""
+  for e in errors:
+    add errorsAcc, "<li>"
+    add errorsAcc, e
+    add errorsAcc, "</li>"
+
+
   wrapHtml title, fmt"""
     <div class="card mt-4 mx-auto shadow-sm" style="max-width: 600px;">
       <div class="card-header">
@@ -439,34 +460,34 @@ func signinupPageHtml*(title, icon, inputs, btns: string): string =
       <div class="card-body">
         <form action="." up-submit method="POST>
           {inputs}
-          <center>{btns}</center>
+          <ul>{errorsAcc}</ul>
+          <div class="d-flex justify-content-center mt-4">{btns}</div>
         </form>
       </div>
     </div>
   """
 
 
-func signinPageHtml*(): string =
-  signinupPageHtml "Sign In", signinIcon, fmt"""
+func signinPageHtml*(errors: seq[string]): string =
+  signinupPageHtml "Sign In", signinIcon, errors, fmt"""
           {formField1("username", "bi-at",       "username", "inp-uname", "text")}
           {formField1("passowrd", "bi-asterisk", "password", "inp-passw", "password")}
   """, fmt"""
-          {lbtnicon("sign up", signupIcon, "btn-outline-primary", "/sign-up/")}
-          {lbtnicon("sign in", signinIcon, "btn-primary")}
+          {lbtnicon("sign up", signupIcon, "btn-outline-primary mx-1", "/sign-up/")}
+          {lbtnicon("sign in", signinIcon, "btn-primary         mx-1")}
   """
 
-func signupPageHtml*(): string =
-  signinupPageHtml "Sign up", signupIcon, fmt"""
+func signupPageHtml*(errors: seq[string]): string =
+  signinupPageHtml "Sign up", signupIcon, errors, fmt"""
           {formField1("username", "bi-at",       "username", "inp-uname", "text")}
-          {formField1("passowrd", "bi-asterisk", "password", "inp-passw", "password")}
+          {formField1("password", "bi-asterisk", "password", "inp-passw", "password")}
   """, fmt"""
-          {lbtnicon("sign up", signupIcon, "btn-primary")}
-          {lbtnicon("sign in", signinIcon, "btn-outline-primary", "/sign-in/")}
+          {lbtnicon("sign up", signupIcon, "btn-primary         mx-1")}
+          {lbtnicon("sign in", signinIcon, "btn-outline-primary mx-1", "/sign-in/")}
   """
 
 
-func docsPageHtml*(): string = 
-  wrapHtml "landing", """
-    This is gonna be docs
+func profilePageHtml*(): string = 
+  wrapHtml "profile", """
+    your profile here
   """
-

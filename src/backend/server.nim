@@ -230,12 +230,13 @@ proc initApp(config: AppConfig): App =
           of 0:
             discard insertNodeDB(db, userTag, initUserDoc(uname, passw))
             req.respond 201, emptyHttpHeaders(), "OK"
+            # XXX
 
           else:
-            req.respond 200, emptyHttpHeaders(), "duplicated username"
-      
+            req.respond 200, emptyHttpHeaders(), signupPageHtml @["duplicated username"]
+
       else:
-        req.respond 200, emptyHttpHeaders(), signupPageHtml()
+        req.respond 200, emptyHttpHeaders(), signupPageHtml(@[])
 
     proc signinPage(req) =
       if isPost req:
@@ -252,24 +253,24 @@ proc initApp(config: AppConfig): App =
 
           case ans["result"].len
           of 0:
-            req.respond 200, emptyHttpHeaders(), "no such user"
+            req.respond 200, emptyHttpHeaders(), signinPageHtml(@["no such user"])
 
           else:
             let u = ans["result"][0]
 
             if u["doc"]["pass"].getStr == passw:
-              req.respond 200, emptyHttpHeaders(), $u
+              req.respond 200, emptyHttpHeaders(), redirectingHtml "/profile/"
             else:
-              req.respond 200, emptyHttpHeaders(), "pass wrong"
+              req.respond 200, emptyHttpHeaders(), signinPageHtml(@["pass wrong"])
             
       else:
-        req.respond 200, emptyHttpHeaders(), signinPageHtml()
+        req.respond 200, emptyHttpHeaders(), signinPageHtml(@[])
 
     proc signOutCookieSet: webby.HttpHeaders =
       result["Set-Cookie"] = $initCookie(authKey, "", path = "/")
 
     proc signoutPage(req) =
-      req.respond 200, signOutCookieSet(), "redirecting to ... XXX"
+      req.respond 200, signOutCookieSet(), redirectingHtml "/sign-in/"
 
 
     proc listUsersPage(req) = 
@@ -281,7 +282,7 @@ proc initApp(config: AppConfig): App =
       req.respond 200, signOutCookieSet(), "Nothing yet"
     
     proc profileDispatcher(req) = 
-      req.respond 200, signOutCookieSet(), "Nothing yet"
+      req.respond 200, signOutCookieSet(), profilePageHtml()
 
 
   proc initRouter: Router = 
