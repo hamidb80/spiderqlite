@@ -386,44 +386,83 @@ func landingPageHtml*: string =
     </div>
     """
 
-func signinPageHtml*(): string =
-  wrapHtml "sign up", """
+
+func formField1(label, icon, name, id, typ: string): string = 
+  fmt"""
+    <fieldset class="my-2">
+
+      <label for="{id}">
+        <i class="bi {icon}"></i>
+        <i>{label}</i>
+      </label>
+      
+      <input 
+        id="{id}" type="{typ}" name="{name}" 
+        class="form-control bg-light">
+
+    </fieldset>
+  """
+
+func texticon(label, icon: string, tcls = "", icls = "", textFirst = true): string =
+    
+  let 
+    t = fmt "<span class=\"{tcls}\">{label}</span>"
+    i = fmt "<i class=\"bi {icon} {icls}\"></i>"
+
+  case textFirst
+  of true:  t & i
+  of false: i & t
+
+func lbtnicon(label, icon: string, cls = "", link = ""): string = 
+  let (tag, attrs) = 
+    if link == "": ("button", "")
+    else:          ("a"     , fmt "up-follow href=\"{link}\"")
+
+  fmt"""
+    <{tag} {attrs} class="btn {cls}">
+      {texticon(label, icon, "ms-1 me-2")}
+    </{tag}>
+  """
+
+
+const 
+  signinIcon = "bi-box-arrow-in-right"
+  signupIcon = "bi-person-add"
+
+func signinupPageHtml*(title, icon, inputs, btns: string): string =
+  wrapHtml title, fmt"""
     <div class="card mt-4 mx-auto shadow-sm" style="max-width: 600px;">
       <div class="card-header">
         <h3>
-          <span>Sign In</span>
-          <i class="bi bi-box-arrow-in-right"></i>
+          {texticon(title, icon, "", "me-3", false)}
         </h3>
       </div>
       <div class="card-body">
         <form action="." up-submit method="POST>
-          <fieldset class="my-2">
-            <label for="">
-              <i class="bi bi-at"></i>
-              <i>username</i>
-            </label>
-            <input type="text" name="username" class="form-control bg-light">
-          </fieldset>
-
-          <fieldset class="my-2">
-            <label for="">
-              <i class="bi bi-asterisk"></i>
-              <i>password</i>
-            </label>
-            <input type="password" name="password" class="form-control bg-light">
-          </fieldset>
-
-          <center>
-            <button class="btn btn-primary mt-4">
-              <span class="mx-2">Sign In</span>
-              <i class="bi bi-box-arrow-in-right"></i>
-            </button>
-          </center>
-
+          {inputs}
+          <center>{btns}</center>
         </form>
       </div>
     </div>
-    
+  """
+
+
+func signinPageHtml*(): string =
+  signinupPageHtml "Sign In", signinIcon, fmt"""
+          {formField1("username", "bi-at",       "username", "inp-uname", "text")}
+          {formField1("passowrd", "bi-asterisk", "password", "inp-passw", "password")}
+  """, fmt"""
+          {lbtnicon("sign up", signupIcon, "btn-outline-primary", "/sign-up/")}
+          {lbtnicon("sign in", signinIcon, "btn-primary")}
+  """
+
+func signupPageHtml*(): string =
+  signinupPageHtml "Sign up", signupIcon, fmt"""
+          {formField1("username", "bi-at",       "username", "inp-uname", "text")}
+          {formField1("passowrd", "bi-asterisk", "password", "inp-passw", "password")}
+  """, fmt"""
+          {lbtnicon("sign up", signupIcon, "btn-primary")}
+          {lbtnicon("sign in", signinIcon, "btn-outline-primary", "/sign-in/")}
   """
 
 

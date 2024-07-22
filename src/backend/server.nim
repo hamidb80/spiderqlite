@@ -235,7 +235,7 @@ proc initApp(config: AppConfig): App =
             req.respond 200, emptyHttpHeaders(), "duplicated username"
       
       else:
-        req.respond 200, emptyHttpHeaders(), signinPageHtml()
+        req.respond 200, emptyHttpHeaders(), signupPageHtml()
 
     proc signinPage(req) =
       if isPost req:
@@ -244,7 +244,6 @@ proc initApp(config: AppConfig): App =
           uname = form["username"]
           passw = form["password"]
           ctx   = %*{"uname": uname}
-
 
         withDB:
           let ans = askQueryDB(
@@ -263,7 +262,6 @@ proc initApp(config: AppConfig): App =
             else:
               req.respond 200, emptyHttpHeaders(), "pass wrong"
             
-
       else:
         req.respond 200, emptyHttpHeaders(), signinPageHtml()
 

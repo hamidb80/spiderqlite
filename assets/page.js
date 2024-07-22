@@ -1,9 +1,10 @@
 
-function dedent(input) {
-  // Split the input into lines
-  const lines = input.split('\n')
+// --------- utils -----------------------------------
 
-  // Find the minimum indentation among all lines
+function dedent(text) {
+  // removes common indentation from `text`
+  const lines = text.split('\n')
+
   let minIndent = Infinity
   lines.forEach(line => {
     if (line.trim().length != 0) {
@@ -14,19 +15,17 @@ function dedent(input) {
     }
   })
 
-  // Remove the minimum indentation from each line
-  const dedentedLines = lines.map(line => line.substring(minIndent))
-  // Join the lines back together and return
-  const result = dedentedLines.join('\n')
+  // Find the minimum indentation among all lines
 
-  return result.trim()
+  return lines
+    .map(line => line.substring(minIndent)) // crop after minIndent
+    .join('\n')
+    .trim()
 }
 
-function replInner(el, replacer) {
-  el.innerHTML = replacer(el.innerHTML)
-}
+// --------- utils -----------------------------------
 
-for (let codeEl of document.querySelectorAll('code')) {
-  replInner(codeEl, dedent)
-  hljs.highlightElement(codeEl)
-}
+up.compiler('code', function (element) {
+  element.innerHTML = dedent(element.innerHTML)
+  hljs.highlightElement(element)
+})
