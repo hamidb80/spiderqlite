@@ -266,7 +266,7 @@ func landingPageHtml*: string =
               <div class="description">
                 <div class="h4">Data Loss?</div>
                 <p class="text-muted">
-                  you can set it to backup priodically
+                  you can set it to backup periodically
                 </p>
               </div>
             </div>
@@ -487,7 +487,38 @@ func signupPageHtml*(errors: seq[string]): string =
   """
 
 
+func userslistPageHtml*(): string = 
+  wrapHtml "profile", """
+    - name, total dbs, de-activate
+  """
+
 func profilePageHtml*(): string = 
   wrapHtml "profile", """
-    your profile here
+    your name
+    change password
+
+    new DB: inp[name] btn[new]
+    DBs list as table  
+      - name, last modification (os file time), db size, last backup
+  """
+
+func databasePageHtml*(): string = 
+  wrapHtml "database", """
+    db name
+    db overall analytics:
+      - all node tags with number of records
+      - all edge tags with number of records
+      - sum of them all
+    
+    table like view with ability to remove and insert data manually
+
+    download db directly
+
+    db size
+    last backup
+
+    backup now
+    delete
+
+    query + vis + see raw results
   """
