@@ -1,17 +1,25 @@
 import std/[json]
 
-import ../query_language/parser
 import ../bridge
 
 
-const 
-  userTag* = parseTag "#user"
+const # ---------- tags
   
+  userTag*     = parseTag "#user"
+  databaseTag* = parseTag "#db"
+  authTag*     = parseTag "#auth"
+  
+  ownsTag*     = parseTag "@owns"
+  forTag*      = parseTag "@for"
+
+
+const # ---------- queries
+
+  # schema = """ """
+
   get_user_by_name* = """
     #user  u
-      == 
-        .name 
-        |uname|
+      == .name |uname|
     ASK u
     RET u
   """
@@ -22,10 +30,14 @@ const
     RET   u
   """
   
-# ----------------------------------
+# ----- docs -------------------------------------
 
 func initUserDoc*(name, passw: string): JsonNode = 
   %*{
     "name": name,
     "pass": passw
   }
+
+func initDbDoc*(): JsonNode = 
+  %*{}
+
