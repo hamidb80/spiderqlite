@@ -134,6 +134,8 @@ proc v[T](ctx: AppContext, cmd, env, path: string, convType: typedesc[T]): T =
 
 
 proc buildConfig*(ctx: AppContext): AppConfig = 
+  ## TODO add maximum concurrent read connection for a database
+  
   AppConfig(
     server: ServerConfig(
       host:  v(ctx, "--host", "SPQL_HOST", "server.host", Host),

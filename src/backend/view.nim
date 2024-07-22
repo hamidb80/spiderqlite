@@ -310,13 +310,12 @@ func landingPageHtml*: string =
 
           <pre><code class="shadow rounded language-autoit">
               
+              @acted_in a
               #person   p
               #movie    m
                 == .title "Cobra-11"
 
-              @acted_in a
-
-              ASK       p>-a->m
+              ASK       p>-a->^m
               RETURN    p
 
             </code></pre>
