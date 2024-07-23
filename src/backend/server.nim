@@ -221,14 +221,14 @@ proc initApp(config: AppConfig): App =
 
     const authKey = "auth"
 
-    proc signInImpl(req; uid: Id) =
+    proc signInImpl(req; uid: Id, uname: string) =
       let token = $genOid()
       withDb:
         let 
           aid = insertNodeDB(db, parseTag "#auth",     %token)
           rid = insertEdgeDB(db, parseTag "#auth_for", newJNull(), aid, uid)
       
-      req.respond 200, toWebby @{"Set-Cookie": fmt"{authKey}={token}"} , redirectingHtml b"profile"()
+      req.respond 200, toWebby @{"Set-Cookie": fmt"{authKey}={token}"} , redirectingHtml (b"profile")(uname)
 
     proc signupPage(req) =
       if isPost req:
@@ -245,6 +245,7 @@ proc initApp(config: AppConfig): App =
           case ans["result"].len
           of 0:
             let uid = insertNodeDB(db, userTag, initUserDoc(uname, passw))
+            signInImpl req, uid, uname
           else:
             req.respond 200, emptyHttpHeaders(), signupPageHtml @["duplicated username"]
 
@@ -271,7 +272,7 @@ proc initApp(config: AppConfig): App =
           else:
             let u = ans["result"][0]
             if u[docCol]["pass"].getStr == passw:
-              signInImpl req, getInt u[idCol]
+              signInImpl req, getInt u[idCol], uname
             else:
               req.respond 200, emptyHttpHeaders(), signinPageHtml(@["pass wrong"])
             
@@ -288,31 +289,75 @@ proc initApp(config: AppConfig): App =
     proc listUsersPage(req) = 
       withDB:
         let d = askQueryDbRaw(db, s => "", parseSpQl all_users, app.defaultQueryStrategies)
-      req.respond 200, jsonHeader(), d
+      req.respond 200, emptyHttpHeaders(), "Nothing yet"
 
     proc userInfoPage(req) = 
-      req.respond 200, signOutCookieSet(), "Nothing yet"
+      req.respond 200, emptyHttpHeaders(), "Nothing yet"
     
-    proc profileDispatcher(req) = 
-      req.respond 200, signOutCookieSet(), profilePageHtml "usERnAmE"
+    proc userProfilePage(req) =
+      var  uname = 
+        if isPost req: ""
+        else:          req.queryParams["u"]
+
+      if isPost req:
+        let 
+          form = decodedQuery req.body
+
+        if   "add-database"    in form:
+          let 
+            dbname = form["database-name"]
+            uname  = form["username"]
+
+          withDB:
+            let
+              userDoc = db.askQueryDB(_ => $ %uname, parseSpql get_user_by_name, app.defaultQueryStrategies)
+              uid = userDoc["result"][0][idCol].getInt
+              did = db.insertNodeDB(dbTag,   initDbDoc dbname)
+              oid = db.insertEdgeDB(ownsTag, newJNull(), uid, did)
+
+            req.respond 200, emptyHttpHeaders(), redirectingHtml profile_url(uname)
+
+        elif "change-password" in form:
+          discard
+
+        else:
+          # invalid
+          discard
+        
+      else:
+        withDb:
+          let dbs = db.askQueryDB(
+              _ => $ %uname, 
+              parseSpQl dbs_of_user, 
+              app.defaultQueryStrategies)
+
+          debugEcho pretty dbs
+
+        req.respond 200, signOutCookieSet(), profilePageHtml(uname, dbs["result"].getElems)
+
+    proc databasePage(req) = 
+      req.respond 200, emptyHttpHeaders(), "Nothing yet"
 
 
   proc initRouter: Router = 
     with result:
-      get    "/",                        indexPage
-      get    "/static/**",               staticFilesServ
-      get    "/docs/",                   docsPage
+      get    br"landing",                indexPage
+      get    br"static-files",           staticFilesServ
+      get    br"docs",                   docsPage
 
-      get    "/sign-up/",                signupPage
-      post   "/sign-up/",                signupPage
-      post   "/api/sign-in/",            signinApi
-      get    "/sign-in/",                signinPage
-      post   "/sign-in/",                signinPage
-      post   "/sign-out/",               signoutPage
+      get    br"sign-up",                signupPage
+      post   br"sign-up",                signupPage
+      post   br"sign-in-api",            signinApi
+      get    br"sign-in",                signinPage
+      post   br"sign-in",                signinPage
+      post   br"sign-out",               signoutPage
       
-      get    "/users/",                  listUsersPage
-      get    "/user/",                   userInfoPage
-      get    "/profile/",                profileDispatcher
+      get    br"sign-up",                listUsersPage
+      get    br"users-list",             userInfoPage
+      get    br"profile",                userProfilePage
+      post   br"profile",                userProfilePage
+
+      get    br"database",               databasePage
 
       # post   "/api/database/",            initDB
       # get    "/api/databases/",         

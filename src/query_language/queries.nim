@@ -54,8 +54,8 @@ const nodeInsertQuery* = sql fmt"""
 
 const edgeInsertQuery* = sql fmt"""
   INSERT INTO
-  edges  ({tagCol}, {sourceCol}, {targetCol}, {docCol})
-  VALUES (?       , ?          , ?          , ?)
+  edges  ({tagCol}, {docCol}, {sourceCol}, {targetCol})
+  VALUES (?       , ?       , ?          , ?)
 """
 
 const nodeUpdateDocQuery* = sql fmt"""

@@ -93,6 +93,7 @@ proc updateEntityDocDB*(db, ent, id, doc): bool =
 
 proc askQueryDbRaw*(db, ctx, spql, queryStrateies): string = 
   let sql = toSql(spql, queryStrateies, ctx)
+  debugEcho sql
 
   result = newStringOfCap 1024 * 20 # KB
   << "{\"result\":["

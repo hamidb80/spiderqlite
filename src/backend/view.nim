@@ -1,4 +1,6 @@
-import std/[strformat]
+import std/[strformat, json]
+import ../query_language/core
+import ./routes
 
 # ------------------------------ combinators
 
@@ -11,7 +13,7 @@ proc redirectingHtml*(link: string): string =
 
 
 func navPartial: string =
-  """
+  fmt"""
   <nav class="navbar navbar-expand-lg bg-primary px-3 py-1" data-bs-theme="dark">
     <a class="text-white mb-1 text-decoration-none" href="/" smooth-link>
       <img src="/static/spider-web-slice.svg" width="40px">
@@ -22,23 +24,35 @@ func navPartial: string =
     <ul class="nav">
     
       <li class="nav-item">
-        <a class="nav-link" href="/docs/" smooth-link>
+        <a class="nav-link" href="{docs_url()}" smooth-link>
           Docs
           <i class="bi bi-journal-text"></i>
         </a>
       </li>
         
-
-
       <li class="nav-item">
-        <a class="nav-link" href="/sign-in/" smooth-link>
+        <a class="nav-link" href="{signin_url()}" smooth-link>
           sign-in
           <i class="bi bi-box-arrow-in-right"></i>
         </a>
       </li>
+
+      <li class="nav-item">
+        <a class="nav-link" href="{signout_url()}" smooth-link>
+          sign-out
+          <i class="bi bi-x"></i>
+        </a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link" href="{users_list_url()}" smooth-link>
+          users
+          <i class="bi bi-people"></i>
+        </a>
+      </li>
     
       <li class="nav-item">
-        <a class="nav-link" href="/playground/" smooth-link>
+        <a class="nav-link" href="{playground_url()}" smooth-link>
           playground
           <i class="bi bi-joystick"></i>  
         </a>
@@ -497,22 +511,38 @@ func signupPageHtml*(errors: seq[string]): string =
 
 
 func userslistPageHtml*(): string = 
-  wrapHtml "profile", """
+  wrapHtml "users", """
     - name, total dbs, de-activate
   """
 
-func profilePageHtml*(uname: string): string = 
+func profilePageHtml*(uname: string, dbs: seq[JsonNode]): string = 
+  var dbrows = ""
+  for db in dbs:
+    let dbname = db[docCol]["name"].getstr
+    
+    dbrows.add fmt"""
+  <tr>
+    <td>
+      <a href="{databaseurl uname, dbname}">{dbname}</a>
+    </td>
+    <td> 23 days ago </td>
+    <td>53 KB</td>
+    <td>last week</td>
+  </tr>
+  """
+
   wrapHtml uname & "'s profile", fmt"""
     <div class="container my-4">
       <h2 class="mb-4">
         <i class="bi bi-person-vcard"></i>
         <span class="mx-2">
-          <a href="">@{uname}</a>'s info
+          <a href=".">@{uname}</a>'s info
         </span>
       </h2>
 
       <div class="my-4">
-        <form action="/change_password" class="d-flex justify-content-between" method="post">
+        <form action="." up-submit class="d-flex justify-content-between" method="post">
+          <input type="hidden" name="change_password">
           <input type="password" name="" class="form-control" placeholder="new password">
           <button class="btn btn-primary text-nowrap">
             change password
@@ -524,7 +554,7 @@ func profilePageHtml*(uname: string): string =
       <div class="my-4">
         <h3>
           <i class="bi bi-collection"></i>
-          <span class="mx-2">Databases</span>
+          <span class="mx-2">Databases ({len dbs})</span>
         </h3>
 
         <table class="table table-hover">
@@ -537,22 +567,14 @@ func profilePageHtml*(uname: string): string =
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>
-                <a href="">
-                  name
-                </a>
-              </td>
-              <td> 23 days ago </td>
-              <td>53 KB</td>
-              <td>last week</td>
-            </tr>
+            {dbrows}
           </tbody>
         </table>
 
-        <form action="/new_database" class="d-flex justify-content-between" method="post">
-          <input type="text" name="" class="form-control" placeholder="database name">
-          <button class="btn btn-primary text-nowrap">
+        <form action="." method="post" up-submit class="d-flex justify-content-between">
+          <input type="hidden" name="username" value="{uname}">
+          <input type="text" name="database-name" class="form-control" placeholder="database name">
+          <button name="add-database" class="btn btn-primary text-nowrap">
             add database
             <i class="bi bi-database-add"></i>
           </button>

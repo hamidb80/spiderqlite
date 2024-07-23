@@ -29,7 +29,7 @@ func toIdentDef(e: NimNode): NimNode =
   newIdentDefs(e[0], e[1])
 
 
-macro braw*(nnode): untyped = 
+macro br*(nnode): untyped = 
   ## ident of correspoding function which computes url
   ident toUrlVarName  strval nnode
 
@@ -69,16 +69,17 @@ macro defRoute*(nameLit, path): untyped =
 # -------------------------------------------------------
 
 
-defRoute "staticFilesServ",       "/static/**"     ?  ()
+defRoute "static-files",     "/static/**"     ?  ()
 
-defRoute "indexPage",             "/"              ?  ()
-defRoute "docsPage",              "/docs/"         ?  ()
+defRoute "landing",          "/"              ?  ()
+defRoute "docs",             "/docs/"         ?  ()
+defRoute "playground",       "/playground/"   ?  ()
 
-defRoute "signupPage",            "/sign-up/"      ?  ()
-defRoute "signinPage",            "/sign-in/"      ?  ()
-defRoute "signoutPage",           "/sign-out/"     ?  ()
-defRoute "listUsersPage",         "/users/"        ?  ()
-defRoute "userInfoPage",          "/user/"         ?  ()
-defRoute "profile",               "/profile/"      ?  ()
+defRoute "sign-up",          "/sign-up/"      ?  ()
+defRoute "sign-in",          "/sign-in/"      ?  ()
+defRoute "sign-in-api",      "/api/sign-in/"  ?  ()
+defRoute "sign-out",         "/sign-out/"     ?  ()
+defRoute "profile",          "/profile/"      ?  (u: string)
+defRoute "users-list",       "/users/"        ?  ()
 
-defRoute "signinApi",             "/api/sign-in/"  ?  ()
+defRoute "database",         "/database/"     ?  (u: string, db: string)

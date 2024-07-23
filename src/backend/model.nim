@@ -6,7 +6,7 @@ import ../bridge
 const # ---------- tags
   
   userTag*     = parseTag "#user"
-  databaseTag* = parseTag "#db"
+  dbTag*       = parseTag "#db"
   authTag*     = parseTag "#auth"
   
   ownsTag*     = parseTag "@owns"
@@ -29,7 +29,17 @@ const # ---------- queries
     ASK   u
     RET   u
   """
-  
+
+  dbs_of_user* = """
+    @owns     o
+    #db       db
+    #user     u
+      == .name |uname|
+
+    ASK       ^u>-o->db
+    RET       db
+  """
+
 # ----- docs -------------------------------------
 
 func initUserDoc*(name, passw: string): JsonNode = 
@@ -38,6 +48,7 @@ func initUserDoc*(name, passw: string): JsonNode =
     "pass": passw
   }
 
-func initDbDoc*(): JsonNode = 
-  %*{}
+func initDbDoc*(name: string): JsonNode = 
+  %*{"name": name}
 
+# ----------------------------------------------
