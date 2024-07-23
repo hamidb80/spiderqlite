@@ -492,19 +492,69 @@ func userslistPageHtml*(): string =
     - name, total dbs, de-activate
   """
 
-func profilePageHtml*(): string = 
-  wrapHtml "profile", """
-    your name
-    change password
+func profilePageHtml*(uname: string): string = 
+  wrapHtml uname & "'s profile", fmt"""
+    <div class="container my-4">
+      <h2 class="mb-4">
+        <i class="bi bi-person-vcard"></i>
+        <span class="mx-2">
+          <a href="">@{uname}</a>'s info
+        </span>
+      </h2>
 
-    new DB: inp[name] btn[new]
-    DBs list as table  
-      - name, last modification (os file time), db size, last backup
+      <div class="my-4">
+        <form action="/change_password" class="d-flex justify-content-between" method="post">
+          <input type="password" name="" class="form-control" placeholder="new password">
+          <button class="btn btn-primary text-nowrap">
+            change password
+            <i class="bi bi-key"></i>
+          </button>
+        </form>
+      </div>
+
+      <div class="my-4">
+        <h3>
+          <i class="bi bi-collection"></i>
+          <span class="mx-2">Databases</span>
+        </h3>
+
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>name</th>
+              <th>last modification</th>
+              <th>size</th>
+              <th>last backup</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <a href="">
+                  name
+                </a>
+              </td>
+              <td> 23 days ago </td>
+              <td>53 KB</td>
+              <td>last week</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <form action="/new_database" class="d-flex justify-content-between" method="post">
+          <input type="text" name="" class="form-control" placeholder="database name">
+          <button class="btn btn-primary text-nowrap">
+            add database
+            <i class="bi bi-database-add"></i>
+          </button>
+        </form>
+      </div>
+    </div>
   """
 
 func databasePageHtml*(): string = 
   wrapHtml "database", """
-    db name
+    db name + rename
     db overall analytics:
       - all node tags with number of records
       - all edge tags with number of records

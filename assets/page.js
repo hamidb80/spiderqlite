@@ -32,8 +32,7 @@ up.compiler('code', element => {
 
 up.macro('[smooth-link]', link => {
   link.setAttribute('up-transition', 'cross-fade')
-  link.setAttribute('up-easing',     'ease-out')
-  link.setAttribute('up-duration',   '350')
+  link.setAttribute('up-duration',   '200')
 })
 
 up.compiler("[redirect]", link => {

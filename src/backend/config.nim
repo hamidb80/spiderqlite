@@ -12,6 +12,16 @@ type
     username*: string
     password*: Password
 
+  UsersConfig* = object
+    maxDatabases*: Natural
+    verificationAfterSignup*: bool
+
+  # TODO each database has some queries to explore
+  # PlaygroundConfig* = object
+
+  # TODO in database page get random node and edge of each tag and show its strcuture [fields with types] 
+    
+
   ServerConfig* = object
     host*: Host
     port*: Port
@@ -30,10 +40,8 @@ type
     performance*: bool
 
   AppConfig* = ref object
-    # TODO load from nimble file at compile file
-    # version:
-
     admin*:    AdminConfig
+    users*:    UsersConfig
 
     server*:   ServerConfig
     frontend*: FrontendConfig
@@ -135,7 +143,7 @@ proc v[T](ctx: AppContext, cmd, env, path: string, convType: typedesc[T]): T =
 
 proc buildConfig*(ctx: AppContext): AppConfig = 
   ## TODO add maximum concurrent read connection for a database
-  ## TODO add single view where the user just wanna query and visualize single .db file
+  #  sTOdo playDbFile: v(ctx, "--play-db-file", "SPQL_PLAY_DB_FILE", "storage.play_db_file", Path),
   
   AppConfig(
     server: ServerConfig(
@@ -149,6 +157,10 @@ proc buildConfig*(ctx: AppContext): AppConfig =
       enabled:  v(ctx, "--admin-enabled",  "SPQL_ADMIN_ENABLED",  "admin.enabled",  bool),
       username: v(ctx, "--admin-username", "SPQL_ADMIN_USERNAME", "admin.username", string),
       password: v(ctx, "--admin-password", "SPQL_ADMIN_PASSWORD", "admin.password", Password),
+    ),
+    users: UsersConfig(
+      maxDatabases:            v(ctx, "--user-max-dbs",            "SPQL_USER_MAX_DBS",            "users.max_dbs",            Natural),
+      verificationAfterSignup: v(ctx, "--user-needs-verification", "SPQL_USER_NEEDS_VERIFICATION", "users.needs_verification", bool),
     ),
     storage: StorageConfig(
       appDbFile:  v(ctx, "--app-db-file",  "SPQL_APP_DB_FILE",  "storage.app_db_file",  Path),

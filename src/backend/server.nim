@@ -282,7 +282,7 @@ proc initApp(config: AppConfig): App =
       req.respond 200, signOutCookieSet(), "Nothing yet"
     
     proc profileDispatcher(req) = 
-      req.respond 200, signOutCookieSet(), profilePageHtml()
+      req.respond 200, signOutCookieSet(), profilePageHtml "usERnAmE"
 
 
   proc initRouter: Router = 
