@@ -112,6 +112,14 @@ using
   varResolver:     string -> string
   queryStrategies: QueryStrategies
 
+
+const 
+  idCol*      = "__id"
+  tagCol*     = "__tag"
+  docCol*     = "__doc"
+  sourceCol*  = "__source"
+  targetCol*  = "__target"
+
 const 
   modeChars        = {'!', '?', '*'}
   markChars        = {'0' .. '9', '^', '$', '+'}
@@ -180,7 +188,7 @@ func `$`*(g: QueryGraph): string =
 
 # func repr(qc: QueryChain): string =
 #   qc.join " "
-    
+
 
 
 func infoLevel(n: QueryNode): int =
@@ -513,21 +521,23 @@ func fieldAccessOf(s: string): string {.inline.} =
 
 func sqlJsonNodeExpr*(s: string): string = 
   let fi = fieldAccessOf s
-  "json_object("                &
-  " 'id',  "      & fi & "id  " &
-  ",'tag', "      & fi & "tag " &
-  ",'doc', json(" & fi & "doc)" &
-  ")"
+  fmt"""
+  json_object(                   
+     '{idCol}',        {fi}{idCol}    
+    ,'{tagCol}',       {fi}{tagCol}   
+    ,'{docCol}', json( {fi}{docCol}   )  
+  )"""
 
 func sqlJsonEdgeExpr*(s: string): string = 
   let fi = fieldAccessOf s
-  "json_object("                   &
-  " 'id',  "      & fi & "id  "    &
-  ",'tag', "      & fi & "tag "    &
-  ",'doc', json(" & fi & "doc)"    &
-  ",'source', "   & fi & "source " &
-  ",'target', "   & fi & "target " &
-  ")"
+  fmt"""
+  json_object(                   
+     '{idCol}',          {fi}{idCol}    
+    ,'{tagCol}',         {fi}{tagCol}   
+    ,'{docCol}',    json({fi}{docCol}   )  
+    ,'{sourceCol}',      {fi}{sourceCol} 
+    ,'{targetCol}',      {fi}{targetCol} 
+  )"""
 
 func resolveSql(node: SpqlNode, relIdents: seq[string], mode: string, name: string, varResolver): string {.effectsOf: varResolver.} = 
   case node.kind
@@ -579,9 +589,9 @@ func resolveSql(node: SpqlNode, relIdents: seq[string], mode: string, name: stri
   of gkFieldAccess:
       let f = resolveSql(node.children[0], relIdents, "normal", name, varResolver)
       case f
-      of "id", "tag": fmt"{name}.{f}"
-      of "doc":       fmt"json({name}.{f})"
-      else:           fmt"json_extract({name}.doc, '$.{f}')"
+      of idCol, tagCol: fmt"{name}.{f}"
+      of docCol:        fmt"json({name}.{f})"
+      else:             fmt"json_extract({name}.{docCol}, '$.{f}')"
 
   of gkCase:
     "CASE " & 
@@ -613,7 +623,7 @@ func sqlCondsOfNode(gn; imap; node: string, varResolver): string {.effectsOf: va
         hasConds = n.children.len > 2
             
       if alias == node:
-        result.add fmt"({inode}.tag == '{tag}'"
+        result.add fmt"({inode}.{tagCol} == '{tag}'"
         
         if hasConds:
           result.add " AND (" & resolveSql(n.children[2], @[], "normal", inode, varResolver) & ")"
@@ -639,10 +649,10 @@ func sqlCondsOfEdge(gn; imap; edge, source, target: string, varResolver): string
         var acc: seq[string]
 
         if isrc != ".":
-          acc.add fmt"{iedge}.source == {isrc}.id"
+          acc.add fmt"{iedge}.{sourceCol} == {isrc}.{idCol}"
 
         if itar != ".":
-          acc.add fmt"{iedge}.target == {itar}.id"
+          acc.add fmt"{iedge}.{targetCol} == {itar}.{idCol}"
 
         case acc.len
         of 0: 

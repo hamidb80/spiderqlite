@@ -2,7 +2,7 @@ import std/[strformat, strutils, json, sugar]
 
 import db_connector/db_sqlite
 
-import ./query_language/[core, parser]
+import ./query_language/[core, parser, queries]
 import ./utils/other
 
 # --------- utils ------------------------------------
@@ -16,88 +16,6 @@ func parseTag*(s: string): Tag =
   if s.isEmptyOrWhitespace: raisee "empty tag"
   elif s[0] in {'#', '@'}: Tag s[1..^1]
   else: Tag s
-
-func sqlize(s: seq[int]): string =
-  '(' & s.joinComma & ')'
-
-func splitSqlQueries(stmts: string): seq[SqlQuery] =
-  for s in stmts.split ';':
-    if not isEmptyOrWhitespace s:
-      add result, sql s
-
-# --------- query gen --------------------------------
-
-const schemaInitQueries* = splitSqlQueries """
-  PRAGMA encoding="UTF-8";
-
-
-  CREATE TABLE IF NOT EXISTS nodes (
-      id          INTEGER PRIMARY KEY,
-      tag         TEXT,
-      doc         JSON NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS edges (
-      id          INTEGER PRIMARY KEY,
-      tag         TEXT,
-      doc         JSON    DEFAULT '{}',
-      source      INTEGER,
-      target      INTEGER,
-
-      FOREIGN KEY (source) REFERENCES nodes(id),
-      FOREIGN KEY (target) REFERENCES nodes(id)
-  );
-
-
-  CREATE INDEX IF NOT EXISTS node_index         ON nodes(id);
-  CREATE INDEX IF NOT EXISTS node_tag_index     ON nodes(tag);
-
-  CREATE INDEX IF NOT EXISTS edges_index        ON edges(id);
-  CREATE INDEX IF NOT EXISTS edges_source_index ON edges(source);
-  CREATE INDEX IF NOT EXISTS edges_target_index ON edges(target);
-"""
-
-const nodeInsertQuery* = sql """
-  INSERT INTO
-  nodes  (tag, doc) 
-  VALUES (?,   ?)
-"""
-
-const edgeInsertQuery* = sql """
-  INSERT INTO
-  edges  (tag, source, target, doc) 
-  VALUES (?,   ?,      ?,      ?)
-"""
-
-const nodeUpdateDocQuery* = sql"""
-  UPDATE nodes
-  SET    doc = ?
-  WHERE  id  = ?
-"""
-
-const edgeUpdateDocQuery* = sql"""
-  UPDATE edges
-  SET    doc = ?
-  WHERE  id  = ?
-"""
-
-
-func getEntityQuery*(entity: Entity): SqlQuery =
-  let select = case entity
-  of nodes: sqlJsonNodeExpr ""
-  of edges: sqlJsonEdgeExpr ""
-
-  sql fmt"""
-    SELECT {select}
-    FROM   {entity}
-    WHERE  id = ?
-  """
-
-func deleteEntitiesQuery*(entity: Entity, ids: seq[int]): SqlQuery =
-  sql fmt"""
-    DELETE FROM  {entity}
-    WHERE  id in {sqlize ids}
-  """
 
 # ----------------------------------------------------
 
@@ -173,6 +91,8 @@ proc updateEntityDocDB*(db, ent, id, doc): bool =
 
 proc askQueryDbRaw*(db, ctx, spql, queryStrateies): string = 
   let sql = toSql(spql, queryStrateies, ctx)
+  debugEcho "----------------------"
+  debugEcho sql
 
   result = newStringOfCap 1024 * 20 # KB
   << "{\"result\":["

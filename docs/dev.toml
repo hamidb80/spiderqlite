@@ -1,24 +1,27 @@
-[config]
-query_strategy_file_path = "./docs/strategies.toml"
+[config.server]
+host   = "0.0.0.0"
+port   = 6001
+
+[config.frontend]
+enabled  = true
+
+[config.admin]
+username = "admin"
+password = "1234"
+enabled  = true
+
+[config.users]
+max_dbs = 10
+needs_verification = true
 
 [config.storage]
 app_db_file = "./temp/app.db"
 users_db_dir = "./temp/"
-
 
 [config.logs]
 sql      = true
 req_body = true
 performance = true
 
-[config.frontend]
-enabled  = true
-
-[config.server]
-host   = "0.0.0.0"
-port   = 6001
-
-[config.admin]
-username = "admin"
-password = "1234"
-enabled  = true
+[config]
+query_strategy_file_path = "./docs/strategies.toml"

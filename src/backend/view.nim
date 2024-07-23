@@ -27,11 +27,20 @@ func navPartial: string =
           <i class="bi bi-journal-text"></i>
         </a>
       </li>
-          
+        
+
+
       <li class="nav-item">
         <a class="nav-link" href="/sign-in/" smooth-link>
           sign-in
           <i class="bi bi-box-arrow-in-right"></i>
+        </a>
+      </li>
+    
+      <li class="nav-item">
+        <a class="nav-link" href="/sign-in/" smooth-link>
+          playground
+          <i class="bi bi-joystick"></i>  
         </a>
       </li>
     

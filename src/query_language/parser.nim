@@ -261,7 +261,7 @@ func lexGql(content: string): seq[Token] =
       << Token(kind: lkDot)
       ++i
   
-    of Letters, '/', '+', '=', '<', '>', '^', '~', '$', '[', '{', '(':
+    of Letters, '_', '/', '+', '=', '<', '>', '^', '~', '$', '[', '{', '(':
       let 
         size = parseIdent(content, i)
         word = content[i..i+size]
