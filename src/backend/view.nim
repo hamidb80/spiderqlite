@@ -72,28 +72,26 @@ func wrapHtml(title, inner: string): string =
     
     <title>{title}</title>
 
-    <link rel="stylesheet" href="https://bootswatch.com/5/journal/bootstrap.min.css">
+    <!-- 3rd party -->
+
+    <!-- <link rel="stylesheet" href="https://bootswatch.com/5/journal/bootstrap.min.css"> -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <script src="https://cdn.jsdelivr.net/npm/unpoly@3.8.0/unpoly.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/unpoly@3.8.0/unpoly.min.css">
-
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/autoit.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/base16/decaf.min.css">
 
+    <!-- local -->
 
-    <script src="/static/page.js" defer></script>
-
-
+    <script src="/static/page.js" defer type="module"></script>
     <link rel="icon" type="image/x-icon" href="/static/logo.ico">
-
 
   </head>
   <body class="bg-light">
-
     <main>
       {navPartial()}
       {inner}
@@ -616,23 +614,26 @@ func profilePageHtml*(uname: string, dbs: seq[JsonNode]): string =
 
 func databasePageHtml*(uname, dbname: string): string = 
   wrapHtml fmt"{dbname} DB for @{uname}", fmt"""
-    <div class="d-none">
-      db name + rename
-      download db directly
-      db size
-      last backup
-      backup now
-      delete
+    <ul>
+      <li>db name + rename</li>
+      <li>download db directly</li>
+      <li>db size</li>
+      <li>last backup</li>
+      <li>backup now</li>
+      <li>delete</li>
     
-      db overall analytics:
-        - all node tags with number of records
-        - all edge tags with number of records
-        - sum of them all
+      <li>
+        db overall analytics:
+        <ul>
+          <li>all node tags with number of records</li>
+          <li>all edge tags with number of records</li>
+          <li>sum of them all</li>
+        </ul>
+      </li>
 
-      query + vis + see raw results
-
-      table like view with ability to remove and insert data manually
-    </div>
+      <li>query + vis + see raw results</li>
+      <li>table like view with ability to remove and insert data manually</li>
+    </ul>
 
     <div class="container my-4">
       <h2 class="mb-4">
@@ -643,5 +644,15 @@ func databasePageHtml*(uname, dbname: string): string =
           for <a href="{profile_url uname}" smooth-link>@{uname}</a>
         </sub>
       </h2>
+
+      <div>
+        <textarea for="#another-code" editor lang="sql">
+            SELECT *
+            FROM Tabl
+            -- wow commnet
+            WHERE id = 0
+        </textarea>
+      </div>
+
     </div>
   """

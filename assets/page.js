@@ -1,3 +1,4 @@
+import Yace from "https://unpkg.com/yace?module"
 
 // --------- utils -----------------------------------
 
@@ -32,7 +33,7 @@ up.compiler('code', element => {
 
 up.macro('[smooth-link]', link => {
   link.setAttribute('up-transition', 'cross-fade')
-  link.setAttribute('up-duration',   '200')
+  link.setAttribute('up-duration', '200')
 })
 
 up.compiler("[redirect]", link => {
