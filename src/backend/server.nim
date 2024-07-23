@@ -288,12 +288,9 @@ proc initApp(config: AppConfig): App =
 
     proc listUsersPage(req) = 
       withDB:
-        let d = askQueryDbRaw(db, s => "", parseSpQl all_users, app.defaultQueryStrategies)
-      req.respond 200, emptyHttpHeaders(), "Nothing yet"
+        let users = askQueryDb(db, s => "", parseSpQl all_users, app.defaultQueryStrategies)
+      req.respond 200, emptyHttpHeaders(), userslistPageHtml users["result"].getElems
 
-    proc userInfoPage(req) = 
-      req.respond 200, emptyHttpHeaders(), "Nothing yet"
-    
     proc userProfilePage(req) =
       var  uname = 
         if isPost req: ""
@@ -336,7 +333,18 @@ proc initApp(config: AppConfig): App =
         req.respond 200, signOutCookieSet(), profilePageHtml(uname, dbs["result"].getElems)
 
     proc databasePage(req) = 
-      req.respond 200, emptyHttpHeaders(), "Nothing yet"
+      let 
+        uname  = req.queryParams["u"]
+        dbname = req.queryParams["db"]
+
+      req.respond 200, emptyHttpHeaders(), databasePageHtml(uname, dbname)
+
+
+    proc databaseDownload(req) = 
+      # let 
+      #   uname  = req.queryParams["u"]
+      #   dbname = req.queryParams["db"]
+      req.respond 200, emptyHttpHeaders(), "nothing yet"
 
 
   proc initRouter: Router = 
@@ -350,35 +358,26 @@ proc initApp(config: AppConfig): App =
       post   br"sign-in-api",            signinApi
       get    br"sign-in",                signinPage
       post   br"sign-in",                signinPage
-      post   br"sign-out",               signoutPage
+      get    br"sign-out",               signoutPage
       
-      get    br"sign-up",                listUsersPage
-      get    br"users-list",             userInfoPage
+      get    br"users-list",             listUsersPage
       get    br"profile",                userProfilePage
       post   br"profile",                userProfilePage
 
-      get    br"database",               databasePage
+      get    br"database",               databasePage 
+      get    br"database-download",      databaseDownload
 
-      # post   "/api/database/",            initDB
-      # get    "/api/databases/",         
-      # delete "/api/database/",            delete database
-      # get    "/api/database/blueprint/",  gqlService
-      # post   "/api/database/blueprint/",  gqlService
-      # post   "/api/database/validate/",   validate database based on blueprint
-      # get    "/api/database/stats/",      stats
-      # get    "/api/database/backups/",    backup
-
-      get    "/api/",                     apiHome
-      post   "/api/database/query/",      askQueryApi
-      get    "/api/database/node/",       getNodeApi
-      get    "/api/database/edge/",       getEdgeApi
-      post   "/api/database/nodes/",      insertNodesApi
-      post   "/api/database/edges/",      insertEdgesApi
-      put    "/api/database/nodes/",      updateNodesApi
-      put    "/api/database/nodes/",      updateEdgesApi
-      delete "/api/database/nodes/",      deleteNodesApi
-      delete "/api/database/edges/",      deleteEdgesApi
-
+      get     br"api-home",              apiHome
+      post    br"api-query-database",    askQueryApi
+      get     br"api-get-node-by-id",    getNodeApi
+      get     br"api-get-edge-by-id",    getEdgeApi
+      post    br"api-insert-nodes",      insertNodesApi
+      post    br"api-insert-edges",      insertEdgesApi
+      put     br"api-update-nodes",      updateNodesApi
+      put     br"api-update-edges",      updateEdgesApi
+      delete  br"api-delete-nodes",      deleteNodesApi
+      delete  br"api-delete-edges",      deleteEdgesApi
+      
       # get    "/api/database/indexes/",  gqlService
       # post   "/api/database/index/",    gqlService
       # delete "/api/database/index/",    gqlService

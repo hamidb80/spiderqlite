@@ -510,9 +510,40 @@ func signupPageHtml*(errors: seq[string]): string =
   """
 
 
-func userslistPageHtml*(): string = 
-  wrapHtml "users", """
-    - name, total dbs, de-activate
+func userslistPageHtml*(users: seq[JsonNode]): string = 
+  var dbRows = ""
+  for u in users:
+    let uname = u[docCol]["name"].getstr
+    dbRows.add fmt"""
+      <tr>
+        <td>
+          <a href="{profile_url uname}" smooth-link>
+            @{uname}
+          </a>
+        </td>
+        <td>N/A</td>
+      </tr>
+    """
+
+  wrapHtml "users", fmt"""
+    <div class="container my-4">
+      <h2 class="mb-4">
+        <i class="bi bi-people"></i>
+        <span>Users</span>
+      </h2>
+
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>name</th>
+            <th>total DBs</th>
+          </tr>
+        </thead>
+        <tbody>
+          {dbrows}
+        </tbody>
+      </table>
+    </div>
   """
 
 func profilePageHtml*(uname: string, dbs: seq[JsonNode]): string = 
@@ -523,7 +554,7 @@ func profilePageHtml*(uname: string, dbs: seq[JsonNode]): string =
     dbrows.add fmt"""
   <tr>
     <td>
-      <a href="{databaseurl uname, dbname}">{dbname}</a>
+      <a href="{databaseurl uname, dbname}" smooth-link>{dbname}</a>
     </td>
     <td> 23 days ago </td>
     <td>53 KB</td>
@@ -536,7 +567,7 @@ func profilePageHtml*(uname: string, dbs: seq[JsonNode]): string =
       <h2 class="mb-4">
         <i class="bi bi-person-vcard"></i>
         <span class="mx-2">
-          <a href=".">@{uname}</a>'s info
+          <a href="{profile_url uname}" smooth-link>@{uname}</a>'s info
         </span>
       </h2>
 
@@ -583,23 +614,34 @@ func profilePageHtml*(uname: string, dbs: seq[JsonNode]): string =
     </div>
   """
 
-func databasePageHtml*(): string = 
-  wrapHtml "database", """
-    db name + rename
-    db overall analytics:
-      - all node tags with number of records
-      - all edge tags with number of records
-      - sum of them all
+func databasePageHtml*(uname, dbname: string): string = 
+  wrapHtml fmt"{dbname} DB for @{uname}", fmt"""
+    <div class="d-none">
+      db name + rename
+      download db directly
+      db size
+      last backup
+      backup now
+      delete
     
-    table like view with ability to remove and insert data manually
+      db overall analytics:
+        - all node tags with number of records
+        - all edge tags with number of records
+        - sum of them all
 
-    download db directly
+      query + vis + see raw results
 
-    db size
-    last backup
+      table like view with ability to remove and insert data manually
+    </div>
 
-    backup now
-    delete
-
-    query + vis + see raw results
+    <div class="container my-4">
+      <h2 class="mb-4">
+        <i class="bi bi-database"></i>
+        <span>Database</span>
+        <a href="{database_url uname, dbname}" smooth-link>{dbname}</a>
+        <sub class="text-secondary">
+          for <a href="{profile_url uname}" smooth-link>@{uname}</a>
+        </sub>
+      </h2>
+    </div>
   """
