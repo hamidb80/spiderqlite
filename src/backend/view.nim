@@ -38,7 +38,7 @@ func navPartial: string =
       </li>
     
       <li class="nav-item">
-        <a class="nav-link" href="/sign-in/" smooth-link>
+        <a class="nav-link" href="/playground/" smooth-link>
           playground
           <i class="bi bi-joystick"></i>  
         </a>

@@ -1,6 +1,6 @@
 ## routes will be defined here to cross access
 ## 
-import std/[strutils, uri, macros, sequtils]
+import std/[strutils, uri, macros, sequtils, strformat]
 import macroplus
 
 
@@ -19,12 +19,10 @@ func safeUrl*(i: SomeNumber or bool): string {.inline.} =
 func safeUrl*(s: string): string {.inline.} =
   encodeUrl s
 
-
 proc dispatchInfo(entry: NimNode): tuple[url: NimNode, args: seq[NimNode]] =
-  case entry.kind
-  of nnkStrLit: (entry, @[])
-  of nnkInfix:  (entry[1], entry[2][0..^1])
-  else:         raise newException(ValueError, "?")
+  expectKind  entry, nnkInfix
+  expectIdent entry[0], "?"
+  (entry[1], entry[2][0..^1])
 
 func toIdentDef(e: NimNode): NimNode =
   expectKind e, nnkExprColonExpr
@@ -60,9 +58,10 @@ macro defUrl*(nameLit, path): untyped =
         procbody)
 
 
+
 defUrl "sign-in",                "/sign-in/"    ? ()
 defUrl "sign-up",                "/sign-up/"    ? ()
 defUrl "sign-out",               "/sign-out/"   ? ()
 
 defUrl "my-profile",             "/profile/me/" ? ()
-defUrl "user-profile",           "/profile/"    ? (id: Id)
+defUrl "user-profile",           "/profile/"    ? (id: int)

@@ -258,7 +258,7 @@ proc initApp(config: AppConfig): App =
           else:
             let u = ans["result"][0]
 
-            if u["doc"]["pass"].getStr == passw:
+            if u["__doc"]["pass"].getStr == passw:
               req.respond 200, emptyHttpHeaders(), redirectingHtml "/profile/"
             else:
               req.respond 200, emptyHttpHeaders(), signinPageHtml(@["pass wrong"])
