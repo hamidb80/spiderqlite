@@ -29,7 +29,15 @@ func toIdentDef(e: NimNode): NimNode =
   newIdentDefs(e[0], e[1])
 
 
-macro defUrl*(nameLit, path): untyped =
+macro u*(nnode): untyped = 
+  ## ident of correspoding var which stores raw url
+  ident toUrlProcName strval nnode
+
+macro ur*(nnode): untyped = 
+  ## ident of correspoding function which computes url
+  ident toUrlVarName  strval nnode
+
+macro defRoute*(nameLit, path): untyped =
   result = newStmtList()
 
   let
@@ -58,10 +66,16 @@ macro defUrl*(nameLit, path): untyped =
         procbody)
 
 
+# -------------------------------------------------------
 
-defUrl "sign-in",                "/sign-in/"    ? ()
-defUrl "sign-up",                "/sign-up/"    ? ()
-defUrl "sign-out",               "/sign-out/"   ? ()
 
-defUrl "my-profile",             "/profile/me/" ? ()
-defUrl "user-profile",           "/profile/"    ? (id: int)
+defRoute "indexPage",             "/"              ?  ()
+defRoute "staticFilesServ",       "/static/**"     ?  ()
+defRoute "docsPage",              "/docs/"         ?  ()
+defRoute "signupPage",            "/sign-up/"      ?  ()
+defRoute "signinApi",             "/api/sign-in/"  ?  ()
+defRoute "signinPage",            "/sign-in/"      ?  ()
+defRoute "signoutPage",           "/sign-out/"     ?  ()
+defRoute "listUsersPage",         "/users/"        ?  ()
+defRoute "userInfoPage",          "/user/"         ?  ()
+defRoute "profileDispatcher",     "/profile/"      ?  ()
