@@ -47,7 +47,7 @@ type
       discard
   
 
-  GqlKind* = enum
+  Spqlkind* = enum
     gkDef         # #tag
     gkFieldPred   # inside def
     gkAsk         # ask [query]
@@ -111,7 +111,7 @@ type
   SpqlNode* = ref object
     children*: seq[SpqlNode]
 
-    case kind*: GqlKind
+    case kind*: Spqlkind
     of gkDef:
       defKind*: GqlDefKind
 
@@ -357,7 +357,7 @@ func lexGql(content: string): seq[Token] =
       raisee "invalid char: " & ch
 
 
-template gNode*(k: GqlKind, ch: seq[SpqlNode] = @[]): SpqlNode =
+template gNode*(k: Spqlkind, ch: seq[SpqlNode] = @[]): SpqlNode =
   SpqlNode(kind: k, children: ch)
 
 template gIdent*(str): SpqlNode =

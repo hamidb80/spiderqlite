@@ -509,3 +509,6 @@ Here are some of the things that I found worth mentioning.
 > I don't have brain to write more SQLs anymore -- *me*
 
 > Friends don't let friends write SQL -- *MongoDB ads*, [WTF](https://www.linkedin.com/pulse/friends-dont-let-use-mongodb-constantin-a-alexander)
+
+## Mascot
+![SpiderQL Mascot](./assets/mascot.png)

@@ -700,7 +700,7 @@ func deepIdentReplace(gn; imap) =
   else:
     discard
 
-func findNode(gn; kind: GqlKind): Option[SpqlNode] = 
+func findNode(gn; kind: SpqlKind): Option[SpqlNode] = 
   for ch in gn.children:
     if ch.kind == kind: 
       return some ch
