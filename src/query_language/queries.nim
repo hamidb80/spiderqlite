@@ -49,12 +49,12 @@ const schemaInitQueries* = splitSqlQueries fmt"""
 const nodeInsertQuery* = sql fmt"""
   INSERT INTO
   nodes  ({tagCol}, {docCol}) 
-  VALUES (?,   ?)
+  VALUES (?       , ?)
 """
 
 const edgeInsertQuery* = sql fmt"""
   INSERT INTO
-  edges  ({tagCol}, {sourceCol}, {targetCol}, {docCol}) 
+  edges  ({tagCol}, {sourceCol}, {targetCol}, {docCol})
   VALUES (?       , ?          , ?          , ?)
 """
 

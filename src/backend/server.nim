@@ -1,4 +1,4 @@
-import std/[strutils, strformat, tables, json, monotimes, os, times, with, sugar, uri, mimetypes, paths]
+import std/[strutils, strformat, tables, json, monotimes, os, times, with, sugar, uri, mimetypes, paths, oids]
 
 import db_connector/db_sqlite
 import mummy, mummy/routers
@@ -10,6 +10,7 @@ import cookiejar
 import ../query_language/[parser, core]
 import ../utils/other
 import ../bridge
+import routes
 import ./[model, view, config]
 
 
@@ -140,17 +141,23 @@ proc initApp(config: AppConfig): App =
     proc getEdgeApi(req) = getEntity req, edges
 
 
-    proc insertEntities(req; inserter: proc(db: DbConn, t: Tag, doc: JsonNode): Id) {.effectsOf: inserter.} =
+    proc insertNodesApi(req) = 
       let j = parseJson req.body
       withDB:
         let ids = collect:
           for n in j:
-            inserter db, parseTag getstr n["tag"], n["doc"]
+            insertNodeDB db, parseTag getstr n["tag"], n["doc"]
 
       req.respond 200, jsonHeader(), jsonAffectedRows(len ids, ids)
 
-    proc insertNodesApi(req) = insertEntities req, insertNodeDB
-    proc insertEdgesApi(req) = insertEntities req, insertEdgeDB
+    proc insertEdgesApi(req) = 
+      let j = parseJson req.body
+      withDB:
+        let ids = collect:
+          for n in j:
+            insertEdgeDB db, parseTag getstr n["tag"], n["doc"], getInt n["source"], getInt n["target"]
+
+      req.respond 200, jsonHeader(), jsonAffectedRows(len ids, ids)
 
 
     proc updateEntity(req; ent: Entity) =
@@ -214,6 +221,15 @@ proc initApp(config: AppConfig): App =
 
     const authKey = "auth"
 
+    proc signInImpl(req; uid: Id) =
+      let token = $genOid()
+      withDb:
+        let 
+          aid = insertNodeDB(db, parseTag "#auth",     %token)
+          rid = insertEdgeDB(db, parseTag "#auth_for", newJNull(), aid, uid)
+      
+      req.respond 200, toWebby @{"Set-Cookie": fmt"{authKey}={token}"} , redirectingHtml b"profile"()
+
     proc signupPage(req) =
       if isPost req:
         let 
@@ -228,10 +244,7 @@ proc initApp(config: AppConfig): App =
 
           case ans["result"].len
           of 0:
-            discard insertNodeDB(db, userTag, initUserDoc(uname, passw))
-            req.respond 201, emptyHttpHeaders(), "OK"
-            # XXX
-
+            let uid = insertNodeDB(db, userTag, initUserDoc(uname, passw))
           else:
             req.respond 200, emptyHttpHeaders(), signupPageHtml @["duplicated username"]
 
@@ -257,9 +270,8 @@ proc initApp(config: AppConfig): App =
 
           else:
             let u = ans["result"][0]
-
-            if u["__doc"]["pass"].getStr == passw:
-              req.respond 200, emptyHttpHeaders(), redirectingHtml "/profile/"
+            if u[docCol]["pass"].getStr == passw:
+              signInImpl req, getInt u[idCol]
             else:
               req.respond 200, emptyHttpHeaders(), signinPageHtml(@["pass wrong"])
             

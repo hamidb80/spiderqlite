@@ -32,6 +32,8 @@ using
   id:      Id
   ids: seq[Id]
 
+  src, tar: Id
+
   queryStrateies: QueryStrategies
 
 
@@ -57,8 +59,8 @@ proc getEdgeDB*(db, id): JsonNode =
 proc insertNodeDB*(db, tag, doc): Id =
   insertID db, nodeInsertQuery, string tag, $doc
 
-proc insertEdgeDB*(db, tag, doc): Id =
-  insertID db, edgeInsertQuery, string tag, $doc
+proc insertEdgeDB*(db, tag, doc, src, tar): Id =
+  insertID db, edgeInsertQuery, string tag, $doc, src, tar
 
 
 proc deleteEntitiesDB*(db, ent, ids): Natural =
@@ -91,8 +93,6 @@ proc updateEntityDocDB*(db, ent, id, doc): bool =
 
 proc askQueryDbRaw*(db, ctx, spql, queryStrateies): string = 
   let sql = toSql(spql, queryStrateies, ctx)
-  debugEcho "----------------------"
-  debugEcho sql
 
   result = newStringOfCap 1024 * 20 # KB
   << "{\"result\":["
@@ -107,7 +107,7 @@ proc askQueryDbRaw*(db, ctx, spql, queryStrateies): string =
 
   if result[^1] == ',': # check for 0 results
     result.less
-  
+
   << "],\"length\":"
   << $rows
   << '}'
