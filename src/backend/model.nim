@@ -10,13 +10,18 @@ const # ---------- tags
   userTag*     = parseTag "#user"
   dbTag*       = parseTag "#db"
   authTag*     = parseTag "#auth"
-  ownsTag*     = parseTag "@owns"
+  backupTag*   = parseTag "#backup"
+  
+  ownsTag*       = parseTag "@owns"
+  isBackupOfTag* = parseTag "@is_backup_of"
 
 
 const # ----------- local aliases
+
   user   = userTag
   db     = dbTag
   auth   = authTag
+
   owns   = ownsTag
 
 
