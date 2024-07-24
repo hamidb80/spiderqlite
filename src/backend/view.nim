@@ -656,7 +656,7 @@ func databasePageHtml*(
       <tr>
         <td>{i}</td>
         <td>
-          <pre><code lang="JSON">{pretty j}</code></pre>
+          <pre><code lang="JSON" class="compact">{pretty j}</code></pre>
         </td>
       </tr>
     """

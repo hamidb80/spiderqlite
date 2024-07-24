@@ -1,4 +1,3 @@
-
 ::-moz-selection {
   color: white;
   background: var(--bs-info);
@@ -13,9 +12,16 @@
 .row .bi {
   font-size: 40px;
 }
+
 .row .icon {
   margin-top: -10px;
 }
+
 pre {
   overflow: visible;
+  margin: 0;
+}
+
+code.compact {
+  padding: 4px 10px !important;
 }
