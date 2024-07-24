@@ -17,7 +17,7 @@ func navPartial: string =
   <nav class="navbar navbar-expand-lg bg-primary px-3 py-1" data-bs-theme="dark">
     <a class="text-white mb-1 text-decoration-none" href="/" smooth-link>
       <img src="/static/spider-web-slice.svg" width="40px">
-      <i class="h3  ms-1">
+      <i class="h3 ms-1">
         Sp<sub>ider</sub>QL
       </i>
     </a>
@@ -74,7 +74,7 @@ func wrapHtml(title, inner: string): string =
 
     <!-- 3rd party -->
 
-    <!-- <link rel="stylesheet" href="https://bootswatch.com/5/journal/bootstrap.min.css"> -->
+    <link rel="stylesheet" href="https://bootswatch.com/5/journal/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <script src="https://cdn.jsdelivr.net/npm/unpoly@3.8.0/unpoly.min.js"></script>
@@ -143,21 +143,6 @@ func lbtnicon(label, icon: string, cls = "", link = ""): string =
 
 func landingPageHtml*: string =
   wrapHtml "landing", """
-    <style>
-      .row .bi {
-        font-size: 40px;
-      }
-
-      .row .icon {
-        margin-top: -10px;
-      }
-
-      pre {
-        overflow: visible;
-      }
-    </style>
-
-
     <div class="bg-white">
       <div class=" container p-4">
         <h2 class="d-flex justify-content-start">
@@ -614,27 +599,6 @@ func profilePageHtml*(uname: string, dbs: seq[JsonNode]): string =
 
 func databasePageHtml*(uname, dbname: string): string = 
   wrapHtml fmt"{dbname} DB for @{uname}", fmt"""
-    <ul>
-      <li>db name + rename</li>
-      <li>download db directly</li>
-      <li>db size</li>
-      <li>last backup</li>
-      <li>backup now</li>
-      <li>delete</li>
-    
-      <li>
-        db overall analytics:
-        <ul>
-          <li>all node tags with number of records</li>
-          <li>all edge tags with number of records</li>
-          <li>sum of them all</li>
-        </ul>
-      </li>
-
-      <li>query + vis + see raw results</li>
-      <li>table like view with ability to remove and insert data manually</li>
-    </ul>
-
     <div class="container my-4">
       <h2 class="mb-4">
         <i class="bi bi-database"></i>
@@ -646,13 +610,107 @@ func databasePageHtml*(uname, dbname: string): string =
       </h2>
 
       <div>
-        <textarea for="#another-code" editor lang="sql">
-            SELECT *
-            FROM Tabl
-            -- wow commnet
-            WHERE id = 0
-        </textarea>
+      
+        <form action="." method="post" up-submit class="d-flex justify-content-between">
+          <input type="hidden" name="username" value="{uname}">
+          <input type="text" value="{dbname}" name="database-name" class="form-control" placeholder="database name">
+          <button name="add-database" class="btn btn-primary text-nowrap">
+            rename
+            <i class="bi bi-alphabet-uppercase"></i>
+          </button>
+        </form>
+
+        <div>
+          <a href="??" class="btn btn-outline-primary">
+            <i class="bi bi-cloud-download"></i>
+            <span>download</span>
+          </a>
+
+          <a href="??" class="btn btn-outline-primary">
+            <i class="bi bi-floppy2"></i>
+            <span>back-up</span>
+          </a>
+
+          <a href="??" class="btn btn-outline-primary">
+            <i class="bi bi-trash-fill"></i>
+            <span>delete</span>
+          </a>
+
+        </div>
+
       </div>
+
+      <div>
+        <h3>
+          <i class="bi bi-graph-up"></i>
+          Analysis
+        </h3>
+
+        <ul>
+          <li>
+            <i class="bi bi-slash-circle"></i>
+            all node tags with number of records
+          </li>
+          <li>
+            <i class="bi bi-bounding-box-circles"></i>
+            all edge tags with number of records
+          </li>
+          <li>
+            <i class="bi bi-plus-slash-minus"></i>
+            sum of them all
+          </li>
+        </ul>
+      </div>
+      
+      <div>
+        <h3>
+          <i class="bi bi-info-square"></i>
+          Info
+        </h3>
+        <ul>
+          <li>
+            <i class="bi bi-sd-card"></i>
+            db size
+          </li>
+          <li>
+            <i class="bi bi-cloud-check"></i>
+            last backup
+          </li>
+        </ul>
+      </div>
+
+      <div>
+        <h3>
+          <i class="bi bi-qr-code"></i>
+          Query
+        </h3>
+
+        <div>
+          <textarea for="#another-code" editor lang="sql">
+              SELECT *
+              FROM Tabl
+              -- wow commnet
+              WHERE id = 0
+          </textarea>
+        </div>
+
+        <h3>
+          <i class="bi bi-stickies-fill"></i>
+          Results
+        </h3>
+        table
+
+        <h3>
+          <i class="bi bi-radar"></i>
+          Visualize
+        </h3>
+
+        <h3>
+          <i class="bi bi-plus-circle-dotted"></i>
+          Add
+        </h3>
+      </div>
+
 
     </div>
   """
