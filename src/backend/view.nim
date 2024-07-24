@@ -608,8 +608,7 @@ func profilePageHtml*(uname: string, dbs: seq[JsonNode], sizes, lastModification
           </tbody>
         </table>
 
-        <form action="." method="post" up-submit class="d-flex justify-content-between">
-          <input type="hidden" name="username" value="{uname}">
+        <form action="{profile_url uname}" method="post" up-submit class="d-flex justify-content-between">
           <input type="text" name="database-name" class="form-control" placeholder="database name">
           <button name="add-database" class="btn btn-primary text-nowrap">
             add database
@@ -845,7 +844,7 @@ func databasePageHtml*(
         </h3>
 
         <form action="{database_url uname, dbname}" method="POST" up-submit up-target="#query_results">
-          <textarea class="form-control" name="spql_query" lang="sql">
+          <textarea class="form-control editor-height" name="spql_query" lang="sql">
               #user u
               ask   u
               ret   u
@@ -866,7 +865,7 @@ func databasePageHtml*(
           <table class="table table-hover shadow-sm" id="query_results">
             <thead>
               <tr>
-                <th>
+                <th class="min">
                   <i class="bi bi-hash"></i>
                   Index
                 </th>
@@ -891,9 +890,57 @@ func databasePageHtml*(
 
         <div>
           <h3>
-            <i class="bi bi-plus-circle-dotted"></i>
+            <i class="bi bi-plus"></i>
             Add
           </h3>
+
+
+          <h4>
+            <i class="bi bi-node-plus"></i>
+            Node
+          </h4>
+
+          <form action="{database_url uname, dbname}" method="post" up-submit class="d-flex justify-content-between">
+            <input type="text" name="node-tag" class="form-control" placeholder="tag" required>
+            <input type="file" name="node-doc" class="form-control" placeholder="JSON data" required>
+            <button name="add-node" class="btn btn-outline-primary text-nowrap">
+              <i class="bi bi-plus"></i>
+            </button>
+          </form>
+
+          <h4>
+            <i class="bi bi-share"></i>
+            Edge
+          </h4>
+
+          
+          <form action="{database_url uname, dbname}" method="post" up-submit>
+            <fieldset class="d-flex justify-content-between">
+              <input type="text" name="edge-tag" class="form-control" placeholder="tag" required>
+              <input type="file" name="edge-doc" class="form-control" placeholder="JSON data" required>
+            </fieldset>
+            <fieldset class="d-flex justify-content-between">
+              <input type="number" name="source-id" class="form-control" placeholder="source id">
+              <input type="number" name="target-id" class="form-control" placeholder="target id">
+              <button name="add-edge" class="btn btn-outline-primary text-nowrap">
+                <i class="bi bi-plus"></i>
+              </button>
+            </fieldset>
+          </form>
+
+          <h4>
+            <i class="bi bi-collection-play"></i>
+            Collection
+          </h4>
+
+          <form action="{database_url uname, dbname}" method="post" up-submit class="d-flex justify-content-between">
+            <input type="file" name="node-doc" class="form-control" placeholder="JSON data" required>
+            <button name="add-collection" class="btn btn-outline-primary text-nowrap">
+              <i class="bi bi-cloud-upload"></i>
+              Upload collection              
+            </button>
+          </form>
+
         </div>
 
       </div>

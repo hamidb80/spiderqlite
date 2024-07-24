@@ -307,19 +307,13 @@ proc initApp(config: AppConfig): App =
       req.respond 200, emptyHttpHeaders(), userslistPageHtml users["result"].getElems
 
     proc userProfilePage(req) =
-      var  uname = 
-        if isPost req: ""
-        else:          req.queryParams["u"]
+      let uname = req.queryParams["u"]
 
       if isPost req:
-        let 
-          form = decodedQuery req.body
+        let form = decodedQuery req.body
 
         if   "add-database"    in form:
-          let 
-            dbname = form["database-name"]
-            uname  = form["username"] 
-          
+          let dbname = form["database-name"]
           prepareDB app.userDbPath(uname, dbname)
 
           withDB:

@@ -25,3 +25,13 @@ pre {
 code.compact {
   padding: 4px 10px !important;
 }
+
+.editor-height{
+  min-height: 240px !important;
+}
+
+.min {
+  /* https://stackoverflow.com/questions/26983301/how-to-make-a-table-column-be-a-minimum-width */
+  width: 1%;
+  white-space: nowrap;
+}
