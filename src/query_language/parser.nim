@@ -115,7 +115,7 @@ type
     of gkDef:
       defKind*: GqlDefKind
 
-    of gkIdent, gkStrLit, gkComment, gkVar:
+    of gkIdent, gkStrLit, gkComment, gkVar, gkInfix, gkPrefix, gkCall:
       sval*: string
 
     of gkIntLit:
@@ -365,42 +365,37 @@ template gIdent*(str): SpqlNode =
   SpqlNode(kind: gkIdent, sval: str)
 
 template prefixNode*(str: string): SpqlNode =
-  SpqlNode(kind: gkPrefix, children: @[gIdent str])
+  SpqlNode(kind: gkPrefix, sval: str)
 
 template infixNode*(str: string): SpqlNode =
-  SpqlNode(kind: gkInfix, children: @[gIdent str])
+  SpqlNode(kind: gkInfix, sval: str)
 
 
 
 func parseCallToJson*           (): SpqlNode =
   SpqlNode(
     kind: gkCall, 
-    children: @[
-      SpqlNode(kind: gkIdent, sval: "json")])
+    sval: "json")
 
 func parseCallToJsonObject*     (): SpqlNode =
   SpqlNode(
     kind: gkCall, 
-    children: @[
-      SpqlNode(kind: gkIdent, sval: "json_object")])
+    sval: "json_object")
 
 func parseCallToJsonObjectGroup*(): SpqlNode =
   SpqlNode(
     kind: gkCall, 
-    children: @[
-      SpqlNode(kind: gkIdent, sval: "json_group_object")])
+    sval: "json_group_object")
 
 func parseCallToJsonArray*      (): SpqlNode =
   SpqlNode(
     kind: gkCall, 
-    children: @[
-      SpqlNode(kind: gkIdent, sval: "json_array")])
+    sval: "json_array")
 
 func parseCallToJsonArrayGroup* (): SpqlNode =
   SpqlNode(
     kind: gkCall, 
-    children: @[
-      SpqlNode(kind: gkIdent, sval: "json_group_array")])
+    sval: "json_group_array")
 
 
 func parseSpQl(tokens: seq[Token]): SpqlNode = 
@@ -518,18 +513,24 @@ func parseSpQl(tokens: seq[Token]): SpqlNode =
     ++i
 
     if isNode:
+      proc addNode(cont: var SpqlNode, node: SpqlNode) = 
+        if cont.kind == gkCall and cont.sval == "":
+          cont.sval = node.sval
+        else:
+          cont.children.add node
+
       if isFirst:
-        add stack[^1].children,              node
+        addNode stack[^1], node
       
       elif # to prevent [somehting .field] bug which `field` gets into `something` not `.`
         stack[^1].children[^1].children.len               >  0             and 
         stack[^1].children[^1].children[^1].kind          == gkFieldAccess and
         stack[^1].children[^1].children[^1].children.len  == 0
       :
-        add stack[^1].children[^1].children[^1].children, node
+        addNode stack[^1].children[^1].children[^1], node
       
       else:
-        add stack[^1].children[^1].children, node
+        addNode stack[^1].children[^1], node
 
     isFirst = t.kind in {lkSep, lkIndent, lkDeIndent}
     isNode  = false

@@ -73,7 +73,7 @@ func isPost(req): bool =
 #     raisee "invalid json kind: " & $j.kind
 
 
-func extractStrategies(tv: TomlValueRef): seq[TomlValueRef] = 
+func extractStrategies*(tv: TomlValueRef): seq[TomlValueRef] = 
   getElems tv["strategies"]
 
 

@@ -549,16 +549,15 @@ func sqlJsonEdgeExpr*(s: string): string =
 func resolveSql(node: SpqlNode, relIdents: seq[string], mode: string, name: string, varResolver): string {.effectsOf: varResolver.} = 
   case node.kind
   of gkInfix:       [
-    resolveSql(node.children[1], relIdents, mode, name, varResolver), 
     resolveSql(node.children[0], relIdents, mode, name, varResolver), 
-    resolveSql(node.children[2], relIdents, mode, name, varResolver)].join " "
+    node.sval,
+    resolveSql(node.children[1], relIdents, mode, name, varResolver)].join " "
 
   of gkPrefix:     
-    let s = node.children[0].sval
-    case s
+    case node.sval
     of  "$": 
       "'' || " & 
-      resolveSql(node.children[1], relIdents, mode, name, varResolver)
+      resolveSql(node.children[0], relIdents, mode, name, varResolver)
 
     else: 
       resolveSql(node.children[0], relIdents, mode, name, varResolver) &
@@ -574,7 +573,7 @@ func resolveSql(node: SpqlNode, relIdents: seq[string], mode: string, name: stri
 
   of gkVar:      varResolver node.sval
 
-  of gkIdent:     
+  of gkIdent:   
     let s = node.sval
     case node.children.len
     of 0: 
@@ -586,11 +585,11 @@ func resolveSql(node: SpqlNode, relIdents: seq[string], mode: string, name: stri
       resolveSql(node.children[0], relIdents, mode, s, varResolver)
     else:
       raisee "invalid ident with children count of: " & $node.children.len
-  
-  of gkCall: 
-      node.children[0].sval & 
+
+  of gkCall:
+      node.sval & 
       '(' & 
-      node.children.rest.mapit(resolveSql(it, relIdents, mode, name, varResolver)).join(", ") &
+      node.children.mapit(resolveSql(it, relIdents, mode, name, varResolver)).join(", ") &
       ')'
 
   of gkFieldAccess:
@@ -680,10 +679,6 @@ func findIdents(gn; result: var seq[string]) =
   of gkIdent:
     result.add gn.sval
   
-  of gkCall, gkInfix, gkPrefix:
-    for ch in rest gn.children:
-      findIdents ch, result
-
   else:
     for a in gn.children:
       findIdents a, result
@@ -696,11 +691,7 @@ func deepIdentReplace(gn; imap) =
   of gkIdent: 
     gn.sval = imap[gn.sval]
   
-  of gkCall, gkInfix, gkPrefix:
-    for ch in rest gn.children:
-      deepIdentReplace ch, imap
-
-  of gkWrapper, gkTake, gkGroupBy, gkHaving, gkOrderBy, gkCase, gkElse, gkWhen:
+  of gkWrapper, gkTake, gkGroupBy, gkHaving, gkOrderBy, gkCase, gkElse, gkWhen, gkInfix, gkPrefix, gkCall:
     for ch in gn.children:
       deepIdentReplace ch, imap
 
