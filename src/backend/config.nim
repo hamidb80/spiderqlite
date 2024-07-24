@@ -29,6 +29,7 @@ type
   StorageConfig* = object
     appDbFile*:  Path
     usersDbDir*: Path
+    backupDir*:  Path
 
   FrontendConfig* = object
     enabled*: bool
@@ -165,6 +166,7 @@ proc buildConfig*(ctx: AppContext): AppConfig =
     storage: StorageConfig(
       appDbFile:  v(ctx, "--app-db-file",  "SPQL_APP_DB_FILE",  "storage.app_db_file",  Path),
       usersDbDir: v(ctx, "--users-db-dir", "SPQL_USERS_DB_DIR", "storage.users_db_dir", Path),
+      backupDir:  v(ctx, "--backup-dir",   "SPQL_BACKUP_DIR",   "storage.backup_dir",   Path),
     ),
 
     logs: LogConfig(

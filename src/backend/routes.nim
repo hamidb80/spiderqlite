@@ -84,8 +84,6 @@ defRoute "users-list",       "/users/"        ?  ()
 
 defRoute "database",          "/database/"           ?  (u: string, db: string)
 defRoute "database-download", "/database/download/"  ?  (u: string, db: string)
-defRoute "database-back-up",  "/database/backup/"    ?  (u: string, db: string)
-defRoute "remove-database",   "/database/delete/"    ?  (u: string, db: string)
 
 defRoute "api-home",             "/api/"                 ? ()
 defRoute "api-query-database",   "/api/database/query/"  ? ()

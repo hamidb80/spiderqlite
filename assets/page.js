@@ -1,5 +1,3 @@
-import Yace from "https://unpkg.com/yace?module"
-
 // --------- utils -----------------------------------
 
 function dedent(text) {
@@ -29,6 +27,10 @@ function dedent(text) {
 up.compiler('code', element => {
   element.innerHTML = dedent(element.innerHTML)
   hljs.highlightElement(element)
+})
+
+up.compiler('textarea[lang]', element => {
+  element.value = dedent(element.value)
 })
 
 up.macro('[smooth-link]', link => {

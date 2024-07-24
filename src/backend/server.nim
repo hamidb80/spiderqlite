@@ -83,15 +83,20 @@ proc prepareDB(fpath: Path) =
   if not fileExists fpath: 
     initDB fpath
 
-proc initApp(config: AppConfig): App = 
-  var app = App(config: config)
+proc preapreStorage(config: AppConfig) = 
   discard existsOrCreateDir config.storage.appDbFile.string.splitPath.head
   discard existsOrCreateDir config.storage.usersDbDir.string
+  discard existsOrCreateDir config.storage.backupdir.string
+
   prepareDB config.storage.appDbFile
+
+proc initApp(config: AppConfig): App = 
+  preapreStorage config
+
+  var app = App(config: config)
 
   proc getDB: DbConn = 
     openSqliteDB app.config.storage.appDbFile
-
 
   template logBody: untyped =
     if app.config.logs.reqbody:
@@ -358,8 +363,13 @@ proc initApp(config: AppConfig): App =
       let 
         uname  = req.queryParams["u"]
         dbname = req.queryParams["db"]
+        path   = string userDbPath(app, uname, dbname)
 
-      req.respond 200, emptyHttpHeaders(), databasePageHtml(uname, dbname)
+      req.respond 200, emptyHttpHeaders(), databasePageHtml(
+        uname, 
+        dbname, 
+        int getFileSize path,
+        toUnix getLastModificationTime path)
 
 
     proc databaseDownload(req) = 
@@ -373,6 +383,17 @@ proc initApp(config: AppConfig): App =
           "Content-Disposition": fmt "attachment; filename=\"{dbname}.db.sqlite3\"",
         }, 
         readfile string app.userDbPath(uname, dbname))
+
+
+    proc databaseBackup(req) = 
+      let 
+        uname  = req.queryParams["u"]
+        dbname = req.queryParams["db"]
+
+    proc databaseRemove(req) = 
+      let 
+        uname  = req.queryParams["u"]
+        dbname = req.queryParams["db"]
 
 
   proc initRouter: Router = 
@@ -393,9 +414,8 @@ proc initApp(config: AppConfig): App =
       post   br"profile",                userProfilePage
 
       get    br"database",               databasePage 
+      post   br"database",               databasePage 
       get    br"database-download",      databaseDownload
-      get    br"database-back-up",       databaseDownload
-      get    br"remove-database",        databaseDownload
 
       get     br"api-home",              apiHome
       post    br"api-query-database",    askQueryApi

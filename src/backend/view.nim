@@ -155,7 +155,7 @@ func landingPageHtml*: string =
           </i>
         </h3>
         <div class="mt-4 d-flex justify-content-center">
-          <img src="/static/logo-cc.svg" width="200px">
+          <img src="/static/logo-cc-rev.svg" width="200px">
         </div>
         <h1 class="text-center">
           Sp<sub>ider</sub>QL
@@ -513,10 +513,12 @@ func userslistPageHtml*(users: seq[JsonNode]): string =
     <div class="container my-4">
       <h2 class="mb-4">
         <i class="bi bi-people"></i>
-        <span>Users</span>
+        <span>
+          Users ({users.len})
+        </span>
       </h2>
 
-      <table class="table table-hover">
+      <table class="table table-hover shadow-sm">
         <thead>
           <tr>
             <th>
@@ -580,7 +582,7 @@ func profilePageHtml*(uname: string, dbs: seq[JsonNode], sizes, lastModification
           <span class="mx-2">Databases ({len dbs})</span>
         </h3>
 
-        <table class="table table-hover">
+        <table class="table table-hover shadow-sm">
           <thead>
             <tr>
               <th>
@@ -618,7 +620,7 @@ func profilePageHtml*(uname: string, dbs: seq[JsonNode], sizes, lastModification
     </div>
   """
 
-func databasePageHtml*(uname, dbname: string): string = 
+func databasePageHtml*(uname, dbname: string, size, lastmodif: int): string = 
   wrapHtml fmt"{dbname} DB for @{uname}", fmt"""
     <div class="container my-4">
       <h2 class="mb-4">
@@ -638,42 +640,33 @@ func databasePageHtml*(uname, dbname: string): string =
         <ul>
           <li>
             <i class="bi bi-sd-card"></i>
-            db size
+            <b>db size</b>
+            <span>{size}</span>
           </li>
           <li>
             <i class="bi bi-cloud-check"></i>
-            last backup
+            <b>last backup</b>
+            <span>{lastmodif}</span>
           </li>
         </ul>
       </div>
 
-      <div>
-        <form action="." method="post" up-submit class="d-flex justify-content-between">
-          <input type="hidden" name="username" value="{uname}">
-          <input type="text" value="{dbname}" name="database-name" class="form-control" placeholder="database name">
-          <button name="add-database" class="btn btn-primary text-nowrap">
-            rename
-            <i class="bi bi-alphabet"></i>
-          </button>
-        </form>
-      </div>
-
-      <div>
+      <form method="post" action="{database_url uname, dbname}">
         <a href="{database_download_url uname, dbname}" class="btn btn-outline-primary">
           <i class="bi bi-cloud-download"></i>
           <span>download</span>
         </a>
 
-        <a href="{database_backup_url uname, dbname}" class="btn btn-outline-primary">
+        <button name="backup-database" class="btn btn-outline-primary">
           <i class="bi bi-floppy"></i>
           <span>back-up</span>
-        </a>
+        </button>
 
-        <a href="{remove_database_url uname, dbname}" class="btn btn-outline-primary">
+        <button name="remove-database" class="btn btn-outline-primary">
           <i class="bi bi-trash"></i>
-          <span>delete</span>
-        </a>
-      </div>
+          <span>remove</span>
+        </button>
+      </form>
 
 
       <div>
@@ -706,7 +699,7 @@ func databasePageHtml*(uname, dbname: string): string =
         </h3>
 
         <div>
-          <textarea for="#another-code" editor lang="sql">
+          <textarea class="form-control" lang="sql">
               SELECT *
               FROM Tabl
               -- wow commnet

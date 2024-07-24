@@ -18,7 +18,7 @@ func sqlize(s: seq[int]): string =
 
 
 const schemaInitQueries* = splitSqlQueries fmt"""
-  PRAGMA encoding="UTF-8";
+  PRAGMA encoding = "UTF-8";
 
   CREATE TABLE IF NOT EXISTS nodes (
       {idCol}          INTEGER PRIMARY KEY,
@@ -58,17 +58,26 @@ const edgeInsertQuery* = sql fmt"""
   VALUES (?       , ?       , ?          , ?)
 """
 
-const nodeUpdateDocQuery* = sql fmt"""
-  UPDATE nodes
+
+func entityUpdateDocQuery(entity: Entity): SqlQuery = sql fmt"""
+  UPDATE {entity}
   SET    {docCol} = ?
   WHERE  {idCol}  = ?
 """
 
-const edgeUpdateDocQuery* = sql fmt"""
-  UPDATE edges
-  SET    {docCol} = ?
-  WHERE  {idCol}  = ?
-"""
+const nodeUpdateDocQuery* = entityUpdateDocQuery nodes
+const edgeUpdateDocQuery* = entityUpdateDocQuery edges
+
+
+func countEntities(entity: Entity): SqlQuery = 
+  sql fmt"""
+    SELECT   it.tag, COUNT(1) as count
+    FROM     {entity} it
+    GROUP BY it.{tagCol}
+  """
+
+const countNodes* = countEntities nodes
+const countEdges* = countEntities edges
 
 
 func getEntityQuery*(entity: Entity): SqlQuery =
