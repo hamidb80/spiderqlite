@@ -365,6 +365,8 @@ proc initApp(config: AppConfig): App =
         dbname = req.queryParams["db"]
         path   = string userDbPath(app, uname, dbname)
 
+        
+
       req.respond 200, emptyHttpHeaders(), databasePageHtml(
         uname, 
         dbname, 

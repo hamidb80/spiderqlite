@@ -9,6 +9,19 @@ import ./parser
 import ../utils/[other, mat]
 
 
+
+const 
+  nodesTable* = "Nodes"
+  edgesTable* = "Edges"
+
+  idCol*      = "__id"
+  tagCol*     = "__tag"
+  docCol*     = "__doc"
+  sourceCol*  = "__head"
+  targetCol*  = "__tail"
+
+
+
 type
   AskPatKind = enum
     apkNode
@@ -54,7 +67,7 @@ type
     of qpMulti:
       travel: Travel[QueryNode]
 
-  QueryNode  = object
+  QueryNode    = object
     ident:  string
     mode:   char   ## nothing, !, ?, *
     mark:   char   ## special prefix, is used to differentiate
@@ -101,9 +114,10 @@ type
     byPattern
     byKey
 
+type
   Entity* = enum
-    nodes = "nodes"
-    edges = "edges"
+    nodes = nodesTable
+    edges = edgesTable
 
 
 using 
@@ -112,13 +126,6 @@ using
   varResolver:     string -> string
   queryStrategies: QueryStrategies
 
-
-const 
-  idCol*      = "__id"
-  tagCol*     = "__tag"
-  docCol*     = "__doc"
-  sourceCol*  = "__source"
-  targetCol*  = "__target"
 
 const 
   modeChars        = {'!', '?', '*'}
@@ -754,6 +761,12 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
 
       of sqkCommand:
         case toUpperAscii p.cmd         
+        of "NODE":
+          fmt"{nodes} {p.args[0]}"
+
+        of "EDGE":
+          fmt"{edges} {p.args[0]}"
+
         of "CHECK_CONDS":
           sqlCondsOfNode(gn, imap, revmap[p.args[0]], varResolver)
 

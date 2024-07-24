@@ -4,10 +4,10 @@ parameters = "a"
 pattern    = "a"
 selectable = "a"
 sql        = '''
-  SELECT 
+  SELECT  
     |select_fields|
   FROM
-    nodes a
+    |node a|
   WHERE 
     |check_conds a|
   |group_statement|
@@ -26,10 +26,10 @@ sql        = '''
   SELECT 
     |select_fields|
   FROM
-    nodes a
+    |node a|
   INNER JOIN 
-    edges c,
-    nodes b
+    |edge c|,
+    |node b|
   ON
     |check_conds c|     AND
     |check_rels c a b|
@@ -53,14 +53,14 @@ sql        = '''
   SELECT 
     |select_fields|
   FROM
-    nodes a
+    |node a|
   LEFT JOIN
-    edges c 
+    |edge c|
   ON 
     |check_conds c|     AND
     |check_rels  c a .|
   LEFT JOIN
-    nodes b 
+    |node b|
   ON 
     |check_rels c . b| AND
     |check_conds b|
@@ -82,17 +82,14 @@ sql        = '''
   SELECT 
     |select_fields|
   FROM   
-    nodes a
+    |node a|
   WHERE  
     |check_conds a| 
     AND NOT EXISTS 
     (
-      SELECT 
-        1
-      FROM   
-        edges c
-      JOIN   
-        nodes b 
+      SELECT 1
+      FROM   |edge c|
+      JOIN   |node b|
       ON 
         |check_conds c|    AND
         |check_rels c a b|
@@ -110,10 +107,10 @@ sql        = '''
   SELECT 
     |select_fields|
   FROM
-    edges c
+    |edge c|
   INNER JOIN 
-    nodes a,
-    nodes b
+    |node a|,
+    |node b|
   ON
     |check_conds a| AND
     |check_conds b| AND
@@ -136,10 +133,10 @@ sql        = '''
   SELECT 
     |select_fields|
   FROM
-    nodes b
+    |node b|
   INNER JOIN 
-    edges c,
-    nodes a
+    |edge c|,
+    |node a|
   ON
     |check_conds a| AND
     |check_conds c| AND
@@ -162,10 +159,10 @@ sql        = '''
   SELECT 
     |select_fields|
   FROM
-    nodes a
+    |node a|
   INNER JOIN 
-    edges c1,
-    nodes b
+    |edge c1|,
+    |node b|
   ON
         |check_conds b|       AND
         |check_conds c1|      AND

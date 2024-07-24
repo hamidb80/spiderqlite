@@ -20,42 +20,42 @@ func sqlize(s: seq[int]): string =
 const schemaInitQueries* = splitSqlQueries fmt"""
   PRAGMA encoding = "UTF-8";
 
-  CREATE TABLE IF NOT EXISTS nodes (
+  CREATE TABLE IF NOT EXISTS {nodes} (
       {idCol}          INTEGER PRIMARY KEY,
       {tagCol}         TEXT,
       {docCol}         JSON NOT NULL
   );
 
-  CREATE TABLE IF NOT EXISTS edges (
+  CREATE TABLE IF NOT EXISTS {edges} (
       {idCol}       INTEGER PRIMARY KEY,
       {tagCol}      TEXT,
       {docCol}      JSON,
       {sourceCol}   INTEGER,
       {targetCol}   INTEGER,
 
-      FOREIGN KEY ({sourceCol}) REFERENCES nodes({idCol}),
-      FOREIGN KEY ({targetCol}) REFERENCES nodes({idCol})
+      FOREIGN KEY ({sourceCol}) REFERENCES {nodes} ({idCol}),
+      FOREIGN KEY ({targetCol}) REFERENCES {nodes} ({idCol})
   );
 
 
-  CREATE INDEX IF NOT EXISTS node_index         ON nodes({idCol});
-  CREATE INDEX IF NOT EXISTS node_tag_index     ON nodes({tagCol});
+  CREATE INDEX IF NOT EXISTS node_index         ON {nodes} ({idCol});
+  CREATE INDEX IF NOT EXISTS node_tag_index     ON {nodes} ({tagCol});
 
-  CREATE INDEX IF NOT EXISTS edges_index        ON edges({idCol});
-  CREATE INDEX IF NOT EXISTS edges_source_index ON edges({sourceCol});
-  CREATE INDEX IF NOT EXISTS edges_target_index ON edges({targetCol});
+  CREATE INDEX IF NOT EXISTS edges_index        ON {edges} ({idCol});
+  CREATE INDEX IF NOT EXISTS edges_source_index ON {edges} ({sourceCol});
+  CREATE INDEX IF NOT EXISTS edges_target_index ON {edges} ({targetCol});
 """
 
 const nodeInsertQuery* = sql fmt"""
-  INSERT INTO
-  nodes  ({tagCol}, {docCol}) 
-  VALUES (?       , ?)
+  INSERT   INTO
+  {nodes}  ({tagCol}, {docCol}) 
+  VALUES   (?       , ?)
 """
 
 const edgeInsertQuery* = sql fmt"""
-  INSERT INTO
-  edges  ({tagCol}, {docCol}, {sourceCol}, {targetCol})
-  VALUES (?       , ?       , ?          , ?)
+  INSERT   INTO
+  {edges}  ({tagCol}, {docCol}, {sourceCol}, {targetCol})
+  VALUES   (?       , ?       , ?          , ?)
 """
 
 
@@ -71,9 +71,14 @@ const edgeUpdateDocQuery* = entityUpdateDocQuery edges
 
 func countEntities(entity: Entity): SqlQuery = 
   sql fmt"""
-    SELECT   it.tag, COUNT(1) as count
+    SELECT   
+      it.{tagCol}      as tag_name, 
+      COUNT(1)         as count,
+      MAX(it.{idCol})  as max_id,    -- to ensure always get latest doc from next item
+      it.{docCol}      as sample_doc
     FROM     {entity} it
     GROUP BY it.{tagCol}
+    ORDER BY count DESC
   """
 
 const countNodes* = countEntities nodes
