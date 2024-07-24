@@ -6,6 +6,7 @@ import webby
 import parsetoml
 import cookiejar
 # TODO use waterpark
+# import pretty
 
 import ../query_language/[parser, core]
 import ../utils/other
@@ -375,7 +376,24 @@ proc initApp(config: AppConfig): App =
 
           dn     = sum cnodes.mapit(it.count)
           de     = sum cedges.mapit(it.count)
-      
+
+        var queryReuslts: seq[JsonNode]
+
+        if isPost req:
+          let form = decodedQuery req.body
+          
+          if "ask" in form:
+            let 
+              c    = form["spql_query"]
+              spql = parseSpql c
+
+            # print spql
+            # debugecho c
+            queryReuslts = db.askQueryDB(
+                _ => "\"???\"", 
+                spql, 
+                app.defaultQueryStrategies)["result"].getElems
+
 
       req.respond 200, emptyHttpHeaders(), databasePageHtml(
         uname, 
@@ -384,7 +402,8 @@ proc initApp(config: AppConfig): App =
         toUnix getLastModificationTime path,
         cnodes, cedges,
         ln, le,
-        dn, de)
+        dn, de,
+        queryReuslts)
 
 
     proc databaseDownload(req) = 

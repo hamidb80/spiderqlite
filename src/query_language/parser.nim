@@ -168,6 +168,7 @@ func parseIdent(str; starti): Natural =
   for i in starti..str.high:
     if str[i] in Whitespace:
       return i - starti - 1
+  return str.len - starti - 1
 
 func parseString(str; starti): Natural = 
   var escaped = false
@@ -207,7 +208,7 @@ func gWrapper: SpqlNode =
   SpqlNode(kind: gkWrapper) 
 
 
-func lexGql(content: string): seq[Token] = 
+func lexSpql(content: string): seq[Token] = 
   let
     indentInfo = firstLineIndentation content
 
@@ -455,7 +456,7 @@ func parseSpQl(tokens: seq[Token]): SpqlNode =
 
     of lkIdent, lkOperator:
       newNode:
-        case t.sval
+        case t.sval.toUpperAscii
         of "ASK",  "MATCH",  "FROM":         gNode gkAsk
         of "TAKE", "SELECT", "RETURN", "RET":gNode gkTake
 
@@ -539,28 +540,5 @@ func parseSpQl(tokens: seq[Token]): SpqlNode =
   stack[0]
   
 func parseSpQl*(content: string): SpqlNode = 
-  parseSpQl lexGql content
+  parseSpQl lexSpql content
 
-
-when isMainModule:
-  import pretty
-
-  # TODO write == function
-  # TODO move it to test
-
-  let 
-    multiline = parseSpQl """
-      #user  u
-        == 
-          .name 
-          |uname|
-    """
-    singleline = parseSpQl """
-      #user  u
-        == .name |uname|
-    """
-
-
-  print multiline
-  print singleline
-  assert multiline == singleline

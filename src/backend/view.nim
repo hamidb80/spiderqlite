@@ -626,10 +626,12 @@ func databasePageHtml*(
   nodesInfo, edgesInfo: seq[tuple[tag: string, count: int, doc: JsonNode]], 
   tagsOfNodes, tagsOfEdges: int,
   totalNodes,  totalEdges: int,
+  queryResults: seq[JsonNode],
 ): string = 
   var 
-    nodeRows = ""
-    edgeRows = ""
+    nodeRows   = ""
+    edgeRows   = ""
+    resultRows = ""
 
   for ni in nodesInfo:
     nodeRows.add fmt"""
@@ -648,6 +650,17 @@ func databasePageHtml*(
         <td>{ei[2]}</td>
       </tr>
     """
+
+  for i, j in queryResults:
+    resultRows.add fmt"""
+      <tr>
+        <td>{i}</td>
+        <td>
+          <pre><code lang="JSON">{pretty j}</code></pre>
+        </td>
+      </tr>
+    """
+
 
   wrapHtml fmt"{dbname} DB for @{uname}", fmt"""
     <div class="container my-4">
@@ -831,38 +844,58 @@ func databasePageHtml*(
           Query
         </h3>
 
-        <form action="." method="POST" up-submit>
+        <form action="{database_url uname, dbname}" method="POST" up-submit up-target="#query_results">
           <textarea class="form-control" name="spql_query" lang="sql">
-              SELECT *
-              FROM Tabl
-              -- wow commnet
-              WHERE id = 0
+              #user u
+              ask   u
+              ret   u
           </textarea>
 
-          <button name="ask_query" class=btn btn-success">
+          <button name="ask" class="btn btn-outline-primary">
             <i class="bi bi-search"></i>
             Ask
           </button>
-
         </form>
 
-        <h3>
-          <i class="bi bi-stickies"></i>
-          Results
-        </h3>
-        table
+        <div>
+          <h3>
+            <i class="bi bi-stickies"></i>
+            Results
+          </h3>
+          
+          <table class="table table-hover shadow-sm" id="query_results">
+            <thead>
+              <tr>
+                <th>
+                  <i class="bi bi-hash"></i>
+                  Index
+                </th>
+                <th>
+                  <i class="bi bi-braces"></i>
+                  Value
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {resultRows}
+            </tbody>
+          </table>
+        </div>
 
-        <h3>
-          <i class="bi bi-radar"></i>
-          Visualize
-        </h3>
+        <div>
+          <h3>
+            <i class="bi bi-radar"></i>
+            Visualize
+          </h3>
+        </div>
 
-        <h3>
-          <i class="bi bi-plus-circle-dotted"></i>
-          Add
-        </h3>
+        <div>
+          <h3>
+            <i class="bi bi-plus-circle-dotted"></i>
+            Add
+          </h3>
+        </div>
+
       </div>
-
-
     </div>
   """
