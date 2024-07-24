@@ -16,7 +16,7 @@ needs_verification = true
 
 [config.storage]
 app_db_file = "./temp/app.db"
-users_db_dir = "./temp/"
+users_db_dir = "./temp/users/"
 
 [config.logs]
 sql      = true

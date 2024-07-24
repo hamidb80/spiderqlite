@@ -1,0 +1,9 @@
+.row .bi {
+  font-size: 40px;
+}
+.row .icon {
+  margin-top: -10px;
+}
+pre {
+  overflow: visible;
+}

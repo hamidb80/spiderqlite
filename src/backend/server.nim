@@ -24,6 +24,13 @@ using
   req: Request
 
 
+func userDbFileName(uname, dbname: string): string = 
+  fmt"user-{uname}-db-{dbname}.db.sqlite3"
+
+func userDbPath(app: App, uname, dbname: string): Path = 
+  app.config.storage.usersDbDir / userDbFileName(uname, dbname).Path
+
+
 proc getMimetype(ext: string): string = 
   # XXX move out for performance
   var m = newMimetypes()
@@ -78,6 +85,8 @@ proc prepareDB(fpath: Path) =
 
 proc initApp(config: AppConfig): App = 
   var app = App(config: config)
+  discard existsOrCreateDir config.storage.appDbFile.string.splitPath.head
+  discard existsOrCreateDir config.storage.usersDbDir.string
   prepareDB config.storage.appDbFile
 
   proc getDB: DbConn = 
@@ -228,7 +237,7 @@ proc initApp(config: AppConfig): App =
           aid = insertNodeDB(db, parseTag "#auth",     %token)
           rid = insertEdgeDB(db, parseTag "#auth_for", newJNull(), aid, uid)
       
-      req.respond 200, toWebby @{"Set-Cookie": fmt"{authKey}={token}"} , redirectingHtml (b"profile")(uname)
+      req.respond 200, toWebby @{"Set-Cookie": fmt"{authKey}={token}"} , redirectingHtml profile_url uname
 
     proc signupPage(req) =
       if isPost req:
@@ -244,7 +253,7 @@ proc initApp(config: AppConfig): App =
 
           case ans["result"].len
           of 0:
-            let uid = insertNodeDB(db, userTag, initUserDoc(uname, passw))
+            let uid = insertNodeDB(db, userTag, initUserDoc(uname, passw, false))
             signInImpl req, uid, uname
           else:
             req.respond 200, emptyHttpHeaders(), signupPageHtml @["duplicated username"]
@@ -303,7 +312,9 @@ proc initApp(config: AppConfig): App =
         if   "add-database"    in form:
           let 
             dbname = form["database-name"]
-            uname  = form["username"]
+            uname  = form["username"] 
+          
+          prepareDB app.userDbPath(uname, dbname)
 
           withDB:
             let
@@ -326,11 +337,22 @@ proc initApp(config: AppConfig): App =
           let dbs = db.askQueryDB(
               _ => $ %uname, 
               parseSpQl dbs_of_user, 
-              app.defaultQueryStrategies)
+              app.defaultQueryStrategies)["result"].getElems
 
-          debugEcho pretty dbs
+          var 
+            sizes, lastModifs: seq[int]
 
-        req.respond 200, signOutCookieSet(), profilePageHtml(uname, dbs["result"].getElems)
+          for doc in dbs:
+            let
+              dbname = getstr doc[docCol]["name"] 
+              p = string userDbPath(app, uname, dbname)
+
+            add sizes,      int    getFileSize p
+            add lastModifs, toUnix getLastModificationTime p
+
+        req.respond(200, 
+          signOutCookieSet(), 
+          profilePageHtml(uname, dbs, sizes, lastModifs))
 
     proc databasePage(req) = 
       let 
@@ -341,10 +363,16 @@ proc initApp(config: AppConfig): App =
 
 
     proc databaseDownload(req) = 
-      # let 
-      #   uname  = req.queryParams["u"]
-      #   dbname = req.queryParams["db"]
-      req.respond 200, emptyHttpHeaders(), "nothing yet"
+      let 
+        uname  = req.queryParams["u"]
+        dbname = req.queryParams["db"]
+
+      req.respond(200, 
+        toWebby @{
+          "Content-Type": "application/octet-stream",
+          "Content-Disposition": fmt "attachment; filename=\"{dbname}.db.sqlite3\"",
+        }, 
+        readfile string app.userDbPath(uname, dbname))
 
 
   proc initRouter: Router = 
@@ -366,6 +394,8 @@ proc initApp(config: AppConfig): App =
 
       get    br"database",               databasePage 
       get    br"database-download",      databaseDownload
+      get    br"database-back-up",       databaseDownload
+      get    br"remove-database",        databaseDownload
 
       get     br"api-home",              apiHome
       post    br"api-query-database",    askQueryApi

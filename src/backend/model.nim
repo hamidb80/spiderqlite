@@ -47,13 +47,16 @@ const # ---------- queries
 
 # ----- docs -------------------------------------
 
-func initUserDoc*(name, passw: string): JsonNode = 
+func initUserDoc*(name, passw: string, isAdmin: bool): JsonNode = 
   %*{
-    "name": name,
-    "pass": passw
+    "is_admin": isAdmin,
+    "name"    : name,
+    "pass"    : passw,
   }
 
 func initDbDoc*(name: string): JsonNode = 
-  %*{"name": name}
+  %*{
+    "name": name,
+  }
 
 # ----------------------------------------------

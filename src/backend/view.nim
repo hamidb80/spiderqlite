@@ -87,8 +87,9 @@ func wrapHtml(title, inner: string): string =
 
     <!-- local -->
 
-    <script src="/static/page.js" defer type="module"></script>
-    <link rel="icon" type="image/x-icon" href="/static/logo.ico">
+    <script defer            type="module"       src="/static/page.js"></script>
+    <link   rel="icon"       type="image/x-icon" href="/static/logo.ico">
+    <link   rel="stylesheet"                     href="/static/styles.css">
 
   </head>
   <body class="bg-light">
@@ -518,8 +519,14 @@ func userslistPageHtml*(users: seq[JsonNode]): string =
       <table class="table table-hover">
         <thead>
           <tr>
-            <th>name</th>
-            <th>total DBs</th>
+            <th>
+              <i class="bi bi-alphabet"></i>
+              name
+            </th>
+            <th>
+              <i class="bi bi-database-add"></i>
+              total DBs
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -529,19 +536,21 @@ func userslistPageHtml*(users: seq[JsonNode]): string =
     </div>
   """
 
-func profilePageHtml*(uname: string, dbs: seq[JsonNode]): string = 
+func profilePageHtml*(uname: string, dbs: seq[JsonNode], sizes, lastModifications: seq[int]): string = 
   var dbrows = ""
-  for db in dbs:
-    let dbname = db[docCol]["name"].getstr
+  for i, db in dbs:
+    let 
+      docs   = db[docCol]
+      dbname = getstr docs["name"]
     
     dbrows.add fmt"""
   <tr>
     <td>
       <a href="{databaseurl uname, dbname}" smooth-link>{dbname}</a>
     </td>
-    <td> 23 days ago </td>
-    <td>53 KB</td>
-    <td>last week</td>
+    <td>{lastModifications[i]}</td>
+    <td>{sizes[i]}</td>
+    <td>N/A</td>
   </tr>
   """
 
@@ -574,10 +583,22 @@ func profilePageHtml*(uname: string, dbs: seq[JsonNode]): string =
         <table class="table table-hover">
           <thead>
             <tr>
-              <th>name</th>
-              <th>last modification</th>
-              <th>size</th>
-              <th>last backup</th>
+              <th>
+                <i class="bi bi-alphabet"></i>
+                name
+              </th>
+              <th>
+                <i class="bi bi-clock-history"></i>            
+                last modification
+              </th>
+              <th>
+                <i class="bi bi-sd-card"></i>
+                size
+              </th>
+              <th>
+                <i class="bi bi-cloud-check"></i>
+                last backup
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -610,35 +631,50 @@ func databasePageHtml*(uname, dbname: string): string =
       </h2>
 
       <div>
-      
+        <h4>
+          <i class="bi bi-info-square"></i>
+          Info
+        </h4>
+        <ul>
+          <li>
+            <i class="bi bi-sd-card"></i>
+            db size
+          </li>
+          <li>
+            <i class="bi bi-cloud-check"></i>
+            last backup
+          </li>
+        </ul>
+      </div>
+
+      <div>
         <form action="." method="post" up-submit class="d-flex justify-content-between">
           <input type="hidden" name="username" value="{uname}">
           <input type="text" value="{dbname}" name="database-name" class="form-control" placeholder="database name">
           <button name="add-database" class="btn btn-primary text-nowrap">
             rename
-            <i class="bi bi-alphabet-uppercase"></i>
+            <i class="bi bi-alphabet"></i>
           </button>
         </form>
-
-        <div>
-          <a href="??" class="btn btn-outline-primary">
-            <i class="bi bi-cloud-download"></i>
-            <span>download</span>
-          </a>
-
-          <a href="??" class="btn btn-outline-primary">
-            <i class="bi bi-floppy2"></i>
-            <span>back-up</span>
-          </a>
-
-          <a href="??" class="btn btn-outline-primary">
-            <i class="bi bi-trash-fill"></i>
-            <span>delete</span>
-          </a>
-
-        </div>
-
       </div>
+
+      <div>
+        <a href="{database_download_url uname, dbname}" class="btn btn-outline-primary">
+          <i class="bi bi-cloud-download"></i>
+          <span>download</span>
+        </a>
+
+        <a href="{database_backup_url uname, dbname}" class="btn btn-outline-primary">
+          <i class="bi bi-floppy"></i>
+          <span>back-up</span>
+        </a>
+
+        <a href="{remove_database_url uname, dbname}" class="btn btn-outline-primary">
+          <i class="bi bi-trash"></i>
+          <span>delete</span>
+        </a>
+      </div>
+
 
       <div>
         <h3>
@@ -662,23 +698,7 @@ func databasePageHtml*(uname, dbname: string): string =
         </ul>
       </div>
       
-      <div>
-        <h3>
-          <i class="bi bi-info-square"></i>
-          Info
-        </h3>
-        <ul>
-          <li>
-            <i class="bi bi-sd-card"></i>
-            db size
-          </li>
-          <li>
-            <i class="bi bi-cloud-check"></i>
-            last backup
-          </li>
-        </ul>
-      </div>
-
+      
       <div>
         <h3>
           <i class="bi bi-qr-code"></i>
@@ -695,7 +715,7 @@ func databasePageHtml*(uname, dbname: string): string =
         </div>
 
         <h3>
-          <i class="bi bi-stickies-fill"></i>
+          <i class="bi bi-stickies"></i>
           Results
         </h3>
         table
