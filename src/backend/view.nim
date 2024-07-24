@@ -625,12 +625,11 @@ func databasePageHtml*(
   nodesInfo, edgesInfo: seq[tuple[tag: string, count: int, doc: JsonNode]], 
   tagsOfNodes, tagsOfEdges: int,
   totalNodes,  totalEdges: int,
-  queryResults: seq[JsonNode],
+  queryResults: JsonNode,
 ): string = 
   var 
     nodeRows   = ""
     edgeRows   = ""
-    resultRows = ""
 
   for ni in nodesInfo:
     nodeRows.add fmt"""
@@ -649,17 +648,6 @@ func databasePageHtml*(
         <td>{ei[2]}</td>
       </tr>
     """
-
-  for i, j in queryResults:
-    resultRows.add fmt"""
-      <tr>
-        <td>{i}</td>
-        <td>
-          <pre><code lang="JSON" class="compact">{pretty j}</code></pre>
-        </td>
-      </tr>
-    """
-
 
   wrapHtml fmt"{dbname} DB for @{uname}", fmt"""
     <div class="container my-4">
@@ -862,23 +850,9 @@ func databasePageHtml*(
             Results
           </h3>
           
-          <table class="table table-hover shadow-sm" id="query_results">
-            <thead>
-              <tr>
-                <th class="min">
-                  <i class="bi bi-hash"></i>
-                  Index
-                </th>
-                <th>
-                  <i class="bi bi-braces"></i>
-                  Value
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {resultRows}
-            </tbody>
-          </table>
+          <div id="query_results">
+            <pre><code lang="JSON" class="compact">{pretty queryResults}</code></pre>
+          </div>
         </div>
 
         <div>

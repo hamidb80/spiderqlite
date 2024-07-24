@@ -371,7 +371,7 @@ proc initApp(config: AppConfig): App =
           dn     = sum cnodes.mapit(it.count)
           de     = sum cedges.mapit(it.count)
 
-        var queryReuslts: seq[JsonNode]
+        var queryReuslts: JsonNode = newJNull()
 
         if isPost req:
           let form = decodedQuery req.body
@@ -386,7 +386,7 @@ proc initApp(config: AppConfig): App =
             queryReuslts = db.askQueryDB(
                 _ => "\"???\"", 
                 spql, 
-                app.defaultQueryStrategies)["result"].getElems
+                app.defaultQueryStrategies)["result"]
 
 
       req.respond 200, emptyHttpHeaders(), databasePageHtml(
