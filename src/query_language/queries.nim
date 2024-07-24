@@ -69,7 +69,7 @@ const nodeUpdateDocQuery* = entityUpdateDocQuery nodes
 const edgeUpdateDocQuery* = entityUpdateDocQuery edges
 
 
-func countEntities(entity: Entity): SqlQuery = 
+func countEntitiesQuery*(entity: Entity): SqlQuery = 
   sql fmt"""
     SELECT   
       it.{tagCol}      as tag_name, 
@@ -80,9 +80,6 @@ func countEntities(entity: Entity): SqlQuery =
     GROUP BY it.{tagCol}
     ORDER BY count DESC
   """
-
-const countNodes* = countEntities nodes
-const countEdges* = countEntities edges
 
 
 func getEntityQuery*(entity: Entity): SqlQuery =

@@ -300,7 +300,7 @@ func landingPageHtml*: string =
               <div class="description">
                 <div class="h4">Go <i>Fastttt!</i></div>
                 <p class="text-muted">
-                  best fit for small-size projects and MVPs. the mental friction is almost zero
+                  best fit for span-size projects and MVPs. the mental friction is almost zero
                 </p>
               </div>
             </div>
@@ -620,7 +620,35 @@ func profilePageHtml*(uname: string, dbs: seq[JsonNode], sizes, lastModification
     </div>
   """
 
-func databasePageHtml*(uname, dbname: string, size, lastmodif: int): string = 
+func databasePageHtml*(
+  uname, dbname: string, 
+  size, lastmodif: int, 
+  nodesInfo, edgesInfo: seq[tuple[tag: string, count: int, doc: JsonNode]], 
+  tagsOfNodes, tagsOfEdges: int,
+  totalNodes,  totalEdges: int,
+): string = 
+  var 
+    nodeRows = ""
+    edgeRows = ""
+
+  for ni in nodesInfo:
+    nodeRows.add fmt"""
+      <tr>
+        <td>{ni[0]}</td>
+        <td>{ni[1]}</td>
+        <td>{ni[2]}</td>
+      </tr>
+    """
+
+  for ei in edgesInfo:
+    edgeRows.add fmt"""
+      <tr>
+        <td>{ei[0]}</td>
+        <td>{ei[1]}</td>
+        <td>{ei[2]}</td>
+      </tr>
+    """
+
   wrapHtml fmt"{dbname} DB for @{uname}", fmt"""
     <div class="container my-4">
       <h2 class="mb-4">
@@ -675,37 +703,148 @@ func databasePageHtml*(uname, dbname: string, size, lastmodif: int): string =
           Analysis
         </h3>
 
-        <ul>
-          <li>
-            <i class="bi bi-slash-circle"></i>
-            all node tags with number of records
-          </li>
-          <li>
-            <i class="bi bi-bounding-box-circles"></i>
-            all edge tags with number of records
-          </li>
-          <li>
-            <i class="bi bi-plus-slash-minus"></i>
-            sum of them all
-          </li>
-        </ul>
+        <div class="ms-4">
+
+          <div class="">
+            <h4>
+              <i class="bi bi-noise-reduction"></i>
+              Nodes
+            </h4>
+            
+            <span>
+              all node tags with number of records
+            </span>
+
+            <table class="table table-hover shadow-sm">
+              <thead>
+                <tr>
+                  <th>
+                    <i class="bi bi-tags"></i>
+                    Tag
+                  </th>
+                  <th>
+                    <i class="bi bi-123"></i>
+                    Count
+                  </th>
+                  <th>
+                    <i class="bi bi-diagram-3"></i>
+                    Structure
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {nodeRows}
+              </tbody>
+            </table>
+
+          </div>
+
+          <div>
+            <h4>
+              <i class="bi bi-bounding-box-circles"></i>
+              Edges
+            </h4>
+            <span>
+              all edge tags with number of records
+            </span>
+
+            <table class="table table-hover shadow-sm">
+              <thead>
+                <tr>
+                  <th>
+                    <i class="bi bi-tags"></i>
+                    Tag
+                  </th>
+                  <th>
+                    <i class="bi bi-123"></i>
+                    Count
+                  </th>
+                  <th>
+                    <i class="bi bi-diagram-3"></i>
+                    Structure
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {edgeRows}
+              </tbody>
+            </table>
+
+          </div>
+
+          <div>
+            <h4>
+              <i class="bi bi-plus-slash-minus"></i>
+              Summary
+            </h4>
+            <span>
+              aggregate them all
+            </span>
+            
+            <table class="table table-hover shadow-sm">
+              <thead>
+                <tr>
+                  <th>
+                  </th>
+                  <th>
+                    <i class="bi bi-tags"></i>
+                    Tags
+                  </th>
+                  <th>
+                    <i class="bi bi-123"></i>
+                    Count
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+
+                <tr>
+                  <th>Nodes</th>
+                  <td>{tagsOfNodes}</td>
+                  <td>{totalNodes}</td>
+                </tr>
+              
+                <tr>
+                  <th>Edges</th>
+                  <td>{tagsOfEdges}</td>
+                  <td>{totalEdges}</td>
+                </tr>
+
+                <tr>
+                  <th>Total</th>
+                  <td>{tagsOfNodes+tagsOfEdges}</td>
+                  <td>{totalNodes+totalEdges}</td>
+                </tr>
+                
+              </tbody>
+            </table>
+
+          </div>
+
+        </div>
       </div>
       
       
       <div>
         <h3>
-          <i class="bi bi-qr-code"></i>
+          <i class="bi bi-code-square"></i>
           Query
         </h3>
 
-        <div>
-          <textarea class="form-control" lang="sql">
+        <form action="." method="POST" up-submit>
+          <textarea class="form-control" name="spql_query" lang="sql">
               SELECT *
               FROM Tabl
               -- wow commnet
               WHERE id = 0
           </textarea>
-        </div>
+
+          <button name="ask_query" class=btn btn-success">
+            <i class="bi bi-search"></i>
+            Ask
+          </button>
+
+        </form>
 
         <h3>
           <i class="bi bi-stickies"></i>

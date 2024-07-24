@@ -1,4 +1,4 @@
-import std/[strutils, strformat, tables, json, monotimes, os, times, with, sugar, uri, mimetypes, paths, oids]
+import std/[strutils, strformat, tables, json, monotimes, os, times, with, sugar, uri, mimetypes, paths, oids, math, sequtils]
 
 import db_connector/db_sqlite
 import mummy, mummy/routers
@@ -365,13 +365,26 @@ proc initApp(config: AppConfig): App =
         dbname = req.queryParams["db"]
         path   = string userDbPath(app, uname, dbname)
 
-        
+      withDb:
+        let 
+          cnodes = db.countEntitiesDB nodes
+          cedges = db.countEntitiesDB edges
+          
+          ln     = cnodes.len
+          le     = cedges.len
+
+          dn     = sum cnodes.mapit(it.count)
+          de     = sum cedges.mapit(it.count)
+      
 
       req.respond 200, emptyHttpHeaders(), databasePageHtml(
         uname, 
         dbname, 
         int getFileSize path,
-        toUnix getLastModificationTime path)
+        toUnix getLastModificationTime path,
+        cnodes, cedges,
+        ln, le,
+        dn, de)
 
 
     proc databaseDownload(req) = 

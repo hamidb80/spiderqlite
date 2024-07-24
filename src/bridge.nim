@@ -136,3 +136,8 @@ proc askQueryDbRaw*(db, ctx, spql, queryStrateies): string =
 
 proc askQueryDB*(db, ctx, spql, queryStrateies): JsonNode = 
   parseJson askQueryDbRaw(db, ctx, spql, queryStrateies)
+
+
+proc countEntitiesDB*(db, ent): seq[tuple[tag: string, count: int, doc: JsonNode]] =
+  for row in db.rows countEntitiesQuery ent:
+    add result, (row[0], parseInt row[1], parseJson row[3])

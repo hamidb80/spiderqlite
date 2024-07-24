@@ -1,3 +1,15 @@
+
+::-moz-selection {
+  color: white;
+  background: var(--bs-info);
+}
+
+::selection {
+  color: white;
+  background: var(--bs-info);
+}
+
+
 .row .bi {
   font-size: 40px;
 }
