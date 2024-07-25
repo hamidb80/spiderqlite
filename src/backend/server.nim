@@ -360,7 +360,7 @@ proc initApp(config: AppConfig): App =
         dbname = req.queryParams["db"]
         path   = string userDbPath(app, uname, dbname)
 
-      withDb:
+      withDb: # XXX use user's db not app.db !!
         let 
           cnodes = db.countEntitiesDB nodes
           cedges = db.countEntitiesDB edges
@@ -371,7 +371,8 @@ proc initApp(config: AppConfig): App =
           dn     = sum cnodes.mapit(it.count)
           de     = sum cedges.mapit(it.count)
 
-        var queryReuslts: JsonNode = newJNull()
+        var 
+          queryReuslts, visNodes, visEdegs: JsonNode = newJNull()
 
         if isPost req:
           let form = decodedQuery req.body
@@ -397,7 +398,7 @@ proc initApp(config: AppConfig): App =
         cnodes, cedges,
         ln, le,
         dn, de,
-        queryReuslts)
+        queryReuslts, visNodes, visEdegs)
 
 
     proc databaseDownload(req) = 
@@ -411,17 +412,6 @@ proc initApp(config: AppConfig): App =
           "Content-Disposition": fmt "attachment; filename=\"{dbname}.db.sqlite3\"",
         }, 
         readfile string app.userDbPath(uname, dbname))
-
-
-    proc databaseBackup(req) = 
-      let 
-        uname  = req.queryParams["u"]
-        dbname = req.queryParams["db"]
-
-    proc databaseRemove(req) = 
-      let 
-        uname  = req.queryParams["u"]
-        dbname = req.queryParams["db"]
 
 
   proc initRouter: Router = 

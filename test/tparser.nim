@@ -37,4 +37,14 @@ ret
     () if 1 2
 """
 
-print s
+
+let b = parseSpQl """
+ret 
+  macro! a b
+"""
+
+let c = parseSpQl """
+ask ;>-^a->;
+"""
+
+print c

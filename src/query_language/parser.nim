@@ -59,6 +59,8 @@ type
     gkWhen
     gkElse
 
+    gkMacro
+
     gkUnique      # unique
 
     gkTypes       # types
@@ -115,7 +117,7 @@ type
     of gkDef:
       defKind*: GqlDefKind
 
-    of gkIdent, gkStrLit, gkComment, gkVar, gkInfix, gkPrefix, gkCall:
+    of gkIdent, gkStrLit, gkComment, gkVar, gkInfix, gkPrefix, gkCall, gkMacro:
       sval*: string
 
     of gkIntLit:
@@ -262,7 +264,7 @@ func lexSpql(content: string): seq[Token] =
       << Token(kind: lkDot)
       ++i
   
-    of Letters, '_', '/', '+', '=', '<', '>', '^', '~', '$', '[', '{', '(':
+    of Letters, '_', '/', '+', '=', '<', '>', '^', '~', '$', '[', '{', '(', ';':
       let 
         size = parseIdent(content, i)
         word = content[i..i+size]
@@ -372,27 +374,27 @@ template infixNode*(str: string): SpqlNode =
 
 
 
-func parseCallToJson*           (): SpqlNode =
+func initCallToJson*           (): SpqlNode =
   SpqlNode(
     kind: gkCall, 
     sval: "json")
 
-func parseCallToJsonObject*     (): SpqlNode =
+func initCallToJsonObject*     (): SpqlNode =
   SpqlNode(
     kind: gkCall, 
     sval: "json_object")
 
-func parseCallToJsonObjectGroup*(): SpqlNode =
+func initCallToJsonObjectGroup*(): SpqlNode =
   SpqlNode(
     kind: gkCall, 
     sval: "json_group_object")
 
-func parseCallToJsonArray*      (): SpqlNode =
+func initCallToJsonArray*      (): SpqlNode =
   SpqlNode(
     kind: gkCall, 
     sval: "json_array")
 
-func parseCallToJsonArrayGroup* (): SpqlNode =
+func initCallToJsonArrayGroup* (): SpqlNode =
   SpqlNode(
     kind: gkCall, 
     sval: "json_group_array")
@@ -471,11 +473,11 @@ func parseSpQl(tokens: seq[Token]): SpqlNode =
         of "ELSE":                           gNode gkElse
 
         of "()":                             gNode gkCall
-        of ">>":                             parseCallToJson()
-        of "{}":                             parseCallToJsonObject()
-        of "{}.":                            parseCallToJsonObjectGroup()
-        of "[]":                             parseCallToJsonArray()
-        of "[].":                            parseCallToJsonArrayGroup()
+        of ">>":                             initCallToJson()
+        of "{}":                             initCallToJsonObject()
+        of "{}.":                            initCallToJsonObjectGroup()
+        of "[]":                             initCallToJsonArray()
+        of "[].":                            initCallToJsonArrayGroup()
 
         of "||", "%",
           "=", "==", "!=",
@@ -493,6 +495,11 @@ func parseSpQl(tokens: seq[Token]): SpqlNode =
           "LIKE":                 infixNode  t.sval
    
         of "$", "NOT":            prefixNode t.sval
+
+        elif t.sval.endsWith '!':
+          SpqlNode(
+            kind: gkMacro,
+            sval: t.sval[0..^2])
         
         else:
           # idents with dot: movie.id

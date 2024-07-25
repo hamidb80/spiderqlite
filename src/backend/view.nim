@@ -625,8 +625,13 @@ func databasePageHtml*(
   nodesInfo, edgesInfo: seq[tuple[tag: string, count: int, doc: JsonNode]], 
   tagsOfNodes, tagsOfEdges: int,
   totalNodes,  totalEdges: int,
-  queryResults: JsonNode,
+  queryResults, visNodes, visEdges: JsonNode,
 ): string = 
+  # XXX use vis.js for graph, works if data is queried as [node/edge, ...]
+  # export data as [edge_id, node_head_id, node_tail_id], can be nested, 
+  # flattened how get an linear, then converted to mentioned tripples
+  # then get nodes info and edges info in hashtables
+
   var 
     nodeRows   = ""
     edgeRows   = ""

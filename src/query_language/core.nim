@@ -1,4 +1,4 @@
-import std/[strutils, sequtils, tables, json, nre, sugar, strformat]
+import std/[strutils, sequtils, tables, json, sugar, strformat, options]
 
 import db_connector/db_sqlite
 import pretty
@@ -272,20 +272,34 @@ func parseQueryNode(s: string): QueryNode =
     result.ident.add s[i]
     inc i
 
-func lexQueryImpl(str: string, i: var int): AskPatNode = 
-  let m = str.find(re"[-<>]{2}|[?!*]?[0-9^+$]?\w+", i).get.match
-  i.inc m.len
-  case m
+func discriminate(str: string, specials: set[char]): seq[string] = 
+  var isSpecial = false
+
+  result.add ""
+
+  for ch in str:
+    if ch in specials:
+      if not isSpecial:
+        isSpecial = true
+        result.add ""
+
+    else:
+      if isSpecial:
+        isSpecial = false
+        result.add ""
+
+    result[^1].add ch
+
+func lexQueryImpl(str: string): AskPatNode = 
+  case str
   of ">-": toArrow headL2R
   of "->": toArrow tailL2R
   of "-<": toArrow headR2L
   of "<-": toArrow tailR2L
-  else: AskPatNode(kind: apkNode, node: parseQueryNode m)
+  else: AskPatNode(kind: apkNode, node: parseQueryNode str)
 
 func lexQuery(str: string): QueryChain = 
-  var i = 0
-  while i < str.len:
-    result.add lexQueryImpl(str, i)
+  discriminate(str, {'<', '>', '-'}).map lexQueryImpl
 
 converter conv(ad: ArrowDir): Dir = 
   case ad
@@ -586,6 +600,16 @@ func resolveSql(node: SpqlNode, relIdents: seq[string], mode: string, name: stri
     else:
       raisee "invalid ident with children count of: " & $node.children.len
 
+  of gkMacro:
+      case node.sval.toUpperAscii
+      of "GRAPH":
+        let edge = node.children[0].sval
+        # TODO assert has 1 param and it's ident
+        fmt"json_array({edge}.{idCol}, {edge}.{sourceCol}, {edge}.{targetCol})"
+      
+      else:
+        raisee "invalid macro: " & node.sval
+
   of gkCall:
       node.sval & 
       '(' & 
@@ -691,7 +715,7 @@ func deepIdentReplace(gn; imap) =
   of gkIdent: 
     gn.sval = imap[gn.sval]
   
-  of gkWrapper, gkTake, gkGroupBy, gkHaving, gkOrderBy, gkCase, gkElse, gkWhen, gkInfix, gkPrefix, gkCall:
+  of gkWrapper, gkTake, gkGroupBy, gkHaving, gkOrderBy, gkCase, gkElse, gkWhen, gkInfix, gkPrefix, gkCall, gkMacro:
     for ch in gn.children:
       deepIdentReplace ch, imap
 

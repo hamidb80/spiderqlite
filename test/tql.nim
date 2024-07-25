@@ -1,4 +1,4 @@
-import std/[json, sugar]
+import std/[json, sugar, strutils]
 
 import db_connector/db_sqlite
 import parsetoml
@@ -22,12 +22,22 @@ when isMainModule:
     #       1  
     #       u.__id
     # """
+    
+    # """
+    # #user u
+    # ask   u
+    # ret   
+    #   + 1 u.__id
+    # """
+
     """
     #user u
     ask   u
     ret   
-      + 1 u.__id
+      graph! u
     """
+
+
     # BUG `ret + 1 1` does not work, you should make a new line
 
   let
@@ -37,4 +47,4 @@ when isMainModule:
     sql  = toSql(pq, qs, _ => "")
 
   print pq
-  echo sql
+  echo strip string sql
