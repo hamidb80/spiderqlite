@@ -150,7 +150,7 @@ func `$`(p: AskPatNode): string =
 func `$`(qc: QueryChain): string =
   join qc
     
-func `$`(qn: QueryNode): string = 
+func `$`*(qn: QueryNode): string = 
   if qn.mode != invalidIndicator:
     << qn.mode
     
@@ -190,12 +190,8 @@ func `$`*(g: QueryGraph): string =
 
   less result
 
-# func `$`(gn): string = 
-#   raisee "TODO"
-
-# func repr(qc: QueryChain): string =
-#   qc.join " "
-
+func `$`*(gn): string = 
+  raisee "TODO"
 
 
 func infoLevel(n: QueryNode): int =
@@ -274,7 +270,6 @@ func parseQueryNode(s: string): QueryNode =
 
 func discriminate(str: string, specials: set[char]): seq[string] = 
   var isSpecial = false
-
   result.add ""
 
   for ch in str:
@@ -434,8 +429,8 @@ func evaluateCandidate(p, q: QueryGraph, candidates: seq[int]): Option[IdentMap]
 
   var acc = initIdentMap()
   
-  for y in times h:
-    for x in times w:
+  for y in 0..<h:
+    for x in 0..<w:
       let 
         i  = candidates[y]
         j  = candidates[x]
@@ -511,10 +506,10 @@ iterator chooseCandidates(candidates: seq[seq[int]]): seq[int] =
 func matchImpl(p, q: QueryGraph): Option[IdentMap] =
   var candidates: seq[seq[int]]
 
-  for i in times p.nodes.len:
+  for i in 0..<p.nodes.len:
     candidates.add @[]
 
-    for j in times q.nodes.len:
+    for j in 0..<q.nodes.len:
       if p.iocounts[i] == q.iocounts[j]:
         candidates[^1].add j
 

@@ -124,10 +124,6 @@ proc openSqliteDB*(path: string): DbConn =
 proc openSqliteDB*(path: Path): DbConn = 
   openSqliteDB path.string
 
-iterator times*(n: int): int = 
-  for i in 0..<n:
-    yield i
-
 # templates ----------------------------------------
 
 template inspect*(a): untyped =
