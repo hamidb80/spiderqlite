@@ -544,9 +544,9 @@ func sqlJsonNodeExpr*(s: string): string =
   let fi = fieldAccessOf s
   fmt"""
   json_object(                   
-     '{idCol}',        {fi}{idCol}    
-    ,'{tagCol}',       {fi}{tagCol}   
-    ,'{docCol}', json( {fi}{docCol}   )  
+     '{idCol}',       {fi}{idCol}    
+    ,'{tagCol}',      {fi}{tagCol}   
+    ,'{docCol}', json({fi}{docCol})  
   )"""
 
 func sqlJsonEdgeExpr*(s: string): string = 
@@ -555,7 +555,7 @@ func sqlJsonEdgeExpr*(s: string): string =
   json_object(                   
      '{idCol}',          {fi}{idCol}    
     ,'{tagCol}',         {fi}{tagCol}   
-    ,'{docCol}',    json({fi}{docCol}   )  
+    ,'{docCol}',    json({fi}{docCol})  
     ,'{sourceCol}',      {fi}{sourceCol} 
     ,'{targetCol}',      {fi}{targetCol} 
   )"""
