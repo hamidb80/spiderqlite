@@ -99,6 +99,7 @@ type
     parameters: seq[string]
     pattern:    QueryGraph
     selectable: seq[string]
+    edges:      seq[string]
     sqlPattern: seq[SqlPatSep]
 
   QueryStrategies* = ref object
@@ -363,13 +364,14 @@ func parseQueryGraph(patts: seq[string]): QueryGraph =
         case t.kind
         of qpSingle: result.addNode t.node
         of qpMulti:  result.addConn t.travel.a, t.travel.b, t.travel.c
-  
-func parseQueryStrategy(key, params, pattern, selectable, query: string): QueryStrategy =
+
+func parseQueryStrategy(key, params, pattern, selectable, edges, query: string): QueryStrategy =
   QueryStrategy(
     key:        key,
     parameters: splitWhitespace params,
     pattern:    parseQueryGraph  splitLines pattern,
     selectable: splitWhitespace             selectable,
+    edges:      splitWhitespace             edges,
     sqlPattern: preProcessRawSql            query)
 
 func parseQueryStrategy(tv: TomlValueRef): QueryStrategy =
@@ -378,6 +380,7 @@ func parseQueryStrategy(tv: TomlValueRef): QueryStrategy =
            getStr tv["parameters"],
     dedent getStr tv["pattern"],
            getStr tv["selectable"],
+           getStr tv["edges"],
     dedent getStr tv["sql"])
 
 proc parseToml*(s: string): TomlValueRef =
@@ -636,24 +639,48 @@ func resolveSql(node: SpqlNode, relIdents: seq[string], mode: string, name: stri
   else: 
     raisee fmt"cannot convert the node type {node.kind} to SQL code"
 
+
+func defInfo(n: SpqlNode): tuple[tag: string, aliases: seq[string], cond: Option[SpqlNode]] = 
+  let
+    tag      = n.children[0].sval
+    hasCond  = n.children[^1].kind in {gkPrefix, gkInfix, gkCall, gkMacro}
+    aliasesMaxIndex = 
+      if hasCond: n.children.len - 2
+      else:       n.children.len - 1
+    aliases  = n.children[1..aliasesMaxIndex].mapit it.sval
+    cond     = 
+      if hasCond: some n.children[^1]
+      else:       none SpqlNode
+
+  (tag, aliases, cond)
+
 func sqlCondsOfNode(gn; imap; node: string, varResolver): string {.effectsOf: varResolver.} =
   let inode = imap[node]
 
+  # FIXME find the correspoding node in separate function
+  # TODO add support for multiple aliases
   for n in gn.children:
     case n.kind
     of gkDef:
-      let
-        tag      = n.children[0].sval
-        alias    = n.children[1].sval
-        hasConds = n.children.len > 2
+      let di = defInfo n
             
-      if alias == node:
-        result.add fmt"({inode}.{tagCol} == '{tag}'"
-        
-        if hasConds:
-          result.add " AND (" & resolveSql(n.children[2], @[], "normal", inode, varResolver) & ")"
+      if node in di.aliases:
+        << '('
 
-        result.add ")"
+        if di.tag != ";":
+          << fmt"{inode}.{tagCol} == '{di.tag}'"
+        
+        if di.cond.issome and result.len > 1:
+          << " AND " 
+
+        if di.cond.issome:
+          << resolveSql(n.children[^1], @[], "normal", inode, varResolver)
+
+        << ')'
+
+        if result.len == 2: # == "()" 
+          result = "1"
+
         return
       
     else: discard
@@ -668,9 +695,9 @@ func sqlCondsOfEdge(gn; imap; edge, source, target: string, varResolver): string
   for n in gn.children:
     case n.kind
     of gkDef:
-      let alias    = n.children[1].sval
+      let di = defInfo n
       
-      if alias == edge:
+      if edge in di.aliases:
         var acc: seq[string]
 
         if isrc != ".":
@@ -681,11 +708,11 @@ func sqlCondsOfEdge(gn; imap; edge, source, target: string, varResolver): string
 
         case acc.len
         of 0: 
-          << "1"
+          << '1'
         else:
-          << "("
+          << '('
           << acc.join " AND "
-          << ")"
+          << ')'
         
         return
 
@@ -751,14 +778,14 @@ func toSqlSelect(take: SpqlNode, relsIdent: seq[string], imap): string =
     .mapit(toSqlSelectImpl(it, mappedRels))
     .join ", "
 
-func getRels(gn): seq[string] = 
-  for ch in gn.children:
-    if ch.kind == gkDef:
-      if ch.defkind == defEdge:
-        result.add ch.children[1].sval
+# func getRels(gn): seq[string] = 
+#   for ch in gn.children:
+#     if ch.kind == gkDef:
+#       if ch.defkind == defEdge:
+#         result.add ch.children[1].sval
 
 
-func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf: varResolver.} =
+func resolve(sqlPat: seq[SqlPatSep], patEdges: seq[string], imap; gn; varResolver): string {.effectsOf: varResolver.} =
   let
     takes       = gn.getTake
     revmap      = rev imap
@@ -791,6 +818,7 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
               SqlPatSep(kind: sqkStr, content: " AND "),
               SqlPatSep(kind: sqkCommand, cmd: "CHECK_RELS", args: p.args),
               SqlPatSep(kind: sqkStr, content: " )")],
+            patEdges,
             imap, 
             gn,
             varResolver
@@ -801,7 +829,8 @@ func resolve(sqlPat: seq[SqlPatSep], imap; gn; varResolver): string {.effectsOf:
 
 
         of "SELECT_FIELDS":
-          toSqlSelect takes, gn.getRels , imap
+          ## PIN
+          toSqlSelect takes, patEdges, imap
 
         of "GROUP_STATEMENT":  
           if g =? gn.getGroup:
@@ -933,7 +962,9 @@ func findByPattern(gn; queryStrategies): tuple[qs: QueryStrategy, imap: IdentMap
   raisee "no pattern was found"
 
 func toSqlImpl(gn; qs: QueryStrategy, imap; varResolver): SqlQuery {.effectsOf: varResolver.} =
-  sql resolve(qs.sqlPattern, imap, gn, varResolver)
+  let es = qs.edges.map rev imap
+  debugEcho es
+  sql resolve(qs.sqlPattern, es, imap, gn, varResolver)
 
 func toSql*(gn: sink SpqlNode, queryStrategies; varResolver): SqlQuery {.effectsOf: varResolver.} = 
   prepareGQuery gn

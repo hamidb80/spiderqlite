@@ -3,6 +3,7 @@ key        = "single-node"
 parameters = "a"
 pattern    = "a"
 selectable = "a"
+edges      = ""
 sql        = '''
   SELECT  
     |select_fields|
@@ -22,6 +23,7 @@ key        = "single-edge-node-head"
 parameters = "a b c"
 pattern    = "^a>-c->b"
 selectable = "a b c"
+edges      = "c"
 sql        = '''
   SELECT 
     |select_fields|
@@ -49,6 +51,7 @@ key        = "single-edge-node-head-zero-or-more"
 parameters = "a b c"
 pattern    = "^a>-*c->b"
 selectable = "a b c"
+edges      = "c"
 sql        = '''
   SELECT 
     |select_fields|
@@ -77,6 +80,7 @@ sql        = '''
 key        = "single-edge-node-head-inv"
 parameters = "a b c"
 pattern    = "^a>-!c->b"
+edges      = "c"
 selectable = "a"
 sql        = '''
   SELECT 
@@ -103,6 +107,7 @@ key        = "single-edge-edge"
 parameters = "a b c"
 pattern    = "a>-^c->b"
 selectable = "a b c"
+edges      = "c"
 sql        = '''
   SELECT 
     |select_fields|
@@ -129,6 +134,7 @@ key        = "single-edge-node-tail"
 parameters = "a b c"
 pattern    = "a>-c->^b"
 selectable = "a b c"
+edges      = "c"
 sql        = '''
   SELECT 
     |select_fields|
@@ -155,6 +161,7 @@ key        = "2-nodes-2-way-inv-1"
 parameters = "a b c1 c2"
 pattern    = 'b>-c1->a<-!c2-<b'
 selectable = "a b c1"
+edges      = "c1 c2"
 sql        = '''
   SELECT 
     |select_fields|

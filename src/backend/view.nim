@@ -881,7 +881,7 @@ func databasePageHtml*(
 
           <form action="{database_url uname, dbname}" method="post" up-submit class="d-flex justify-content-between">
             <input type="text" name="node-tag" class="form-control" placeholder="tag" required>
-            <input type="file" name="node-doc" class="form-control" placeholder="JSON data" required>
+            <input type="file" accept=".json" name="node-doc" class="form-control" placeholder="JSON data" required>
             <button name="add-node" class="btn btn-outline-primary text-nowrap">
               <i class="bi bi-plus"></i>
             </button>
@@ -896,7 +896,7 @@ func databasePageHtml*(
           <form action="{database_url uname, dbname}" method="post" up-submit>
             <fieldset class="d-flex justify-content-between">
               <input type="text" name="edge-tag" class="form-control" placeholder="tag" required>
-              <input type="file" name="edge-doc" class="form-control" placeholder="JSON data" required>
+              <input type="file" accept=".json" name="edge-doc" class="form-control" placeholder="JSON data" required>
             </fieldset>
             <fieldset class="d-flex justify-content-between">
               <input type="number" name="source-id" class="form-control" placeholder="source id">
@@ -913,7 +913,7 @@ func databasePageHtml*(
           </h4>
 
           <form action="{database_url uname, dbname}" method="post" up-submit class="d-flex justify-content-between">
-            <input type="file" name="node-doc" class="form-control" placeholder="JSON data" required>
+            <input type="file" accept=".json" name="node-doc" class="form-control" placeholder="JSON data" required>
             <button name="add-collection" class="btn btn-outline-primary text-nowrap">
               <i class="bi bi-cloud-upload"></i>
               Upload collection              

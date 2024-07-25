@@ -13,28 +13,21 @@ func extractStrategies*(tv: TomlValueRef): seq[TomlValueRef] =
 
 
 when isMainModule:
-  const sample =   
-    # """
-    #   #user u
-    #   ask   u
-    #   ret
-    #     + 
-    #       1  
-    #       u.__id
-    # """
-    
-    # """
-    # #user u
-    # ask   u
-    # ret   
-    #   + 1 u.__id
+  const allEdges =   
+    # """ 
+    # #; x 
+    # #; y 
+    # #; w
+    # ask x>-^y->w
+    # ret 
+    #   graph! y
     # """
 
-    """
-    #user u
-    ask   u
-    ret   
-      graph! u
+    """ 
+    #; x y w
+    ask x>-^y->w
+    ret 
+      graph! y
     """
 
 
@@ -43,7 +36,7 @@ when isMainModule:
   let
     qs   = parseQueryStrategies extractStrategies parseTomlFile "./docs/strategies.toml"
     ctx  = %*{"mtitle": "ZORRO ARK"}
-    pq   = parseSpql sample
+    pq   = parseSpql allEdges
     sql  = toSql(pq, qs, _ => "")
 
   print pq

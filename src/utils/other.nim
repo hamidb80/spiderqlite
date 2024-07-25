@@ -28,6 +28,10 @@ proc parseTomlFile*(path: Path): TomlValueRef =
 
 # funcs ----------------------------------------
 
+# func splitWhitespaceEmpty*(s: string): seq[string] = 
+#   if isEmptyOrWhitespace s: @[]
+#   else: splitWhitespace s
+
 func isNumber*(s: string): bool = 
   try:
     discard parseFloat s
