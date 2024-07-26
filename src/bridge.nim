@@ -43,6 +43,17 @@ proc initDbSchema*(db) =
     exec db, q
 
 
+proc getEntitiesDbRaw*(db, ids, ent): string =
+  let query = getEntitiesQuery(ids, ent)
+  getRow(db, query)[0]
+
+proc getNodesDB*(db, ids): JsonNode =
+  parseJson getEntitiesDbRaw(db, ids, nodes)
+
+proc getEdgesDB*(db, ids): JsonNode =
+  parseJson getEntitiesDbRaw(db, ids, edges)
+
+
 proc getEntityDbRaw*(db, id, ent): string =
   let
     query = getEntityQuery ent
@@ -54,6 +65,8 @@ proc getNodeDB*(db, id): JsonNode =
 
 proc getEdgeDB*(db, id): JsonNode =
   parseJson getEntityDbRaw(db, id, edges)
+
+
 
 
 proc insertNodeDB*(db, tag, doc): Id =
@@ -93,7 +106,7 @@ proc updateEntityDocDB*(db, ent, id, doc): bool =
 
 proc askQueryDbRaw*(db, ctx, spql, queryStrateies): string = 
   let sql = toSql(spql, queryStrateies, ctx)
-  debugEcho strip string sql
+  debugEcho sql
 
   result = newStringOfCap 1024 * 20 # KB
   << "{\"result\":["

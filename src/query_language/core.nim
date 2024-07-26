@@ -95,6 +95,7 @@ type
       args*: seq[string]
 
   QueryStrategy* = ref object
+    # TODO add fallback -- like if didn't match with any of ^a>-c->b, a>-^c->b, a>-c->^b, if saw a>-c->b, then fallback to a>-^c->b
     key:        string
     parameters: seq[string]
     pattern:    QueryGraph
@@ -962,9 +963,8 @@ func findByPattern(gn; queryStrategies): tuple[qs: QueryStrategy, imap: IdentMap
   raisee "no pattern was found"
 
 func toSqlImpl(gn; qs: QueryStrategy, imap; varResolver): SqlQuery {.effectsOf: varResolver.} =
-  let es = qs.edges.map rev imap
-  debugEcho es
-  sql resolve(qs.sqlPattern, es, imap, gn, varResolver)
+  let edges = qs.edges.map rev imap
+  sql resolve(qs.sqlPattern, edges, imap, gn, varResolver)
 
 func toSql*(gn: sink SpqlNode, queryStrategies; varResolver): SqlQuery {.effectsOf: varResolver.} = 
   prepareGQuery gn

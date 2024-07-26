@@ -90,12 +90,23 @@ func getEntityQuery*(entity: Entity): SqlQuery =
   sql fmt"""
     SELECT {select}
     FROM   {entity}
-    WHERE  {idCol} = ?
+    WHERE  {idCol}  = ?
+  """
+
+func getEntitiesQuery*(ids: seq[int], entity: Entity): SqlQuery =
+  let select = case entity
+  of nodes: sqlJsonNodeExpr ""
+  of edges: sqlJsonEdgeExpr ""
+
+  sql fmt"""
+    SELECT json_group_object({idCol}, {select})
+    FROM   {entity}
+    WHERE  {idCol} IN {sqlize ids}
   """
 
 func deleteEntitiesQuery*(entity: Entity, ids: seq[int]): SqlQuery =
   sql fmt"""
     DELETE 
     FROM   {entity}
-    WHERE  {idCol} in {sqlize ids}
+    WHERE  {idCol} IN {sqlize ids}
   """

@@ -9,11 +9,11 @@
 }
 
 
-.row .bi {
+#features .row .bi {
   font-size: 40px;
 }
 
-.row .icon {
+#features .row .icon {
   margin-top: -10px;
 }
 

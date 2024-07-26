@@ -77,6 +77,23 @@ func extractStrategies*(tv: TomlValueRef): seq[TomlValueRef] =
   getElems tv["strategies"]
 
 
+func extractVisEdges(queryResult: JsonNode): tuple[nodeIds, edgeIds: seq[int]] =
+  for arr in queryResult:
+    result.nodeIds.add arr[1].getint
+    result.nodeIds.add arr[2].getint
+    result.edgeIds.add arr[0].getint  
+
+func canBeVisualized(queryResult: JsonNode, depth=0): bool =
+  case queryResult.kind
+  of JArray: 
+    for i in queryResult:
+      if not canBeVisualized(i, depth+1):
+        return false
+    true
+  of Jint:   depth != 0
+  else:      false
+
+
 proc initDB(fpath: Path) = 
   initDbSchema openSqliteDB fpath
 
@@ -372,23 +389,43 @@ proc initApp(config: AppConfig): App =
           de     = sum cedges.mapit(it.count)
 
         var 
-          queryReuslts, visNodes, visEdegs: JsonNode = newJNull()
+          queryReuslts, nodesGroup, edgesGroup: JsonNode = newJNull()
+          
+          whatSelected = "nothing"
+          selectedData = newJNull()
+          selectedId   = 0
 
         if isPost req:
           let form = decodedQuery req.body
           
+          if "edge-id" in form:
+            whatSelected = "edge"
+            selectedId = parseInt form["edge-id"]
+            selectedData = db.getEdgeDB(selectedId)
+
+          elif "node-id" in form:
+            whatSelected = "node"
+            selectedId = parseInt form["node-id"]
+            selectedData = db.getNodeDB(selectedId)
+
+
           if "ask" in form:
             let 
               c    = form["spql_query"]
               spql = parseSpql c
 
-            # print spql
-            # debugecho c
             queryReuslts = db.askQueryDB(
                 _ => "\"???\"", 
                 spql, 
                 app.defaultQueryStrategies)["result"]
 
+            if canBeVisualized queryReuslts:
+              let (nodeids, edgeids) = extractVisEdges(queryReuslts)
+              nodesGroup = db.getNodesDB(nodeids)
+              edgesGroup = db.getEdgesDB(edgeids)
+
+      debugEcho pretty nodesGroup
+      debugEcho pretty edgesGroup
 
       req.respond 200, emptyHttpHeaders(), databasePageHtml(
         uname, 
@@ -398,7 +435,8 @@ proc initApp(config: AppConfig): App =
         cnodes, cedges,
         ln, le,
         dn, de,
-        queryReuslts, visNodes, visEdegs)
+        queryReuslts, nodesGroup, edgesGroup,
+        whatSelected, selectedData)
 
 
     proc databaseDownload(req) = 

@@ -1,6 +1,10 @@
-import std/[strformat, json]
+import std/[strutils, strformat, json]
 import ../query_language/core
 import ./routes
+
+
+func htmlEscape(j: JsonNode): string = 
+  ($j).escapeJsonUnquoted.replace("\"", "&quot;")
 
 # ------------------------------ combinators
 
@@ -82,8 +86,11 @@ func wrapHtml(title, inner: string): string =
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/autoit.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/base16/decaf.min.css">
+    
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 
     <!-- local -->
 
@@ -155,7 +162,7 @@ func landingPageHtml*: string =
           </i>
         </h3>
         <div class="mt-4 d-flex justify-content-center">
-          <img src="/static/logo-cc-rev.svg" width="200px">
+          <img src="/static/logo-cc.svg" width="200px">
         </div>
         <h1 class="text-center">
           Sp<sub>ider</sub>QL
@@ -164,250 +171,253 @@ func landingPageHtml*: string =
     </div>
 
     <div class="bg-light">
-      <div class="container p-4">
-        <div class="aa-product-details section" id="features">
-          <div class="row">
-            <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
-              <div class="icon mx-2">
-                <i class="bi bi-braces text-primary"></i>
-              </div>
-              <div class="description">
-                <div class="h4">Schema Less</div>
-                <p class="text-muted">
-                  Store your data as simple JSON. 
-                  Here's <a target="_blank" href="https://www.delphitools.info/2021/06/17/sqlite-as-a-no-sql-database/">how</a>.
-                </p>
-              </div>
+      <div id="features" class="container p-4">
+        <h2 class="mt-2 mb-5 text-primary">
+          Features
+        </h2>
+        
+        <div class="row">
+          <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
+            <div class="icon mx-2">
+              <i class="bi bi-braces text-primary"></i>
             </div>
-
-            <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
-              <div class="icon mx-2">
-                <i class="bi bi-share text-primary"></i>
-              </div>
-              <div class="description">
-                <div class="h4">Embrace Graph</div>
-                <p class="text-muted">
-                  model your data as nodes and edges
-                </p>
-              </div>
+            <div class="description">
+              <div class="h4">Schema Less</div>
+              <p class="text-muted">
+                Store your data as simple JSON. 
+                Here's <a target="_blank" href="https://www.delphitools.info/2021/06/17/sqlite-as-a-no-sql-database/">how</a>.
+              </p>
             </div>
+          </div>
 
-            <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
-              <div class="icon mx-2">
-                <i class="bi bi-display text-primary"></i>
-              </div>
-              <div class="description">
-                <div class="h4">UI Interface</div>
-                <p class="text-muted">
-                  we have web front-end too
-                </p>
-              </div>
+          <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
+            <div class="icon mx-2">
+              <i class="bi bi-share text-primary"></i>
             </div>
-
-            <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
-              <div class="icon mx-2">
-                <i class="bi bi-plug text-primary"></i>
-              </div>
-              <div class="description">
-                <div class="h4">Various Clients</div>
-                <p class="text-muted">
-                  we have driver for Python, JavaScript, ...
-                </p>
-              </div>
+            <div class="description">
+              <div class="h4">Embrace Graph</div>
+              <p class="text-muted">
+                model your data as nodes and edges
+              </p>
             </div>
+          </div>
 
-            <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
-              <div class="icon mx-2">
-                <i class="bi bi-cpu text-primary"></i>
-              </div>
-              <div class="description">
-                <div class="h4">Don't Have Much Resources?</div>
-                <p class="text-muted">
-                  SpiderQL server doesn't use much RAM! it is based on SQLite
-                </p>
-              </div>
+          <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
+            <div class="icon mx-2">
+              <i class="bi bi-display text-primary"></i>
             </div>
-
-            <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
-              <div class="icon mx-2">
-                <i class="bi bi-people text-primary"></i>
-              </div>
-              <div class="description">
-                <div class="h4">Have Multiple Apps?</div>
-                <p class="text-muted">
-                  is supports mutli user
-                </p>
-              </div>
+            <div class="description">
+              <div class="h4">UI Interface</div>
+              <p class="text-muted">
+                we have web front-end too
+              </p>
             </div>
+          </div>
 
-            <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
-              <div class="icon mx-2">
-                <i class="bi bi-speedometer text-primary"></i>
-              </div>
-              <div class="description">
-                <div class="h4">Worry About Performance?</div>
-                <p class="text-muted">
-                  it is based on SQLite which has years of development and optimization. 
-                  read <a target="_blank" href="https://antonz.org/sqlite-is-not-a-toy-database/">SQLite is not a toy database</a>.
-                </p>
-              </div>
+          <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
+            <div class="icon mx-2">
+              <i class="bi bi-plug text-primary"></i>
             </div>
-
-            <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
-              <div class="icon mx-2">
-                <i class="bi bi-feather text-primary"></i>
-              </div>
-              <div class="description">
-                <div class="h4">Worry About Overhead?</div>
-                <p class="text-muted">
-                  using Nim programming language and simple data structures makes it super lightweight
-                </p>
-              </div>
+            <div class="description">
+              <div class="h4">Various Clients</div>
+              <p class="text-muted">
+                we have driver for Python, JavaScript, ...
+              </p>
             </div>
+          </div>
 
-
-            <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
-              <div class="icon mx-2">
-                <i class="bi bi-life-preserver text-primary"></i>
-              </div>
-              <div class="description">
-                <div class="h4">Data Loss?</div>
-                <p class="text-muted">
-                  you can set it to backup periodically
-                </p>
-              </div>
+          <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
+            <div class="icon mx-2">
+              <i class="bi bi-cpu text-primary"></i>
             </div>
-
-
-            <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
-              <div class="icon mx-2">
-                <i class="bi bi-puzzle text-primary"></i>
-              </div>
-              <div class="description">
-                <div class="h4">Don't Wanna a Server?</div>
-                <p class="text-muted">
-                  it can be imported as a library
-                </p>
-              </div>
+            <div class="description">
+              <div class="h4">Don't Have Much Resources?</div>
+              <p class="text-muted">
+                SpiderQL server doesn't use much RAM! it is based on SQLite
+              </p>
             </div>
+          </div>
 
-
-
-            <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
-              <div class="icon mx-2">
-                <i class="bi bi-rocket-takeoff text-primary"></i>
-              </div>
-              <div class="description">
-                <div class="h4">Go <i>Fastttt!</i></div>
-                <p class="text-muted">
-                  best fit for span-size projects and MVPs. the mental friction is almost zero
-                </p>
-              </div>
+          <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
+            <div class="icon mx-2">
+              <i class="bi bi-people text-primary"></i>
             </div>
-
-            <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
-              <div class="icon mx-2">
-                <i class="bi bi-code-slash text-primary"></i>
-              </div>
-              <div class="description">
-                <div class="h4">Query Language</div>
-                <p class="text-muted">
-                  it's intuitive as hell. with respect to <a target="_blank" href="https://antonz.org/fancy-ql/">I don't need your query language</a>.
-                </p>
-              </div>
+            <div class="description">
+              <div class="h4">Have Multiple Apps?</div>
+              <p class="text-muted">
+                is supports mutli user
+              </p>
             </div>
+          </div>
 
-            
-            <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
-              <div class="icon mx-2">
-                <i class="bi bi-sliders text-primary"></i>
-              </div>
-              <div class="description">
-                <div class="h4">Easily Configurable</div>
-                <p class="text-muted">
-                  you can config it using enviroment variables, CLI flags or simple 
-                  <a target="_blank" href="https://toml.io/">.toml</a>
-                  file. 
-                  you can tweak it the way you want.
-                </p>
-              </div>
+          <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
+            <div class="icon mx-2">
+              <i class="bi bi-speedometer text-primary"></i>
             </div>
+            <div class="description">
+              <div class="h4">Worry About Performance?</div>
+              <p class="text-muted">
+                it is based on SQLite which has years of development and optimization. 
+                read <a target="_blank" href="https://antonz.org/sqlite-is-not-a-toy-database/">SQLite is not a toy database</a>.
+              </p>
+            </div>
+          </div>
 
+          <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
+            <div class="icon mx-2">
+              <i class="bi bi-feather text-primary"></i>
+            </div>
+            <div class="description">
+              <div class="h4">Worry About Overhead?</div>
+              <p class="text-muted">
+                using Nim programming language and simple data structures makes it super lightweight
+              </p>
+            </div>
+          </div>
+
+
+          <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
+            <div class="icon mx-2">
+              <i class="bi bi-life-preserver text-primary"></i>
+            </div>
+            <div class="description">
+              <div class="h4">Data Loss?</div>
+              <p class="text-muted">
+                you can set it to backup periodically
+              </p>
+            </div>
+          </div>
+
+
+          <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
+            <div class="icon mx-2">
+              <i class="bi bi-puzzle text-primary"></i>
+            </div>
+            <div class="description">
+              <div class="h4">Don't Wanna a Server?</div>
+              <p class="text-muted">
+                it can be imported as a library
+              </p>
+            </div>
+          </div>
+
+
+
+          <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
+            <div class="icon mx-2">
+              <i class="bi bi-rocket-takeoff text-primary"></i>
+            </div>
+            <div class="description">
+              <div class="h4">Go <i>Fastttt!</i></div>
+              <p class="text-muted">
+                best fit for span-size projects and MVPs. the mental friction is almost zero
+              </p>
+            </div>
+          </div>
+
+          <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
+            <div class="icon mx-2">
+              <i class="bi bi-code-slash text-primary"></i>
+            </div>
+            <div class="description">
+              <div class="h4">Query Language</div>
+              <p class="text-muted">
+                it's intuitive as hell. with respect to <a target="_blank" href="https://antonz.org/fancy-ql/">I don't need your query language</a>.
+              </p>
+            </div>
+          </div>
+
+          
+          <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
+            <div class="icon mx-2">
+              <i class="bi bi-sliders text-primary"></i>
+            </div>
+            <div class="description">
+              <div class="h4">Easily Configurable</div>
+              <p class="text-muted">
+                you can config it using enviroment variables, CLI flags or simple 
+                <a target="_blank" href="https://toml.io/">.toml</a>
+                file. 
+                you can tweak it the way you want.
+              </p>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
     <div class="bg-primary">
-      <div class="p-4 mx-0 row d-flex justify-content-center fs-5">
+      <div class="p-4 fs-5 container">
+        <header>
+          <h2 class="text-white mb-4">
+            Query Language
+          </h2>
 
-        <h2 class="text-white mb-4">
-          Query Language
-        </h2>
+          XXX select option to see more examples
 
-        XXX select option to see more examples
+          <blockquote class="blockquote bg-white py-2 px-3 rounded mb-5 shadow-sm">
+            <b>
+              purpose:
+            </b>
+            <i>
+              find all of the people who acted in "Cobra-11" movie.
+            </i>
+          </blockquote>
+        </header>
 
-        <blockquote class="blockquote bg-white py-2 px-3 rounded mb-5 shadow-sm">
-          <b>
-            purpose:
-          </b>
-          <i>
-            find all of the people who acted in "Cobra-11" movie.
-          </i>
-        </blockquote>
+        <section class="row d-flex justify-content-center">
+          <div class="col-lg-4 col-md-6 col-sm-12">
+            <h4 class="text-white">
+              SpQL
+            </h4>
 
-        <div class="col-lg-4 col-md-6 col-sm-12">
+            <pre><code class="shadow rounded language-autoit">
+                
+                @acted_in a
+                #person   p
+                #movie    m
+                  = .title "Cobra-11"
 
-          <h4 class="text-white">
-            SpQL
-          </h4>
+                ASK       p>-a->^m
+                RETURN    p
 
-          <pre><code class="shadow rounded language-autoit">
-              
-              @acted_in a
-              #person   p
-              #movie    m
-                = .title "Cobra-11"
+              </code></pre>
+          </div>
 
-              ASK       p>-a->^m
-              RETURN    p
+          <div class="col-lg-4 col-md-6 col-sm-12">
+            <h4 class="text-white">
+              SQL
+            </h4>
 
-            </code></pre>
-        </div>
-
-        <div class="col-lg-4 col-md-6 col-sm-12">
-
-          <h4 class="text-white">
-            SQL
-          </h4>
-
-          <pre><code class="shadow rounded language-sql">
-              SELECT    
-                p.*
-              FROM 
-                Movie m
-              WHERE
-                m.title = 'Cobra-11'
-              JOIN
-                Acted_in a
-              ON
-                m.id = a.movie_id
-              JOIN
-                Person   p
-              ON 
-                p.id = a.person_id
-            </code></pre>
-
-        </div>
+            <pre><code class="shadow rounded language-sql">
+                SELECT    
+                  p.*
+                FROM 
+                  Movie m
+                WHERE
+                  m.title = 'Cobra-11'
+                JOIN
+                  Acted_in a
+                ON
+                  m.id = a.movie_id
+                JOIN
+                  Person   p
+                ON 
+                  p.id = a.person_id
+              </code></pre>
+          </div>
+        </section>
       </div>
     </div>
 
-    
     <div class="bg-white">
       <div class="container p-4">
-        <h3>
-          Frequently Asked Questions :: FAQ
-        </h3>
+        <h2>
+          About
+        </h2>
+        <p>
+          origin, its name, ...
+        </p>
       </div>
     </div>
 
@@ -501,7 +511,7 @@ func userslistPageHtml*(users: seq[JsonNode]): string =
     dbRows.add fmt"""
       <tr>
         <td>
-          <a href="{profile_url uname}" smooth-link>
+          <a href="{profile_url uname}" class="text-decoration-none" smooth-link>
             @{uname}
           </a>
         </td>
@@ -548,7 +558,9 @@ func profilePageHtml*(uname: string, dbs: seq[JsonNode], sizes, lastModification
     dbrows.add fmt"""
   <tr>
     <td>
-      <a href="{databaseurl uname, dbname}" smooth-link>{dbname}</a>
+      <a href="{databaseurl uname, dbname}" class="text-decoration-none" smooth-link>
+        {dbname}
+      </a>
     </td>
     <td>{lastModifications[i]}</td>
     <td>{sizes[i]}</td>
@@ -561,7 +573,8 @@ func profilePageHtml*(uname: string, dbs: seq[JsonNode], sizes, lastModification
       <h2 class="mb-4">
         <i class="bi bi-person-vcard"></i>
         <span class="mx-2">
-          <a href="{profile_url uname}" smooth-link>@{uname}</a>'s info
+          <a href="{profile_url uname}" class="text-decoration-none" smooth-link>
+            @{uname}</a>'s info
         </span>
       </h2>
 
@@ -626,6 +639,7 @@ func databasePageHtml*(
   tagsOfNodes, tagsOfEdges: int,
   totalNodes,  totalEdges: int,
   queryResults, visNodes, visEdges: JsonNode,
+  whatSelected: string, selectedData: JsonNode
 ): string = 
   # XXX use vis.js for graph, works if data is queried as [node/edge, ...]
   # export data as [edge_id, node_head_id, node_tail_id], can be nested, 
@@ -654,14 +668,38 @@ func databasePageHtml*(
       </tr>
     """
 
+  var 
+    nodeTags: seq[string]
+    edgeTags: seq[string]
+  
+  for ni in nodesInfo:
+    nodeTags.add ni.tag
+
+  for ei in edgesInfo:
+    edgeTags.add ei.tag
+
+
+  let visData = %*{
+    "nodes": visNodes,
+    "edges": visEdges,
+    "vis_data": queryResults,
+    "node_tags": nodeTags,
+    "edge_tags": edgeTags,
+  }
+
   wrapHtml fmt"{dbname} DB for @{uname}", fmt"""
     <div class="container my-4">
       <h2 class="mb-4">
         <i class="bi bi-database"></i>
         <span>Database</span>
-        <a href="{database_url uname, dbname}" smooth-link>{dbname}</a>
+        <a href="{database_url uname, dbname}" class="text-decoration-none" smooth-link>
+          {dbname}
+        </a>
         <sub class="text-secondary">
-          for <a href="{profile_url uname}" smooth-link>@{uname}</a>
+          for 
+          <a href="{profile_url uname}" class="text-decoration-none" smooth-link>
+            @{uname}
+          </a>
         </sub>
       </h2>
 
@@ -670,37 +708,43 @@ func databasePageHtml*(
           <i class="bi bi-info-square"></i>
           Info
         </h4>
-        <ul>
-          <li>
-            <i class="bi bi-sd-card"></i>
-            <b>db size</b>
-            <span>{size}</span>
-          </li>
-          <li>
-            <i class="bi bi-cloud-check"></i>
-            <b>last backup</b>
-            <span>{lastmodif}</span>
-          </li>
-        </ul>
+
+        <div class="row">
+          <section class="col-lg-4 col-md-6 col-sm-12">
+            <ul>
+              <li>
+                <i class="bi bi-sd-card"></i>
+                <b>database size</b>
+                <span>{size}</span>
+              </li>
+              <li>
+                <i class="bi bi-cloud-check"></i>
+                <b>last backup</b>
+                <span>{lastmodif}</span>
+              </li>
+            </ul>
+          </section>
+            
+          <section class="col-lg-4 col-md-6 col-sm-12">
+            <form method="post" action="{database_url uname, dbname}">
+              <a href="{database_download_url uname, dbname}" class="btn btn-outline-primary">
+                <i class="bi bi-cloud-download"></i>
+                <span>download</span>
+              </a>
+
+              <button name="backup-database" class="btn btn-outline-primary">
+                <i class="bi bi-floppy"></i>
+                <span>back-up</span>
+              </button>
+
+              <button name="remove-database" class="btn btn-outline-primary">
+                <i class="bi bi-trash"></i>
+                <span>remove</span>
+              </button>
+            </form>
+          </section>
+        </div>
       </div>
-
-      <form method="post" action="{database_url uname, dbname}">
-        <a href="{database_download_url uname, dbname}" class="btn btn-outline-primary">
-          <i class="bi bi-cloud-download"></i>
-          <span>download</span>
-        </a>
-
-        <button name="backup-database" class="btn btn-outline-primary">
-          <i class="bi bi-floppy"></i>
-          <span>back-up</span>
-        </button>
-
-        <button name="remove-database" class="btn btn-outline-primary">
-          <i class="bi bi-trash"></i>
-          <span>remove</span>
-        </button>
-      </form>
-
 
       <div>
         <h3>
@@ -710,38 +754,39 @@ func databasePageHtml*(
 
         <div class="ms-4">
 
-          <div class="">
+          <div>
             <h4>
               <i class="bi bi-noise-reduction"></i>
               Nodes
             </h4>
-            
-            <span>
-              all node tags with number of records
-            </span>
 
-            <table class="table table-hover shadow-sm">
-              <thead>
-                <tr>
-                  <th>
-                    <i class="bi bi-tags"></i>
-                    Tag
-                  </th>
-                  <th>
-                    <i class="bi bi-123"></i>
-                    Count
-                  </th>
-                  <th>
-                    <i class="bi bi-diagram-3"></i>
-                    Structure
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {nodeRows}
-              </tbody>
-            </table>
+            <section class="mx-2">
+              <span>
+                all node tags with number of records
+              </span>
 
+              <table class="table table-hover shadow-sm">
+                <thead>
+                  <tr>
+                    <th>
+                      <i class="bi bi-tags"></i>
+                      Tag
+                    </th>
+                    <th>
+                      <i class="bi bi-123"></i>
+                      Count
+                    </th>
+                    <th>
+                      <i class="bi bi-diagram-3"></i>
+                      Structure
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {nodeRows}
+                </tbody>
+              </table>
+            </section>
           </div>
 
           <div>
@@ -749,32 +794,34 @@ func databasePageHtml*(
               <i class="bi bi-bounding-box-circles"></i>
               Edges
             </h4>
-            <span>
-              all edge tags with number of records
-            </span>
+            
+            <section class="mx-2">
+              <span>
+                all edge tags with number of records
+              </span>
 
-            <table class="table table-hover shadow-sm">
-              <thead>
-                <tr>
-                  <th>
-                    <i class="bi bi-tags"></i>
-                    Tag
-                  </th>
-                  <th>
-                    <i class="bi bi-123"></i>
-                    Count
-                  </th>
-                  <th>
-                    <i class="bi bi-diagram-3"></i>
-                    Structure
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {edgeRows}
-              </tbody>
-            </table>
-
+              <table class="table table-hover shadow-sm">
+                <thead>
+                  <tr>
+                    <th>
+                      <i class="bi bi-tags"></i>
+                      Tag
+                    </th>
+                    <th>
+                      <i class="bi bi-123"></i>
+                      Count
+                    </th>
+                    <th>
+                      <i class="bi bi-diagram-3"></i>
+                      Structure
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {edgeRows}
+                </tbody>
+              </table>
+            </section>
           </div>
 
           <div>
@@ -782,146 +829,171 @@ func databasePageHtml*(
               <i class="bi bi-plus-slash-minus"></i>
               Summary
             </h4>
-            <span>
-              aggregate them all
-            </span>
             
-            <table class="table table-hover shadow-sm">
-              <thead>
-                <tr>
-                  <th>
-                  </th>
-                  <th>
-                    <i class="bi bi-tags"></i>
-                    Tags
-                  </th>
-                  <th>
-                    <i class="bi bi-123"></i>
-                    Count
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
+            <section class="mx-2">
+              <span>
+                aggregate them all
+              </span>
 
-                <tr>
-                  <th>Nodes</th>
-                  <td>{tagsOfNodes}</td>
-                  <td>{totalNodes}</td>
-                </tr>
-              
-                <tr>
-                  <th>Edges</th>
-                  <td>{tagsOfEdges}</td>
-                  <td>{totalEdges}</td>
-                </tr>
+              <table class="table table-hover shadow-sm">
+                <thead>
+                  <tr>
+                    <th>
+                    </th>
+                    <th>
+                      <i class="bi bi-tags"></i>
+                      Tags
+                    </th>
+                    <th>
+                      <i class="bi bi-123"></i>
+                      Count
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
 
-                <tr>
-                  <th>Total</th>
-                  <td>{tagsOfNodes+tagsOfEdges}</td>
-                  <td>{totalNodes+totalEdges}</td>
-                </tr>
+                  <tr>
+                    <th>Nodes</th>
+                    <td>{tagsOfNodes}</td>
+                    <td>{totalNodes}</td>
+                  </tr>
                 
-              </tbody>
-            </table>
+                  <tr>
+                    <th>Edges</th>
+                    <td>{tagsOfEdges}</td>
+                    <td>{totalEdges}</td>
+                  </tr>
 
+                  <tr>
+                    <th>Total</th>
+                    <td>{tagsOfNodes+tagsOfEdges}</td>
+                    <td>{totalNodes+totalEdges}</td>
+                  </tr>
+                  
+                </tbody>
+              </table>
+            </section>
           </div>
-
         </div>
       </div>
       
       
+      <div class="row">
+        <section class="col-md-6 col-sm-12">
+          <h3>
+            <i class="bi bi-code-square"></i>
+            Query
+          </h3>
+
+          <form action="{database_url uname, dbname}" method="POST" up-submit up-target="#query-vis, #query-data">
+            <textarea class="form-control editor-height" name="spql_query" lang="sql">
+                #; a b c
+                ask a->^b->c
+                ret 
+                  graph! b
+            </textarea>
+
+            <button name="ask" class="btn btn-outline-primary">
+              <i class="bi bi-search"></i>
+              Ask
+            </button>
+          </form>
+        </section>
+
+        <section class="col-md-6 col-sm-12">
+          <h3>
+            <i class="bi bi-stickies"></i>
+            Result
+          </h3>
+          
+          <div id="query-data">
+            <pre><code class="compact rounded shadow-sm language-javascript">{pretty queryResults}</code></pre>
+          </div>
+        </section>
+      </div>
+
+      <div id="query-vis" class="row">
+        <section class="col-md-6 col-sm-12 mt-3">
+          <h3>
+            <i class="bi bi-geo"></i>
+            Visualize
+          </h3>
+
+          <div vis-graph class="rounded shadow-sm bg-white" style="height: 50vh" up-data='{$visData}'>
+          </div>
+        </section>
+
+        <section class="col-md-6 col-sm-12 mt-3">
+          <h3>
+            <i class="bi bi-search"></i>
+            Focused
+          </h3>
+
+          <form id="node-get" action="{database_url uname, dbname}" method="post" up-submit up-target="#partial-data">
+            <input type="hidden" name="node-id">
+          </form>
+          <form id="edge-get" action="{database_url uname, dbname}" method="post" up-submit up-target="#partial-data">
+            <input type="hidden" name="edge-id">
+          </form>
+
+          <div id="partial-data">
+            <pre><code class="compact rounded shadow-sm language-javascript">{pretty selected_data}</code></pre>
+          </div>
+        </section>
+      </div>
+
       <div>
         <h3>
-          <i class="bi bi-code-square"></i>
-          Query
+          <i class="bi bi-plus"></i>
+          Add
         </h3>
 
-        <form action="{database_url uname, dbname}" method="POST" up-submit up-target="#query_results">
-          <textarea class="form-control editor-height" name="spql_query" lang="sql">
-              #user u
-              ask   u
-              ret   u
-          </textarea>
+        <h4>
+          <i class="bi bi-node-plus"></i>
+          Node
+        </h4>
 
-          <button name="ask" class="btn btn-outline-primary">
-            <i class="bi bi-search"></i>
-            Ask
+        <form action="{database_url uname, dbname}" method="post" up-submit class="d-flex justify-content-between">
+          <input type="text" name="node-tag" class="form-control" placeholder="tag" required>
+          <input type="file" accept=".json" name="node-doc" class="form-control" placeholder="JSON data" required>
+          <button name="add-node" class="btn btn-outline-primary text-nowrap">
+            <i class="bi bi-plus"></i>
           </button>
         </form>
 
-        <div>
-          <h3>
-            <i class="bi bi-stickies"></i>
-            Results
-          </h3>
-          
-          <div id="query_results">
-            <pre><code lang="JSON" class="compact">{pretty queryResults}</code></pre>
-          </div>
-        </div>
+        <h4>
+          <i class="bi bi-share"></i>
+          Edge
+        </h4>
 
-        <div>
-          <h3>
-            <i class="bi bi-radar"></i>
-            Visualize
-          </h3>
-        </div>
-
-        <div>
-          <h3>
-            <i class="bi bi-plus"></i>
-            Add
-          </h3>
-
-
-          <h4>
-            <i class="bi bi-node-plus"></i>
-            Node
-          </h4>
-
-          <form action="{database_url uname, dbname}" method="post" up-submit class="d-flex justify-content-between">
-            <input type="text" name="node-tag" class="form-control" placeholder="tag" required>
-            <input type="file" accept=".json" name="node-doc" class="form-control" placeholder="JSON data" required>
-            <button name="add-node" class="btn btn-outline-primary text-nowrap">
+        
+        <form action="{database_url uname, dbname}" method="post" up-submit>
+          <fieldset class="d-flex justify-content-between">
+            <input type="text" name="edge-tag" class="form-control" placeholder="tag" required>
+            <input type="file" accept=".json" name="edge-doc" class="form-control" placeholder="JSON data" required>
+          </fieldset>
+          <fieldset class="d-flex justify-content-between">
+            <input type="number" name="source-id" class="form-control" placeholder="source id">
+            <input type="number" name="target-id" class="form-control" placeholder="target id">
+            <button name="add-edge" class="btn btn-outline-primary text-nowrap">
               <i class="bi bi-plus"></i>
             </button>
-          </form>
+          </fieldset>
+        </form>
 
-          <h4>
-            <i class="bi bi-share"></i>
-            Edge
-          </h4>
+        <h4>
+          <i class="bi bi-collection-play"></i>
+          Collection
+        </h4>
 
-          
-          <form action="{database_url uname, dbname}" method="post" up-submit>
-            <fieldset class="d-flex justify-content-between">
-              <input type="text" name="edge-tag" class="form-control" placeholder="tag" required>
-              <input type="file" accept=".json" name="edge-doc" class="form-control" placeholder="JSON data" required>
-            </fieldset>
-            <fieldset class="d-flex justify-content-between">
-              <input type="number" name="source-id" class="form-control" placeholder="source id">
-              <input type="number" name="target-id" class="form-control" placeholder="target id">
-              <button name="add-edge" class="btn btn-outline-primary text-nowrap">
-                <i class="bi bi-plus"></i>
-              </button>
-            </fieldset>
-          </form>
-
-          <h4>
-            <i class="bi bi-collection-play"></i>
-            Collection
-          </h4>
-
-          <form action="{database_url uname, dbname}" method="post" up-submit class="d-flex justify-content-between">
-            <input type="file" accept=".json" name="node-doc" class="form-control" placeholder="JSON data" required>
-            <button name="add-collection" class="btn btn-outline-primary text-nowrap">
-              <i class="bi bi-cloud-upload"></i>
-              Upload collection              
-            </button>
-          </form>
-
-        </div>
-
+        <form action="{database_url uname, dbname}" method="post" up-submit class="d-flex justify-content-between">
+          <input type="file" accept=".json" name="node-doc" class="form-control" placeholder="JSON data" required>
+          <button name="add-collection" class="btn btn-outline-primary text-nowrap">
+            <i class="bi bi-cloud-upload"></i>
+            Upload collection              
+          </button>
+        </form>
       </div>
+
     </div>
   """
