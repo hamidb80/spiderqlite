@@ -758,8 +758,8 @@ func databasePageHtml*(
                   </tr>
                   <tr>
                     <td>
-                      <i class="bi bi-controller"></i>
-                      <b class="ms-1">is for playing?</b>
+                      <i class="bi bi-eye"></i>
+                      <b class="ms-1">is view only?</b>
                     </td>
                     <td>No</td>
                   </tr>
@@ -1040,6 +1040,31 @@ func databasePageHtml*(
           <div id="partial-data">
             <pre><code class="compact rounded shadow-sm language-javascript">{pretty selected_data}</code></pre>
           </div>
+
+          <div>
+            <button class="btn btn-outline-primary">
+              delete selected
+            </button>
+            <button class="btn btn-outline-primary">
+              delete all
+            </button>
+          </div>
+          <div>
+            <button class="btn btn-outline-primary">
+              update doc
+            </button>
+            <input type="file" accept=".json" name="node-doc" class="form-control" placeholder="JSON data" required>
+          </div>
+      
+          <div>
+            <button class="btn btn-outline-primary">
+              select as source              
+            </button>
+            <button class="btn btn-outline-primary">
+              select as target              
+            </button>
+          </div>
+
         </section>
       </div>
 
