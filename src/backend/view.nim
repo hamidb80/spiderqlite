@@ -666,7 +666,8 @@ func databasePageHtml*(
   tagsOfNodes, tagsOfEdges: int,
   totalNodes,  totalEdges: int,
   queryResults, visNodes, visEdges: JsonNode,
-  whatSelected: string, selectedData: JsonNode
+  whatSelected: string, selectedData: JsonNode,
+  queryTimeMicroses: int,
 ): string = 
   # XXX use vis.js for graph, works if data is queried as [node/edge, ...]
   # export data as [edge_id, node_head_id, node_tail_id], can be nested, 
@@ -956,7 +957,7 @@ func databasePageHtml*(
               Query
             </h3>
 
-            <form action="{database_url uname, dbname}" method="POST" up-submit up-target="#query-vis, #query-data">
+            <form action="{database_url uname, dbname}" method="POST" up-submit up-target="#query-vis, #query-data, #performance_measure">
               <textarea class="form-control editor-height" name="spql_query" lang="sql">
                   #; a b c
                   ask a->^b->c
@@ -978,7 +979,7 @@ func databasePageHtml*(
               </button>
             </form>
           </div>
-          <div class="mt-3">
+          <div class="mt-3" id="performance_measure">
             <h4>
               <i class="bi bi-speedometer2"></i>
               Performance
@@ -988,6 +989,10 @@ func databasePageHtml*(
               <tbody>
                 <tr>
                   <td>
+                    total time
+                  </td>
+                  <td>
+                    {queryTimeMicroses}µ
                   </td>
                 </tr>
               </tbody>

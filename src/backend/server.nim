@@ -1,4 +1,4 @@
-import std/[strutils, strformat, tables, json, monotimes, os, times, with, sugar, uri, mimetypes, paths, oids, math, sequtils]
+import std/[strutils, strformat, tables, json, monotimes, os, times, with, sugar, uri, mimetypes, paths, oids, math, sequtils, times]
 
 import db_connector/db_sqlite
 import mummy, mummy/routers
@@ -394,6 +394,7 @@ proc initApp(config: AppConfig): App =
           whatSelected = "nothing"
           selectedData = newJNull()
           selectedId   = 0
+          perf         = 0
 
         if isPost req:
           let form = decodedQuery req.body
@@ -411,6 +412,7 @@ proc initApp(config: AppConfig): App =
 
           if "ask" in form:
             let 
+              head = now()
               c    = form["spql_query"]
               spql = parseSpql c
 
@@ -419,13 +421,12 @@ proc initApp(config: AppConfig): App =
                 spql, 
                 app.defaultQueryStrategies)["result"]
 
+            perf = inMicroseconds (now() - head)
+
             if canBeVisualized queryReuslts:
               let (nodeids, edgeids) = extractVisEdges(queryReuslts)
               nodesGroup = db.getNodesDB(nodeids)
               edgesGroup = db.getEdgesDB(edgeids)
-
-      debugEcho pretty nodesGroup
-      debugEcho pretty edgesGroup
 
       req.respond 200, emptyHttpHeaders(), databasePageHtml(
         uname, 
@@ -436,7 +437,8 @@ proc initApp(config: AppConfig): App =
         ln, le,
         dn, de,
         queryReuslts, nodesGroup, edgesGroup,
-        whatSelected, selectedData)
+        whatSelected, selectedData,
+        perf)
 
 
     proc databaseDownload(req) = 

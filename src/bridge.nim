@@ -103,10 +103,8 @@ proc updateEntityDocDB*(db, ent, id, doc): bool =
   of nodes: updateNodeDocDB db, id, doc 
   of edges: updateEdgeDocDB db, id, doc
 
-
 proc askQueryDbRaw*(db, ctx, spql, queryStrateies): string = 
   let sql = toSql(spql, queryStrateies, ctx)
-  debugEcho sql
 
   result = newStringOfCap 1024 * 20 # KB
   << "{\"result\":["
@@ -124,9 +122,7 @@ proc askQueryDbRaw*(db, ctx, spql, queryStrateies): string =
 
   << "],\"length\":"
   << $rows
-  << '}'
 
-  # TODO add/fill perf
   # << ','
   # << "\"performance\":{"
   # << "\"unit\": \"us\""
@@ -145,7 +141,7 @@ proc askQueryDbRaw*(db, ctx, spql, queryStrateies): string =
   # << ','
   # << "\"exec & collect\":"
   # << $inMicroseconds(tcollect - tquery)
-  # << '}'
+  << '}'
 
 proc askQueryDB*(db, ctx, spql, queryStrateies): JsonNode = 
   parseJson askQueryDbRaw(db, ctx, spql, queryStrateies)
