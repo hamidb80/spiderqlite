@@ -893,7 +893,7 @@ func databasePageHtml*(
                   graph! b
             </textarea>
 
-            <button name="ask" class="btn btn-outline-primary">
+            <button name="ask" class="btn btn-outline-primary btn-sm w-100 mt-1">
               <i class="bi bi-search"></i>
               Ask
             </button>
@@ -925,7 +925,7 @@ func databasePageHtml*(
 
         <section class="col-md-6 col-sm-12 mt-3">
           <h3>
-            <i class="bi bi-search"></i>
+            <i class="bi bi-crosshair"></i>
             Focused
           </h3>
 
