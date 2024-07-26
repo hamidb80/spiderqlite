@@ -3,9 +3,6 @@ import ../query_language/core
 import ./routes
 
 
-func htmlEscape(j: JsonNode): string = 
-  ($j).escapeJsonUnquoted.replace("\"", "&quot;")
-
 # ------------------------------ combinators
 
 proc redirectingHtml*(link: string): string =
@@ -173,6 +170,7 @@ func landingPageHtml*: string =
     <div class="bg-light">
       <div id="features" class="container p-4">
         <h2 class="mt-2 mb-5 text-primary">
+          <i class="bi bi-magic"></i>
           Features
         </h2>
         
@@ -350,6 +348,7 @@ func landingPageHtml*: string =
       <div class="p-4 fs-5 container">
         <header>
           <h2 class="text-white mb-4">
+            <i class="bi bi-code-square"></i>
             Query Language
           </h2>
 
@@ -373,7 +372,7 @@ func landingPageHtml*: string =
 
             <pre><code class="shadow rounded language-autoit">
                 
-                @acted_in a
+                #acted_in a
                 #person   p
                 #movie    m
                   = .title "Cobra-11"
@@ -409,15 +408,42 @@ func landingPageHtml*: string =
         </section>
       </div>
     </div>
-
+    
     <div class="bg-white">
       <div class="container p-4">
         <h2>
-          About
+          <i class="bi bi-question-circle"></i>
+          FAQ
         </h2>
-        <p>
-          origin, its name, ...
-        </p>
+
+        <div>
+          <h4>
+            SpiderQL VS ORM
+          </h4>
+
+          <p class="answer">
+          </p>
+        </div>
+
+
+        <div>
+          <h4>
+            What is the story behind SpiderQL?
+          </h4>
+
+          <p class="answer">
+          </p>
+        </div>
+
+        <div>
+          <h4>
+            Where does the name come from?
+          </h4>
+
+          <p class="answer">
+          </p>
+        </div>
+
       </div>
     </div>
 
@@ -426,11 +452,9 @@ func landingPageHtml*: string =
       <div class="container py-4 px-2">
         <center>
           <div class="my-1">
-            created with passion
+            built with passion
             🤍
-          </div>
-          
-          <div class="my-1">
+            
             in 
             <a href="https://nim-lang.org/">Nim</a>
             👑
@@ -632,6 +656,9 @@ func profilePageHtml*(uname: string, dbs: seq[JsonNode], sizes, lastModification
     </div>
   """
 
+
+# TODO add notifiocantion with unpoly to show latests norifs <norif>content</norif>
+
 func databasePageHtml*(
   uname, dbname: string, 
   size, lastmodif: int, 
@@ -704,57 +731,100 @@ func databasePageHtml*(
       </h2>
 
       <div>
-        <h4>
-          <i class="bi bi-info-square"></i>
-          Info
-        </h4>
-
         <div class="row">
-          <section class="col-lg-4 col-md-6 col-sm-12">
-            <ul>
-              <li>
-                <i class="bi bi-sd-card"></i>
-                <b>database size</b>
-                <span>{size}</span>
-              </li>
-              <li>
-                <i class="bi bi-cloud-check"></i>
-                <b>last backup</b>
-                <span>{lastmodif}</span>
-              </li>
-            </ul>
+          <section class="col-md-4 col-sm-12 mt-4">
+            <div>
+              <h4>
+                <i class="bi bi-info-square"></i>
+                Info
+              </h4>
+              
+              <table class="table table-hover shadow-sm">
+                <tbody>
+                  <tr>
+                    <td>
+                      <i class="bi bi-sd-card"></i>
+                      <b class="ms-1">database size</b>
+                    </td>
+                    <td>{size}</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <i class="bi bi-clock-history"></i>
+                      <b class="ms-1">last modification</b>
+                    </td>
+                    <td>{lastmodif}</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <i class="bi bi-controller"></i>
+                      <b class="ms-1">is for playing?</b>
+                    </td>
+                    <td>No</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div>
+              <h4>
+                <i class="bi bi-gear"></i>
+                Actions
+              </h4>
+
+              <form method="post" action="{database_url uname, dbname}" class="ms-2">
+                <button name="backup-database" class="btn btn-outline-primary">
+                  <i class="bi bi-floppy"></i>
+                  <span>back-up</span>
+                </button>
+
+                <button name="remove-database" class="btn btn-outline-primary">
+                  <i class="bi bi-trash"></i>
+                  <span>remove</span>
+                </button>
+              </form>
+            </div>
           </section>
-            
-          <section class="col-lg-4 col-md-6 col-sm-12">
-            <form method="post" action="{database_url uname, dbname}">
-              <a href="{database_download_url uname, dbname}" class="btn btn-outline-primary">
-                <i class="bi bi-cloud-download"></i>
-                <span>download</span>
-              </a>
+          <section class="col-md-8 col-sm-12 mt-4">
+            <div>
+              <h4>
+                <i class="bi bi-truck"></i>
+                Back-ups
+              </h4>
 
-              <button name="backup-database" class="btn btn-outline-primary">
-                <i class="bi bi-floppy"></i>
-                <span>back-up</span>
-              </button>
-
-              <button name="remove-database" class="btn btn-outline-primary">
-                <i class="bi bi-trash"></i>
-                <span>remove</span>
-              </button>
-            </form>
+              <table class="table table-hover shadow-sm">
+                <thead>
+                  <tr>
+                    <th>
+                      <i class="bi bi-calendar-event"></i>
+                      time
+                    </th>
+                    <th>
+                      <i class="bi bi-sd-card"></i>
+                      size
+                    </th>
+                    <th>
+                      <i class="bi bi-cloud-download"></i>
+                      download
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                </tbody>
+              </table>
+            </div>
           </section>
         </div>
       </div>
 
-      <div>
+      <div class="mt-5">
         <h3>
           <i class="bi bi-graph-up"></i>
           Analysis
         </h3>
 
         <div class="ms-4">
-
-          <div>
+          <div class="mt-4">
             <h4>
               <i class="bi bi-noise-reduction"></i>
               Nodes
@@ -789,7 +859,7 @@ func databasePageHtml*(
             </section>
           </div>
 
-          <div>
+          <div class="mt-4">
             <h4>
               <i class="bi bi-bounding-box-circles"></i>
               Edges
@@ -824,7 +894,7 @@ func databasePageHtml*(
             </section>
           </div>
 
-          <div>
+          <div class="mt-4">
             <h4>
               <i class="bi bi-plus-slash-minus"></i>
               Summary
@@ -878,26 +948,52 @@ func databasePageHtml*(
       </div>
       
       
-      <div class="row">
+      <div class="row mt-5">
         <section class="col-md-6 col-sm-12">
-          <h3>
-            <i class="bi bi-code-square"></i>
-            Query
-          </h3>
+          <div>
+            <h3>
+              <i class="bi bi-code-square"></i>
+              Query
+            </h3>
 
-          <form action="{database_url uname, dbname}" method="POST" up-submit up-target="#query-vis, #query-data">
-            <textarea class="form-control editor-height" name="spql_query" lang="sql">
-                #; a b c
-                ask a->^b->c
-                ret 
-                  graph! b
-            </textarea>
+            <form action="{database_url uname, dbname}" method="POST" up-submit up-target="#query-vis, #query-data">
+              <textarea class="form-control editor-height" name="spql_query" lang="sql">
+                  #; a b c
+                  ask a->^b->c
+                  ret 
+                    graph! b
+              </textarea>
 
-            <button name="ask" class="btn btn-outline-primary btn-sm w-100 mt-1">
-              <i class="bi bi-search"></i>
-              Ask
-            </button>
-          </form>
+              <fieldset>
+                <label>
+                  <i class="bi bi-braces"></i>
+                  context:
+                </label>
+                <input type="file" accept=".json" name="node-doc" class="form-control" placeholder="JSON data">
+              </fieldset>
+
+              <button name="ask" class="btn btn-outline-primary btn-sm w-100 mt-2">
+                <i class="bi bi-search"></i>
+                Ask
+              </button>
+            </form>
+          </div>
+          <div class="mt-3">
+            <h4>
+              <i class="bi bi-speedometer2"></i>
+              Performance
+            </h4>
+                        
+            <table class="table table-hover shadow-sm">
+              <tbody>
+                <tr>
+                  <td>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+          </div>
         </section>
 
         <section class="col-md-6 col-sm-12">
@@ -912,7 +1008,7 @@ func databasePageHtml*(
         </section>
       </div>
 
-      <div id="query-vis" class="row">
+      <div class="row mt-3" id="query-vis">
         <section class="col-md-6 col-sm-12 mt-3">
           <h3>
             <i class="bi bi-geo"></i>
@@ -942,57 +1038,113 @@ func databasePageHtml*(
         </section>
       </div>
 
-      <div>
+      <div class="mt-5">
         <h3>
           <i class="bi bi-plus"></i>
           Add
         </h3>
 
-        <h4>
-          <i class="bi bi-node-plus"></i>
-          Node
-        </h4>
+        <div class="row d-flex justify-content-center px-3 pt-2">
+          <section class="col-md-6 col-sm-12">
+            <h4>
+              <i class="bi bi-circle"></i>
+              Node
+            </h4>
 
-        <form action="{database_url uname, dbname}" method="post" up-submit class="d-flex justify-content-between">
-          <input type="text" name="node-tag" class="form-control" placeholder="tag" required>
-          <input type="file" accept=".json" name="node-doc" class="form-control" placeholder="JSON data" required>
-          <button name="add-node" class="btn btn-outline-primary text-nowrap">
-            <i class="bi bi-plus"></i>
-          </button>
-        </form>
+            <form action="{database_url uname, dbname}" method="post" class="ms-2" up-submit>
+              <fieldset>
+                <label>
+                  <i class="bi bi-hash"></i>
+                  tag:
+                </label>
+                <input type="text" name="node-tag" class="form-control" placeholder="like: #person" required>
+              </fieldset>
+              <fieldset>
+                <label>
+                  <i class="bi bi-braces"></i>
+                  JSON document:
+                </label>
+                <input type="file" accept=".json" name="node-doc" class="form-control" placeholder="JSON data" required>
+              </fieldset>
+              <button name="add-node" class="btn btn-sm w-100 mt-2 btn-outline-primary text-nowrap">
+                <i class="bi bi-plus"></i>
+                add
+              </button>
+            </form>
+          </section>
 
-        <h4>
-          <i class="bi bi-share"></i>
-          Edge
-        </h4>
+          <section class="col-md-6 col-sm-12">
+            <h4>
+              <i class="bi bi-share"></i>
+              Edge
+            </h4>
+            
+            <form action="{database_url uname, dbname}" method="post" class="ms-2" up-submit>
+              <fieldset>
+                <label>
+                  <i class="bi bi-hash"></i>
+                  tag:
+                </label>
+                <input type="text" name="node-tag" class="form-control" placeholder="like: #owns" required>
+              </fieldset>
+              <fieldset>
+                <label>
+                  <i class="bi bi-braces"></i>
+                  JSON document:
+                </label>
+                <input type="file" accept=".json" name="edge-doc" class="form-control" placeholder="JSON data">
+              </fieldset>
+              <fieldset class="d-flex">
+                <fieldset class="w-100">
+                  <label>
+                    <i class="bi bi-align-start"></i>
+                    source id:
+                  </label>
+                  <input type="number" min="1" step="1" name="source-id" class="form-control" placeholder="the __id field, like: 31" required>
+                </fieldset>
+                <fieldset class="w-100">
+                  <label>
+                    <i class="bi bi-align-end"></i>
+                    target id:
+                  </label>
+                  <input type="number" min="1" step="1" name="target-id" class="form-control" placeholder="the __id field, like: 7" required>
+                </fieldset>
+              </fieldset>
+              <button name="add-edge" class="btn btn-sm w-100 mt-2 btn-outline-primary text-nowrap">
+                <i class="bi bi-plus"></i>
+                add
+              </button>
+            </form>
+          </section>
+        </div>
+      </div>
 
-        
-        <form action="{database_url uname, dbname}" method="post" up-submit>
-          <fieldset class="d-flex justify-content-between">
-            <input type="text" name="edge-tag" class="form-control" placeholder="tag" required>
-            <input type="file" accept=".json" name="edge-doc" class="form-control" placeholder="JSON data" required>
-          </fieldset>
-          <fieldset class="d-flex justify-content-between">
-            <input type="number" name="source-id" class="form-control" placeholder="source id">
-            <input type="number" name="target-id" class="form-control" placeholder="target id">
-            <button name="add-edge" class="btn btn-outline-primary text-nowrap">
-              <i class="bi bi-plus"></i>
-            </button>
-          </fieldset>
-        </form>
-
+      <div>
         <h4>
           <i class="bi bi-collection-play"></i>
-          Collection
+          bulk import
         </h4>
 
-        <form action="{database_url uname, dbname}" method="post" up-submit class="d-flex justify-content-between">
-          <input type="file" accept=".json" name="node-doc" class="form-control" placeholder="JSON data" required>
-          <button name="add-collection" class="btn btn-outline-primary text-nowrap">
-            <i class="bi bi-cloud-upload"></i>
-            Upload collection              
-          </button>
-        </form>
+        <div class="row">
+          <section class="col-md-6 col-sm-12 mt-2">
+            <form action="{database_url uname, dbname}" method="post" up-submit class="d-flex justify-content-between">
+              <input type="file" accept=".json" name="node-doc" class="form-control" placeholder="JSON data" required>
+              <button name="add-collection" class="btn btn-outline-primary text-nowrap">
+                <i class="bi bi-cloud-upload"></i>
+                Upload collection              
+              </button>
+            </form>
+          </section>
+
+          <section class="col-md-6 col-sm-12 mt-2">
+            <div class="alert alert-info">
+              <strong>Heads up!</strong> 
+              This 
+              <a href="#" class="alert-link">alert needs your attention</a>
+              , but it's not super important.
+            </div>
+          </section>
+        </div>
       </div>
 
     </div>

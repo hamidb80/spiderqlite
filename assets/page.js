@@ -121,7 +121,21 @@ up.compiler("[vis-graph]", (container, data) => {
   let edges = new vis.DataSet(newedges)
 
   container.style.height = 200
-  let network = new vis.Network(container, { nodes, edges }, {})
+  let network = new vis.Network(container, { nodes, edges }, {
+    // nodes: {
+    //   font: {
+    //     size: 22
+    //   },
+    // },
+    edges: {
+      font: {
+        align: "top"
+      },
+      arrows: {
+        to: { enabled: true, scaleFactor: 1, type: "arrow" }
+      }
+    }
+  })
 
   network.on("click", function (params) {
     let node_id = this.getNodeAt(params.pointer.DOM)

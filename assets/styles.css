@@ -27,7 +27,9 @@ code.compact {
 }
 
 .editor-height{
-  min-height: 240px !important;
+  min-height: 140px !important;
+  max-height: 90vh;
+  height: 220px;
 }
 
 .min {
