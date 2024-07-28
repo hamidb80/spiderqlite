@@ -989,7 +989,7 @@ func databasePageHtml*(
               <thead>
                 <tr>
                   <th>metric</th>
-                  <th></th>
+                  <th>time</th>
                 </tr>
               </thead>
               <tbody>
