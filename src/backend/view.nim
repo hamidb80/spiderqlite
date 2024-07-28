@@ -833,6 +833,11 @@ func databasePageHtml*(
                   <i class="bi bi-trash"></i>
                   <span>remove</span>
                 </button>
+
+                <button name="backup-database" class="btn btn-outline-primary">
+                  <i class="bi bi-box-seam"></i>
+                  <span>change mode</span>
+                </button>
               </form>
             </div>
           </section>

@@ -158,9 +158,16 @@ up.compiler("[vis-graph]", (container, data) => {
       up.submit('#edge-get')
     }
   })
+
+  network.on("deselectNode", clearPartialData)
+  network.on("deselectEdge", clearPartialData)
 })
 
 // --------- actions -----------------------------------
+
+function clearPartialData() {
+  q('#partial-data').innerHTML = ''
+}
 
 function select_as_source(node_id) {
   let el = q("#source-id")
