@@ -1165,6 +1165,10 @@ func databasePageHtml*(
                 </label>
                 <input type="text" name="node-tag" class="form-control" placeholder="like: #person" required>
               </fieldset>
+              <fieldset class="invisible d-none d-md-block">
+                <label>empty</label>
+                <input type="text" class="form-control">
+              </fieldset>
               <fieldset>
                 <label>
                   <i class="bi bi-braces"></i>
@@ -1193,13 +1197,6 @@ func databasePageHtml*(
                 </label>
                 <input type="text" name="node-tag" class="form-control" placeholder="like: #owns" required>
               </fieldset>
-              <fieldset>
-                <label>
-                  <i class="bi bi-braces"></i>
-                  JSON document:
-                </label>
-                <input type="file" accept=".json" name="edge-doc" class="form-control" placeholder="JSON data">
-              </fieldset>
               <fieldset class="d-flex">
                 <fieldset class="w-100">
                   <label>
@@ -1216,6 +1213,13 @@ func databasePageHtml*(
                   <input type="number" min="1" step="1" id="target-id" name="target-id" class="form-control" placeholder="the __id field, like: 7" required>
                 </fieldset>
               </fieldset>
+              <fieldset>
+                <label>
+                  <i class="bi bi-braces"></i>
+                  JSON document:
+                </label>
+                <input type="file" accept=".json" name="edge-doc" class="form-control" placeholder="JSON data">
+              </fieldset>
               <button name="add-edge" class="btn btn-sm w-100 mt-2 btn-outline-primary text-nowrap">
                 <i class="bi bi-plus"></i>
                 add
@@ -1225,7 +1229,7 @@ func databasePageHtml*(
         </div>
       </div>
 
-      <div class="mt-1">
+      <div class="mt-4">
         <h3>
           <i class="bi bi-recycle"></i>
           Update
