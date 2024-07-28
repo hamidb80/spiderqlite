@@ -521,7 +521,7 @@ when isMainModule:
   if conf.logs.config:
     echo conf[]
 
-  if conf.open_browser:
+  if conf.frontend.enabled and conf.open_browser:
     openDefaultBrowser app.config.url
 
   run app
