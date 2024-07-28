@@ -1007,56 +1007,69 @@ func databasePageHtml*(
               Query
             </h3>
 
-            <form>
-              <fieldset>
-                <label>
-                    <i class="bi bi-fonts"></i>
-                    select from save queries
-                </label>
+            <div>
+              <h4>
+                <i class="bi bi-cloud"></i>
+                Saved Queries
+              </h4>
+
+              <form>
                 <select class="form-select">
-                  <option value="">saved query 1</option>
-                  <option value="">saved query 2</option>
-                  <option value="">saved query 2</option>
+                  <option> --custom-- </option>
+                  <option>query 1</option>
+                  <option>query 2</option>
+                  <option>query 3</option>
                 </select>
-              </fieldset>
-            </form>
 
-            <form action="{database_url uname, dbname}" method="POST" up-submit id="ask-form" up-target="#query-vis, #query-data, #performance_measure">
-              <textarea class="form-control editor-height" name="spql_query" lang="sql">
-                  #; a b c
-                  ask a->^b->c
-                  ret 
-                    graph! b
-              </textarea>
+                <button name="use" class="btn btn-sm btn-outline-primary w-100 mt-1">
+                  delete selected query
+                  <i class="bi bi-trash2"></i>
+                </button>
+              </form>
 
-              <fieldset>
-                <label>
-                  <i class="bi bi-braces"></i>
-                  context:
-                </label>
-                <input type="file" accept=".json" name="node-doc" class="form-control" placeholder="JSON data">
-              </fieldset>
+              <form>
+                <fieldset>
+                  <label>
+                    <i class="bi bi-fonts"></i>
+                    name:
+                  </label>
+                  <input type="text" name="name" class="form-control" placeholder="like: all people">
+                </fieldset>
+                <button name="ask" class="btn btn-outline-primary btn-sm w-100 mt-1">
+                  <i class="bi bi-plus"></i>
+                  Save Query
+                </button>
+              </form>
+            </div>
 
-              <button name="ask" class="btn btn-outline-primary btn-sm w-100 mt-2">
-                <i class="bi bi-search"></i>
-                Ask
-              </button>
-            </form>
+            <div class="mt-3">
+              <h4>
+                <i class="bi bi-input-cursor-text"></i>
+                Editor
+              </h4>
+              
+              <form action="{database_url uname, dbname}" method="POST" up-submit id="ask-form" up-target="#query-vis, #query-data, #performance_measure">
+                <textarea class="form-control editor-height" name="spql_query" lang="sql">
+                    #; a b c
+                    ask a->^b->c
+                    ret 
+                      graph! b
+                </textarea>
 
-            <form>
-              <fieldset>
-                <label>
-                  <i class="bi bi-fonts"></i>
-                  name:
-                </label>
-                <input type="text" name="name" class="form-control" placeholder="like: all people">
-              </fieldset>
-              <button name="ask" class="btn btn-outline-primary btn-sm w-100 mt-2">
-                <i class="bi bi-plus"></i>
-                Save Query
-              </button>
-            </form>
+                <fieldset>
+                  <label>
+                    <i class="bi bi-braces"></i>
+                    context:
+                  </label>
+                  <input type="file" accept=".json" name="node-doc" class="form-control" placeholder="JSON data">
+                </fieldset>
 
+                <button name="ask" class="btn btn-outline-primary btn-sm w-100 mt-2">
+                  <i class="bi bi-search"></i>
+                  Ask
+                </button>
+              </form>
+            </div>
           </div>
 
           <div class="mt-3" id="performance_measure">
@@ -1131,7 +1144,7 @@ func databasePageHtml*(
         </section>
       </div>
 
-      <div class="mt-5">
+      <div class="mt-4">
         <h3>
           <i class="bi bi-plus"></i>
           Add
@@ -1145,13 +1158,6 @@ func databasePageHtml*(
             </h4>
 
             <form action="{database_url uname, dbname}" method="post" class="ms-2" up-submit>
-              <fieldset>
-                <label>
-                  <i class="bi bi-at"></i>
-                  id:
-                </label>
-                <input type="text" min="1" step="1" name="node-id" id="node-id-update" class="form-control" placeholder="if filled, updates">
-              </fieldset>
               <fieldset>
                 <label>
                   <i class="bi bi-hash"></i>
@@ -1180,13 +1186,6 @@ func databasePageHtml*(
             </h4>
             
             <form action="{database_url uname, dbname}" method="post" class="ms-2" up-submit>
-              <fieldset>
-                <label>
-                  <i class="bi bi-at"></i>
-                  id:
-                </label>
-                <input type="text" min="1" step="1" name="edge-id" id="edge-id-update" class="form-control" placeholder="if filled, updates">
-              </fieldset>
               <fieldset>
                 <label>
                   <i class="bi bi-hash"></i>
@@ -1226,11 +1225,76 @@ func databasePageHtml*(
         </div>
       </div>
 
-      <div>
-        <h4>
+      <div class="mt-1">
+        <h3>
+          <i class="bi bi-recycle"></i>
+          Update
+        </h3>
+
+        <div class="row d-flex justify-content-center px-3 pt-2">
+          <section class="col-md-6 col-sm-12">
+            <h4>
+              <i class="bi bi-circle"></i>
+              Node
+            </h4>
+
+            <form action="{database_url uname, dbname}" method="post" class="ms-2" up-submit>
+              <fieldset>
+                <label>
+                  <i class="bi bi-at"></i>
+                  id:
+                </label>
+                <input type="text" min="1" step="1" name="node-id" id="node-id-update" class="form-control" placeholder="">
+              </fieldset>
+              <fieldset>
+                <label>
+                  <i class="bi bi-braces"></i>
+                  JSON document:
+                </label>
+                <input type="file" accept=".json" name="node-doc" class="form-control" placeholder="JSON data" required>
+              </fieldset>
+              <button name="add-node" class="btn btn-sm w-100 mt-2 btn-outline-primary text-nowrap">
+                <i class="bi bi-recycle"></i>
+                update
+              </button>
+            </form>
+          </section>
+
+          <section class="col-md-6 col-sm-12">
+            <h4>
+              <i class="bi bi-share"></i>
+              Edge
+            </h4>
+            
+            <form action="{database_url uname, dbname}" method="post" class="ms-2" up-submit>
+              <fieldset>
+                <label>
+                  <i class="bi bi-at"></i>
+                  id:
+                </label>
+                <input type="text" min="1" step="1" name="edge-id" id="edge-id-update" class="form-control" placeholder="">
+              </fieldset>
+              <fieldset>
+                <label>
+                  <i class="bi bi-braces"></i>
+                  JSON document:
+                </label>
+                <input type="file" accept=".json" name="edge-doc" class="form-control" placeholder="JSON data">
+              </fieldset>
+              <button name="add-edge" class="btn btn-sm w-100 mt-2 btn-outline-primary text-nowrap">
+                <i class="bi bi-recycle"></i>
+                update
+              </button>
+            </form>
+          </section>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <h3>
           <i class="bi bi-collection-play"></i>
           bulk import
-        </h4>
+        </h3>
 
         <div class="row">
           <section class="col-md-6 col-sm-12 mt-2">
