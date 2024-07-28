@@ -684,7 +684,7 @@ func databasePageHtml*(
       <tr>
         <td>{ni[0]}</td>
         <td>{ni[1]}</td>
-        <td>{ni[2]}</td>
+        <td><pre><code class="lang-javascript">{pretty ni[2]}</code></pre></td>
       </tr>
     """
 
@@ -693,7 +693,7 @@ func databasePageHtml*(
       <tr>
         <td>{ei[0]}</td>
         <td>{ei[1]}</td>
-        <td>{ei[2]}</td>
+        <td><pre><code class="lang-javascript">{pretty ei[2]}</code></pre></td>
       </tr>
     """
 

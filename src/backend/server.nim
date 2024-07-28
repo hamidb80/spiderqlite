@@ -75,6 +75,28 @@ func isPost(req): bool =
 #     raisee "invalid json kind: " & $j.kind
 
 
+func getJsType(j: JsonNode, depth = 0): JsonNode = 
+  case j.kind
+  of JNull: newJNull()
+  of JBool: %"boolean"
+  of JInt: %"int"
+  of JFloat: %"float"
+  of JString: %"string"
+  of JArray: 
+    var arr = newjarray() 
+    if j.len != 0:
+      arr.add getJsType j[0]
+    arr
+  
+  of JObject: 
+    var obj = newJObject()
+
+    for k, v in j:
+      obj[k] = getJsType v
+
+    obj
+
+
 func extractStrategies*(tv: TomlValueRef): seq[TomlValueRef] = 
   getElems tv["strategies"]
 
@@ -380,9 +402,9 @@ proc initApp(config: AppConfig): App =
         path   = string userDbPath(app, uname, dbname)
 
       withDb: # XXX use user's db not app.db !!
-        let 
-          cnodes = db.countEntitiesDB nodes
-          cedges = db.countEntitiesDB edges
+        var
+          cnodes = countEntitiesDB(db, nodes)
+          cedges = countEntitiesDB(db, edges)
           
           ln     = cnodes.len
           le     = cedges.len
@@ -390,13 +412,19 @@ proc initApp(config: AppConfig): App =
           dn     = sum cnodes.mapit(it.count)
           de     = sum cedges.mapit(it.count)
 
-        var 
           queryReuslts, nodesGroup, edgesGroup: JsonNode = newJNull()
           
           whatSelected = "nothing"
           selectedData = newJNull()
           selectedId   = 0
           perf         = 0
+
+        for n in cnodes.mitems:
+          n[2] = getJsType n[2]
+
+        for e in cedges.mitems:
+          e[2] = getJsType e[2]
+        
 
         if isPost req:
           let form = decodedQuery req.body
