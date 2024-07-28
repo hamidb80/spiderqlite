@@ -550,3 +550,5 @@ func parseSpQl(tokens: seq[Token]): SpqlNode =
 func parseSpQl*(content: string): SpqlNode = 
   parseSpQl lexSpql content
 
+
+# FIXME string escape does not work

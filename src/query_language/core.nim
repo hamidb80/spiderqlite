@@ -985,3 +985,54 @@ func toSql*(gn: sink SpqlNode, queryStrategies; varResolver): SqlQuery {.effects
 
 
 # TODO add guard for insertion
+# TODO add insert query, for inserting nodes and edges at once:
+when defined insert_query:
+  let query = """
+    #movie    m
+    #person   p1 p2 p3
+    #acted_in a
+
+    insert    
+      p1>-a->m
+      p2>-a->m
+  """
+
+  let ctx = %*{
+    refs: {
+      p1: 12,
+      p2: 39,
+    },
+
+    docs: {
+      p3: {
+        name: "Ali Zamani",
+      },
+      a: nil, # empty doc
+      m: {    # doc
+        title: "may I pray for you"
+      }
+    }
+  }
+
+  # ids of mentions
+  let ans = %*{
+    p1: 12,  
+    p2: 39,  
+    p3: 101,
+    a: 247,
+    m: 102,
+  }
+
+when defined update_ctx:
+  let ctx = %*{
+    whole: {
+      "12": newDoc
+    },
+    partials: {
+      "14": [
+        "name.first": "Ali",
+        "name.last": "Nejati",
+        "age": 17,
+      ]
+    },
+  }

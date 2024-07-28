@@ -104,6 +104,7 @@ func getEntitiesQuery*(ids: seq[int], entity: Entity): SqlQuery =
     WHERE  {idCol} IN {sqlize ids}
   """
 
+# XXX delete edges that are connected to deleted nodes
 func deleteEntitiesQuery*(entity: Entity, ids: seq[int]): SqlQuery =
   sql fmt"""
     DELETE 
