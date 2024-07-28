@@ -717,20 +717,13 @@ func databasePageHtml*(
   }
 
   let entity_id = selectedData{idCol}.getint 0
-  let ds = """
-    <button class="btn btn-outline-primary">
-      <i class="bi bi-trash2-fill"></i>
-      delete all
-    </button>
-  """
-
   let partialSelectionSec = 
-    if selectedData.kind == JNull: ds
+    if selectedData.kind == JNull: ""
     else:
-      let f = 
+      let nodeOptions = 
         if whatSelected == "edge": ""
         else: fmt"""
-          <div>
+          <div class="p-1">
             <button class="btn btn-outline-info" onclick="select_as_source({entity_id})">
               select as source   
               <i class="bi bi-box-arrow-right"></i>
@@ -742,25 +735,18 @@ func databasePageHtml*(
           </div>
         """
 
-      let b = fmt"""
-        <div>
-          <button class="btn btn-outline-primary">
-            delete selected
-            <i class="bi bi-trash2"></i>
-          </button>
-          {ds}
-        </div>
-      """
-
       fmt"""      
-        {b}
-        {f}
-        <div>
+        <div class="p-1">
+          <button class="btn btn-outline-primary">
+            <i class="bi bi-trash2"></i>
+            delete
+          </button>
           <button class="btn btn-outline-success" onclick="select_for_update('{whatSelected}', {entity_id})">
             <i class="bi bi-recycle"></i>
-            select for update
+            update
           </button>
         </div>
+        {nodeOptions}
       """
 
 
@@ -1129,23 +1115,41 @@ func databasePageHtml*(
         </section>
 
         <section class="col-md-6 col-sm-12 mt-3">
-          <h3>
-            <i class="bi bi-crosshair"></i>
-            Focused
-          </h3>
+          <div>
+            <h4>
+              <i class="bi bi-three-dots"></i>
+              All
+            </h4>
 
-          <form id="node-get" action="{database_url uname, dbname}" method="post" up-submit up-target="#partial-data">
-            <input type="hidden" name="node-id">
-          </form>
-          <form id="edge-get" action="{database_url uname, dbname}" method="post" up-submit up-target="#partial-data">
-            <input type="hidden" name="edge-id">
-          </form>
-
-          <div id="partial-data">
-            <pre><code class="compact rounded shadow-sm language-javascript">{pretty selected_data}</code></pre>
-            {partialSelectionSec}
+            <div>
+              <button class="btn btn-outline-primary">
+                <i class="bi bi-trash2-fill"></i>
+                delete all
+              </button>
+            </div>
           </div>
 
+          <div class="mt-3">
+            <h4>
+              <i class="bi bi-crosshair"></i>
+              Focused
+            </h4>
+
+            <form id="node-get" action="{database_url uname, dbname}" method="post" up-submit up-target="#partial-data">
+              <input type="hidden" name="node-id">
+            </form>
+            <form id="edge-get" action="{database_url uname, dbname}" method="post" up-submit up-target="#partial-data">
+              <input type="hidden" name="edge-id">
+            </form>
+
+            <div id="partial-data">
+              <pre><code class="compact rounded shadow-sm language-javascript">{pretty selected_data}</code></pre>
+
+              <div class="mt-1">
+                {partialSelectionSec}
+              </div>
+            </div>
+          </div>
         </section>
       </div>
 
