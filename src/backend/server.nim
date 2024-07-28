@@ -457,40 +457,41 @@ proc initApp(config: AppConfig): App =
 
 
   proc initRouter: Router = 
-    with result:
-      get    br"landing",                indexPage
-      get    br"static-files",           staticFilesServ
-      get    br"docs",                   docsPage
+    if config.frontend.enabled:
+      result.get    br"landing",                indexPage
+      result.get    br"static-files",           staticFilesServ
+      result.get    br"docs",                   docsPage
 
-      get    br"sign-up",                signupPage
-      post   br"sign-up",                signupPage
-      post   br"sign-in-api",            signinApi
-      get    br"sign-in",                signinPage
-      post   br"sign-in",                signinPage
-      get    br"sign-out",               signoutPage
+      result.get    br"sign-up",                signupPage
+      result.post   br"sign-up",                signupPage
+      result.get    br"sign-in",                signinPage
+      result.post   br"sign-in",                signinPage
+      result.get    br"sign-out",               signoutPage
       
-      get    br"users-list",             listUsersPage
-      get    br"profile",                userProfilePage
-      post   br"profile",                userProfilePage
+      result.get    br"users-list",             listUsersPage
+      result.get    br"profile",                userProfilePage
+      result.post   br"profile",                userProfilePage
 
-      get    br"database",               databasePage 
-      post   br"database",               databasePage 
-      get    br"database-download",      databaseDownload
+      result.get    br"database",               databasePage 
+      result.post   br"database",               databasePage 
+      result.get    br"database-download",      databaseDownload
 
-      get     br"api-home",              apiHome
-      post    br"api-query-database",    askQueryApi
-      get     br"api-get-node-by-id",    getNodeApi
-      get     br"api-get-edge-by-id",    getEdgeApi
-      post    br"api-insert-nodes",      insertNodesApi
-      post    br"api-insert-edges",      insertEdgesApi
-      put     br"api-update-nodes",      updateNodesApi
-      put     br"api-update-edges",      updateEdgesApi
-      delete  br"api-delete-nodes",      deleteNodesApi
-      delete  br"api-delete-edges",      deleteEdgesApi
-      
-      # get    "/api/database/indexes/",  gqlService
-      # post   "/api/database/index/",    gqlService
-      # delete "/api/database/index/",    gqlService
+
+    result.get     br"api-home",              apiHome
+    result.post    br"sign-in-api",           signinApi
+    result.post    br"api-query-database",    askQueryApi
+    result.get     br"api-get-node-by-id",    getNodeApi
+    result.get     br"api-get-edge-by-id",    getEdgeApi
+    result.post    br"api-insert-nodes",      insertNodesApi
+    result.post    br"api-insert-edges",      insertEdgesApi
+    result.put     br"api-update-nodes",      updateNodesApi
+    result.put     br"api-update-edges",      updateEdgesApi
+    result.delete  br"api-delete-nodes",      deleteNodesApi
+    result.delete  br"api-delete-edges",      deleteEdgesApi
+    
+    # get    "/api/database/indexes/",  gqlService
+    # post   "/api/database/index/",    gqlService
+    # delete "/api/database/index/",    gqlService
 
 
 
