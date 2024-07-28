@@ -145,18 +145,16 @@ up.compiler("[vis-graph]", (container, data) => {
     }
   })
 
-  network.on("click", function (params) {
+  network.on("selectNode", function (params) {
     let node_id = this.getNodeAt(params.pointer.DOM)
-    let edge_id = this.getEdgeAt(params.pointer.DOM)
+    q('[name=node-id]').value = node_id
+    up.submit('#node-get')
+  })
 
-    if (node_id) {
-      q('[name=node-id]').value = node_id
-      up.submit('#node-get')
-    }
-    else if (edge_id) {
-      q('[name=edge-id]').value = edge_id
-      up.submit('#edge-get')
-    }
+  network.on("selectEdge", function (params) {
+    let edge_id = this.getEdgeAt(params.pointer.DOM)
+    q('[name=edge-id]').value = edge_id
+    up.submit('#edge-get')
   })
 
   network.on("deselectNode", clearPartialData)
