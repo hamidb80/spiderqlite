@@ -1058,7 +1058,7 @@ func databasePageHtml*(
                     #; a b c
                     ask a->^b->c
                     ret 
-                      graph! b
+                      draw! b
                 </textarea>
 
                 <fieldset>

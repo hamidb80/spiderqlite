@@ -601,7 +601,7 @@ func resolveSql(node: SpqlNode, relIdents: seq[string], mode: string, name: stri
 
   of gkMacro:
       case node.sval.toUpperAscii
-      of "GRAPH":
+      of "DRAW":
         let edge = node.children[0].sval
         # TODO assert has 1 param and it's ident
         fmt"json_array({edge}.{idCol}, {edge}.{sourceCol}, {edge}.{targetCol})"
