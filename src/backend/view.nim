@@ -671,7 +671,8 @@ func databasePageHtml*(
   tagsOfNodes, tagsOfEdges: int,
   totalNodes, totalEdges: int,
   queryResults, visNodes, visEdges: JsonNode,
-  whatSelected: string, selectedData: JsonNode,
+  whatSelected: string, 
+  selectedData: JsonNode,
   perf: int
 ): string =
   var
@@ -714,6 +715,55 @@ func databasePageHtml*(
     "node_tags": nodeTags,
     "edge_tags": edgeTags,
   }
+
+  let entity_id = selectedData{idCol}.getint 0
+  let ds = """
+    <button class="btn btn-outline-primary">
+      <i class="bi bi-trash2-fill"></i>
+      delete all
+    </button>
+  """
+
+  let partialSelectionSec = 
+    if selectedData.kind == JNull: ds
+    else:
+      let f = 
+        if whatSelected == "edge": ""
+        else: fmt"""
+          <div>
+            <button class="btn btn-outline-info" onclick="select_as_source({entity_id})">
+              select as source   
+              <i class="bi bi-box-arrow-right"></i>
+            </button>
+            <button class="btn btn-outline-info" onclick="select_as_target({entity_id})">
+              select as target              
+              <i class="bi bi-box-arrow-in-right"></i>
+            </button>
+          </div>
+        """
+
+      let b = fmt"""
+        <div>
+          <button class="btn btn-outline-primary">
+            delete selected
+            <i class="bi bi-trash2"></i>
+          </button>
+          {ds}
+        </div>
+      """
+
+      fmt"""      
+        {b}
+        {f}
+        <div>
+          <button class="btn btn-outline-success" onclick="select_for_update('{whatSelected}', {entity_id})">
+            <i class="bi bi-recycle"></i>
+            select for update
+          </button>
+        </div>
+      """
+
+
 
   wrapHtml fmt"{dbname} DB for @{uname}", fmt"""
     <div class="container my-4">
@@ -957,7 +1007,21 @@ func databasePageHtml*(
               Query
             </h3>
 
-            <form action="{database_url uname, dbname}" method="POST" up-submit up-target="#query-vis, #query-data, #performance_measure">
+            <form>
+              <fieldset>
+                <label>
+                    <i class="bi bi-fonts"></i>
+                    select from save queries
+                </label>
+                <select class="form-select">
+                  <option value="">saved query 1</option>
+                  <option value="">saved query 2</option>
+                  <option value="">saved query 2</option>
+                </select>
+              </fieldset>
+            </form>
+
+            <form action="{database_url uname, dbname}" method="POST" up-submit id="ask-form" up-target="#query-vis, #query-data, #performance_measure">
               <textarea class="form-control editor-height" name="spql_query" lang="sql">
                   #; a b c
                   ask a->^b->c
@@ -978,7 +1042,23 @@ func databasePageHtml*(
                 Ask
               </button>
             </form>
+
+            <form>
+              <fieldset>
+                <label>
+                  <i class="bi bi-fonts"></i>
+                  name:
+                </label>
+                <input type="text" name="name" class="form-control" placeholder="like: all people">
+              </fieldset>
+              <button name="ask" class="btn btn-outline-primary btn-sm w-100 mt-2">
+                <i class="bi bi-plus"></i>
+                Save Query
+              </button>
+            </form>
+
           </div>
+
           <div class="mt-3" id="performance_measure">
             <h4>
               <i class="bi bi-speedometer2"></i>
@@ -1045,30 +1125,7 @@ func databasePageHtml*(
 
           <div id="partial-data">
             <pre><code class="compact rounded shadow-sm language-javascript">{pretty selected_data}</code></pre>
-          </div>
-
-          <div>
-            <button class="btn btn-outline-primary">
-              delete selected
-            </button>
-            <button class="btn btn-outline-primary">
-              delete all
-            </button>
-          </div>
-          <div>
-            <button class="btn btn-outline-primary">
-              update doc
-            </button>
-            <input type="file" accept=".json" name="node-doc" class="form-control" placeholder="JSON data" required>
-          </div>
-      
-          <div>
-            <button class="btn btn-outline-primary">
-              select as source              
-            </button>
-            <button class="btn btn-outline-primary">
-              select as target              
-            </button>
+            {partialSelectionSec}
           </div>
 
         </section>
@@ -1088,6 +1145,13 @@ func databasePageHtml*(
             </h4>
 
             <form action="{database_url uname, dbname}" method="post" class="ms-2" up-submit>
+              <fieldset>
+                <label>
+                  <i class="bi bi-at"></i>
+                  id:
+                </label>
+                <input type="text" min="1" step="1" name="node-id" id="node-id-update" class="form-control" placeholder="if filled, updates">
+              </fieldset>
               <fieldset>
                 <label>
                   <i class="bi bi-hash"></i>
@@ -1118,6 +1182,13 @@ func databasePageHtml*(
             <form action="{database_url uname, dbname}" method="post" class="ms-2" up-submit>
               <fieldset>
                 <label>
+                  <i class="bi bi-at"></i>
+                  id:
+                </label>
+                <input type="text" min="1" step="1" name="edge-id" id="edge-id-update" class="form-control" placeholder="if filled, updates">
+              </fieldset>
+              <fieldset>
+                <label>
                   <i class="bi bi-hash"></i>
                   tag:
                 </label>
@@ -1133,17 +1204,17 @@ func databasePageHtml*(
               <fieldset class="d-flex">
                 <fieldset class="w-100">
                   <label>
-                    <i class="bi bi-align-start"></i>
+                    <i class="bi bi-box-arrow-right"></i>
                     source id:
                   </label>
-                  <input type="number" min="1" step="1" name="source-id" class="form-control" placeholder="the __id field, like: 31" required>
+                  <input type="number" min="1" step="1" id="source-id" name="source-id" class="form-control" placeholder="the __id field, like: 31" required>
                 </fieldset>
                 <fieldset class="w-100">
                   <label>
-                    <i class="bi bi-align-end"></i>
+                    <i class="bi bi-box-arrow-in-right"></i>
                     target id:
                   </label>
-                  <input type="number" min="1" step="1" name="target-id" class="form-control" placeholder="the __id field, like: 7" required>
+                  <input type="number" min="1" step="1" id="target-id" name="target-id" class="form-control" placeholder="the __id field, like: 7" required>
                 </fieldset>
               </fieldset>
               <button name="add-edge" class="btn btn-sm w-100 mt-2 btn-outline-primary text-nowrap">

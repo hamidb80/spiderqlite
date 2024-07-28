@@ -1,5 +1,13 @@
 // --------- utils -----------------------------------
 
+function q(sel) {
+  return document.querySelector(sel)
+}
+
+function qa(sel) {
+  return document.querySelectorAll(sel)
+}
+
 function dedent(text) {
   // removes common indentation from `text`
   const lines = text.split('\n')
@@ -65,6 +73,16 @@ function shuffle(a) {
   return a
 }
 
+
+function mkMap(a, b) {
+  let result = {}
+  for (let i = 0; i < a.length; i++) {
+    result[a[i]] = b[i % b.length]
+  }
+  return result
+}
+
+
 // --------- setup -----------------------------------
 
 up.macro('[smooth-link]', link => {
@@ -86,18 +104,8 @@ up.compiler("[redirect]", link => {
   up.follow(link)
 })
 
-function mkMap(a, b) {
-  let result = {}
-  for (let i = 0; i < a.length; i++) {
-    result[a[i]] = b[i % b.length]
-  }
-  console.log(result)
-  return result
-}
 
 up.compiler("[vis-graph]", (container, data) => {
-  console.log(data)
-
   let nodeColors = shuffle(colors.map(it => it[0]))
   let edgeColors = shuffle(colors.map(it => it[2]))
 
@@ -141,16 +149,39 @@ up.compiler("[vis-graph]", (container, data) => {
     let node_id = this.getNodeAt(params.pointer.DOM)
     let edge_id = this.getEdgeAt(params.pointer.DOM)
 
-    console.log(node_id, edge_id)
-
     if (node_id) {
-      document.querySelector('[name=node-id]').value = node_id
+      q('[name=node-id]').value = node_id
       up.submit('#node-get')
     }
     else if (edge_id) {
-      document.querySelector('[name=edge-id]').value = edge_id
+      q('[name=edge-id]').value = edge_id
       up.submit('#edge-get')
     }
-
   })
 })
+
+// --------- actions -----------------------------------
+
+function select_as_source(node_id) {
+  let el = q("#source-id")
+  el.value = node_id
+  el.focus()
+}
+
+function select_as_target(node_id) {
+  let el = q("#target-id")
+  el.value = node_id
+  el.focus()
+}
+
+function select_for_update(entity, id) {
+  let el = q(entity == 'node' ? '#node-id-update' : '#edge-id-update')
+  el.value = id
+  el.focus()
+}
+
+// --------- register -----------------------------------
+
+window.select_for_update = select_for_update
+window.select_as_source = select_as_source
+window.select_as_target = select_as_target
