@@ -1,5 +1,5 @@
 [config.server]
-host   = "0.0.0.0"
+host   = "localhost"
 port   = 6001
 
 [config.frontend]
@@ -26,3 +26,4 @@ performance = true
 
 [config]
 query_strategy_file_path = "./docs/strategies.toml"
+open_browser = true

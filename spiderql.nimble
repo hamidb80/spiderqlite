@@ -29,3 +29,6 @@ requires "pretty"         # https://github.com/treeform/pretty
 
 task dev, "development run": 
   exec "nim --deepcopy:on -d:useMalloc --mm:arc -d:debug   r src/backend/server.nim ./docs/dev.toml --dump-config"
+
+task rel, "performant run": 
+  exec "nim --deepcopy:on -d:useMalloc --mm:arc -d:release   r src/backend/server.nim ./docs/dev.toml --dump-config"

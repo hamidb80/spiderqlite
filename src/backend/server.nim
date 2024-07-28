@@ -1,5 +1,7 @@
 import std/[strutils, strformat, tables, json, monotimes, os, times, with, sugar, uri, mimetypes, paths, oids, math, sequtils, times]
 
+import std/[browsers, monotimes]
+
 import db_connector/db_sqlite
 import mummy, mummy/routers
 import webby
@@ -412,7 +414,7 @@ proc initApp(config: AppConfig): App =
 
           if "ask" in form:
             let 
-              head = now()
+              head = getMonoTime()
               c    = form["spql_query"]
               spql = parseSpql c
 
@@ -421,7 +423,7 @@ proc initApp(config: AppConfig): App =
                 spql, 
                 app.defaultQueryStrategies)["result"]
 
-            perf = inMicroseconds (now() - head)
+            perf  = (getMonoTime() - head).inMicroseconds
 
             if canBeVisualized queryReuslts:
               let (nodeids, edgeids) = extractVisEdges(queryReuslts)
@@ -438,7 +440,7 @@ proc initApp(config: AppConfig): App =
         dn, de,
         queryReuslts, nodesGroup, edgesGroup,
         whatSelected, selectedData,
-        perf)
+        perf) 
 
 
     proc databaseDownload(req) = 
@@ -517,5 +519,8 @@ when isMainModule:
 
   if conf.logs.config:
     echo conf[]
+
+  if conf.open_browser:
+    openDefaultBrowser app.config.url
 
   run app

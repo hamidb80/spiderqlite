@@ -107,7 +107,7 @@ func wrapHtml(title, inner: string): string =
 
 # ------------------------------ combinators
 
-func formField1(label, icon, name, id, typ: string): string = 
+func formField1(label, icon, name, id, typ: string): string =
   fmt"""
     <fieldset class="my-2">
 
@@ -123,20 +123,21 @@ func formField1(label, icon, name, id, typ: string): string =
     </fieldset>
   """
 
-func texticon(label, icon: string, tcls = "", icls = "", textFirst = true): string =
-    
-  let 
+func texticon(label, icon: string, tcls = "", icls = "",
+    textFirst = true): string =
+
+  let
     t = fmt "<span class=\"{tcls}\">{label}</span>"
     i = fmt "<i class=\"bi {icon} {icls}\"></i>"
 
   case textFirst
-  of true:  t & i
+  of true: t & i
   of false: i & t
 
-func lbtnicon(label, icon: string, cls = "", link = ""): string = 
-  let (tag, attrs) = 
+func lbtnicon(label, icon: string, cls = "", link = ""): string =
+  let (tag, attrs) =
     if link == "": ("button", "")
-    else:          ("a"     , fmt "smooth-link href=\"{link}\"")
+    else: ("a", fmt "smooth-link href=\"{link}\"")
 
   fmt"""
     <{tag} {attrs} class="btn {cls}">
@@ -473,17 +474,18 @@ func landingPageHtml*: string =
     </div>
     """
 
-func docsPageHtml*(): string = 
+func docsPageHtml*(): string =
   wrapHtml "landing", """
     This is gonna be docs
   """
 
 
-const 
+const
   signinIcon = "bi-box-arrow-in-right"
   signupIcon = "bi-person-add"
 
-func signinupPageHtml*(title, icon: string, errors: seq[string], inputs, btns: string): string =
+func signinupPageHtml*(title, icon: string, errors: seq[string], inputs,
+    btns: string): string =
   var errorsAcc = ""
   for e in errors:
     add errorsAcc, "<li>"
@@ -510,7 +512,8 @@ func signinupPageHtml*(title, icon: string, errors: seq[string], inputs, btns: s
 
 
 func signinPageHtml*(errors: seq[string]): string =
-  signinupPageHtml "Sign In", signinIcon, errors, fmt"""
+  signinupPageHtml "Sign In", signinIcon, errors,
+      fmt"""
           {formField1("username", "bi-at",       "username", "inp-uname", "text")}
           {formField1("passowrd", "bi-asterisk", "password", "inp-passw", "password")}
   """, fmt"""
@@ -519,7 +522,8 @@ func signinPageHtml*(errors: seq[string]): string =
   """
 
 func signupPageHtml*(errors: seq[string]): string =
-  signinupPageHtml "Sign up", signupIcon, errors, fmt"""
+  signinupPageHtml "Sign up", signupIcon, errors,
+      fmt"""
           {formField1("username", "bi-at",       "username", "inp-uname", "text")}
           {formField1("password", "bi-asterisk", "password", "inp-passw", "password")}
   """, fmt"""
@@ -528,7 +532,7 @@ func signupPageHtml*(errors: seq[string]): string =
   """
 
 
-func userslistPageHtml*(users: seq[JsonNode]): string = 
+func userslistPageHtml*(users: seq[JsonNode]): string =
   var dbRows = ""
   for u in users:
     let uname = u[docCol]["name"].getstr
@@ -572,13 +576,14 @@ func userslistPageHtml*(users: seq[JsonNode]): string =
     </div>
   """
 
-func profilePageHtml*(uname: string, dbs: seq[JsonNode], sizes, lastModifications: seq[int]): string = 
+func profilePageHtml*(uname: string, dbs: seq[JsonNode], sizes,
+    lastModifications: seq[int]): string =
   var dbrows = ""
   for i, db in dbs:
-    let 
-      docs   = db[docCol]
+    let
+      docs = db[docCol]
       dbname = getstr docs["name"]
-    
+
     dbrows.add fmt"""
   <tr>
     <td>
@@ -660,23 +665,18 @@ func profilePageHtml*(uname: string, dbs: seq[JsonNode], sizes, lastModification
 # TODO add notifiocantion with unpoly to show latests norifs <norif>content</norif>
 
 func databasePageHtml*(
-  uname, dbname: string, 
-  size, lastmodif: int, 
-  nodesInfo, edgesInfo: seq[tuple[tag: string, count: int, doc: JsonNode]], 
+  uname, dbname: string,
+  size, lastmodif: int,
+  nodesInfo, edgesInfo: seq[tuple[tag: string, count: int, doc: JsonNode]],
   tagsOfNodes, tagsOfEdges: int,
-  totalNodes,  totalEdges: int,
+  totalNodes, totalEdges: int,
   queryResults, visNodes, visEdges: JsonNode,
   whatSelected: string, selectedData: JsonNode,
-  queryTimeMicroses: int,
-): string = 
-  # XXX use vis.js for graph, works if data is queried as [node/edge, ...]
-  # export data as [edge_id, node_head_id, node_tail_id], can be nested, 
-  # flattened how get an linear, then converted to mentioned tripples
-  # then get nodes info and edges info in hashtables
-
-  var 
-    nodeRows   = ""
-    edgeRows   = ""
+  perf: int
+): string =
+  var
+    nodeRows = ""
+    edgeRows = ""
 
   for ni in nodesInfo:
     nodeRows.add fmt"""
@@ -696,10 +696,10 @@ func databasePageHtml*(
       </tr>
     """
 
-  var 
+  var
     nodeTags: seq[string]
     edgeTags: seq[string]
-  
+
   for ni in nodesInfo:
     nodeTags.add ni.tag
 
@@ -986,13 +986,19 @@ func databasePageHtml*(
             </h4>
                         
             <table class="table table-hover shadow-sm">
+              <thead>
+                <tr>
+                  <th>metric</th>
+                  <th></th>
+                </tr>
+              </thead>
               <tbody>
                 <tr>
                   <td>
                     total time
                   </td>
                   <td>
-                    {queryTimeMicroses}µ
+                    {perf}µ
                   </td>
                 </tr>
               </tbody>
