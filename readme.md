@@ -103,6 +103,7 @@ Here are some of the things that I found worth mentioning.
 - https://github.com/krisajenkins/yesql
 
 ### Sample Databases
+- https://wiki.postgresql.org/wiki/Sample_Databases
 - https://www.sqlitetutorial.net/sqlite-sample-database/
 - https://github.com/siara-cc/sakila_sqlite3/
 - https://antonz.org/sqlean-define/
