@@ -1,4 +1,7 @@
 > Truth saves you even though you're afraid of it, and mendacity destroys you even though you don't see any danger -- Imam Ali
+-------------
+
+> Man is a Tool-using Animal; without tools he is nothing, with tools he is all." --Thomas Carlyle
 
 # SpQL 🕷
 *SpQL* is graph abstraction over SQL. 
