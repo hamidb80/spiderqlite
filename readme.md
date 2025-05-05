@@ -1,4 +1,7 @@
 > Truth saves you even though you're afraid of it, and mendacity destroys you even though you don't see any danger -- Imam Ali
+-------------
+
+> Man is a Tool-using Animal; without tools he is nothing, with tools he is all." --Thomas Carlyle
 
 # SpQL 🕷
 *SpQL* is graph abstraction over SQL. 
@@ -103,6 +106,7 @@ Here are some of the things that I found worth mentioning.
 - https://github.com/krisajenkins/yesql
 
 ### Sample Databases
+- https://wiki.postgresql.org/wiki/Sample_Databases
 - https://www.sqlitetutorial.net/sqlite-sample-database/
 - https://github.com/siara-cc/sakila_sqlite3/
 - https://antonz.org/sqlean-define/
