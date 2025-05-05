@@ -323,7 +323,7 @@ proc initApp(config: AppConfig): App =
 
           case ans["result"].len
           of 0:
-            req.respond 200, emptyHttpHeaders(), signinPageHtml(@["no such user"])
+            req.respond 401, emptyHttpHeaders(), signinPageHtml(@["no such user"])
 
           else:
             let u = ans["result"][0]

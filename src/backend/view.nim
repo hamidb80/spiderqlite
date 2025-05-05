@@ -1153,10 +1153,11 @@ func databasePageHtml*(
         </section>
       </div>
 
-      <div class="mt-4">
-        <h3>
-          <i class="bi bi-plus"></i>
+      <div class="my-5">
+        <h3 class="d-flex">
+          <i class="bi bi-plus me-2"></i>
           Add
+          <hr class="mx-2 w-100 border-2">
         </h3>
 
         <div class="row d-flex justify-content-center px-3 pt-2">
@@ -1238,10 +1239,11 @@ func databasePageHtml*(
         </div>
       </div>
 
-      <div class="mt-4">
-        <h3>
-          <i class="bi bi-recycle"></i>
+      <div class="my-5">
+        <h3 class="d-flex">
+          <i class="bi bi-recycle me-2"></i>
           Update
+          <hr class="mx-2 w-100 border-2">
         </h3>
 
         <div class="row d-flex justify-content-center px-3 pt-2">
@@ -1303,10 +1305,11 @@ func databasePageHtml*(
         </div>
       </div>
 
-      <div class="mt-4">
-        <h3>
-          <i class="bi bi-collection-play"></i>
+      <div class="my-5">
+        <h3 class="d-flex">
+          <i class="bi bi-collection-play me-2"></i>
           bulk import
+          <hr class="mx-2 w-100 border-2">
         </h3>
 
         <div class="row">
