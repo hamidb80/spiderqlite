@@ -80,10 +80,10 @@ func isPost(req): bool =
 
 func getJsType(j: JsonNode, depth = 0): JsonNode = 
   case j.kind
-  of JNull: newJNull()
-  of JBool: %"boolean"
-  of JInt: %"int"
-  of JFloat: %"float"
+  of JNull:   newJNull()
+  of JBool:   %"boolean"
+  of JInt:    %"int"
+  of JFloat:  %"float"
   of JString: %"string"
   of JArray: 
     var arr = newjarray() 
@@ -544,6 +544,10 @@ proc run(app: App) =
   serve app.server, app.config.server.port, app.config.server.host.string
 
 # GO -------------------------------------------
+
+# TODO add more examples
+# TODO add presentation
+# TODO make it work via FFI
 
 when isMainModule:
   let
