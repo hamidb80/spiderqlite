@@ -436,12 +436,12 @@ proc pageDatabase(req; app) =
       
       if "edge-id" in form:
         whatSelected = "edge"
-        selectedId = parseInt form["edge-id"]
+        selectedId   = parseInt form["edge-id"]
         selectedData = db.getEdgeDB(selectedId)
 
       elif "node-id" in form:
         whatSelected = "node"
-        selectedId = parseInt form["node-id"]
+        selectedId   = parseInt form["node-id"]
         selectedData = db.getNodeDB(selectedId)
 
 
@@ -459,7 +459,7 @@ proc pageDatabase(req; app) =
         perf  = (getMonoTime() - head).inMicroseconds
 
         if canBeVisualized queryReuslts:
-          let (nodeids, edgeids) = extractVisEdges(queryReuslts)
+          let (nodeids, edgeids) = extractVisEdges queryReuslts
           nodesGroup = db.getNodesDB(nodeids)
           edgesGroup = db.getEdgesDB(edgeids)
 
