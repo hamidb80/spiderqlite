@@ -23,7 +23,7 @@ func `[]`*[T](m: var Mat[T], i, j: int): var T =
 
 func addColumn*[T](m: var Mat[T], val: T) = 
   for row in mitems m.data:
-    row.add val
+    add row, val
 
 func addRow*[T](m: var Mat[T], val: T) = 
-  m.data.add val.repeat m.width
+  add m.data, val.repeat m.width

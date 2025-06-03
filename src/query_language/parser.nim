@@ -243,7 +243,7 @@ func lexSpql(content: string): seq[Token] =
         if i == lastLineIndex+1:
           if indLevels[^1] < step:
             << Token(kind: lkIndent)
-            indLevels.add step
+            add indLevels, step
 
           else:
             while (not empty indLevels) and (step < indLevels[^1]):
@@ -424,7 +424,7 @@ func parseSpQl(tokens: seq[Token]): SpqlNode =
 
     of lkIndent:   
       let l = stack[^1].children[^1]
-      stack.add l
+      add stack, l
 
     of lkDeIndent: 
       stack.less
@@ -524,7 +524,7 @@ func parseSpQl(tokens: seq[Token]): SpqlNode =
         if cont.kind == gkCall and cont.sval == "":
           cont.sval = node.sval
         else:
-          cont.children.add node
+          add cont.children, node
 
       if isFirst:
         addNode stack[^1], node

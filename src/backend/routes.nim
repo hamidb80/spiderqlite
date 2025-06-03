@@ -59,8 +59,8 @@ macro defRoute*(nameLit, path): untyped =
 
         newTree(nnkCommand, ident"fmt", newLit patt)
 
-  result.add newConstStmt(exported urlVarName, newlit url)
-  result.add newproc(
+  add result, newConstStmt(exported urlVarName, newlit url)
+  add result, newproc(
         exported(procname),
         @[ident"string"] & dinfo.args.map(toIdentDef),
         procbody)

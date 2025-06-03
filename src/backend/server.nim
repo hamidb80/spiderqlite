@@ -27,6 +27,8 @@ using
   req: Request
   app: App
 
+const authKey = "auth"
+
 
 func userDbFileName(uname, dbname: string): string = 
   fmt"user-{uname}-db-{dbname}.db.sqlite3"
@@ -86,7 +88,7 @@ func getJsType(j: JsonNode, depth = 0): JsonNode =
   of JArray: 
     var arr = newjarray() 
     if j.len != 0:
-      arr.add getJsType j[0]
+      add arr, getJsType j[0]
     arr
   
   of JObject: 
@@ -104,9 +106,9 @@ func extractStrategies*(tv: TomlValueRef): seq[TomlValueRef] =
 
 func extractVisEdges(queryResult: JsonNode): tuple[nodeIds, edgeIds: seq[int]] =
   for arr in queryResult:
-    result.nodeIds.add arr[1].getint
-    result.nodeIds.add arr[2].getint
-    result.edgeIds.add arr[0].getint  
+    add result.nodeIds, arr[1].getint
+    add result.nodeIds, arr[2].getint
+    add result.edgeIds, arr[0].getint  
 
 func canBeVisualized(queryResult: JsonNode, depth=0): bool =
   case queryResult.kind
@@ -159,7 +161,9 @@ template logPerf(body): untyped =
     let tdelta = ttail - thead
     echo inMicroseconds tdelta, "us"
 
-proc askQueryApi(req; app) =
+# Controllers ------------------------------------
+
+proc apiAskQuery(req; app) =
   try:
     let j = parseJson req.body
     withdb app:
@@ -176,7 +180,6 @@ proc askQueryApi(req; app) =
     req.respond 400, jsonHeader(), je
     echo "did error ", je
 
-
 proc getEntity(req; app; ent: Entity) =
   let id    = parseInt   req.queryParams["id"]
   withDB app:
@@ -185,13 +188,13 @@ proc getEntity(req; app; ent: Entity) =
   # XXX logSql
   req.respond 200, jsonHeader(), val
 
-proc getNodeApi(req, app) = 
+proc apiGetNode(req, app) = 
   getEntity req, app, nodes
 
-proc getEdgeApi(req, app) = 
+proc apiGetEdge(req, app) = 
   getEntity req, app, edges
 
-proc insertNodesApi(req; app) = 
+proc apiInsertNodes(req; app) = 
   let j = parseJson req.body
   withDB app:
     let ids = collect:
@@ -200,7 +203,7 @@ proc insertNodesApi(req; app) =
 
   req.respond 200, jsonHeader(), jsonAffectedRows(len ids, ids)
 
-proc insertEdgesApi(req; app) = 
+proc apiInsertEdges(req; app) = 
   let j = parseJson req.body
   withDB app:
     let ids = collect:
@@ -228,10 +231,10 @@ proc updateEntity(req; app; ent: Entity) =
   else:
     raisee "invalid json object for update. it should be object of {id => new_doc}"
 
-proc updateNodesApi(req; app) = 
+proc apiupdateNodes(req; app) = 
   updateEntity req, app, nodes
 
-proc updateEdgesApi(req; app) = 
+proc apiupdateEdges(req; app) = 
   updateEntity req, app, edges
 
 
@@ -243,19 +246,19 @@ proc deleteEntity(req; app; ent: Entity) =
     let affected = deleteEntitiesDB(db, ent, ids)
   req.respond 200, jsonHeader(), jsonAffectedRows affected
 
-proc deleteNodesApi(req; app) = 
+proc apiDeleteNodes(req; app) = 
   deleteEntity req, app, nodes
 
-proc deleteEdgesApi(req; app) = 
+proc apiDeleteEdges(req; app) = 
   deleteEntity req, app, edges
 
 
 proc apiHome(req; app) =
   req.respond 200, emptyHttpHeaders(), $ %*{
-    "status": "running",
+    "status": "ok",
   }
 
-proc apisignin(req; app) =
+proc apiSignin(req; app) =
   discard
 
 # ------------------------
@@ -274,8 +277,6 @@ proc pageIndex(req; app) =
 proc pageDocs(req; app) = 
   req.respond 200, emptyHttpHeaders(), docsPageHtml()
 
-
-const authKey = "auth"
 
 proc signInImpl(req; app; uid: Id, uname: string) =
   let token = $genOid()
@@ -470,7 +471,6 @@ proc pageDatabase(req; app) =
     whatSelected, selectedData,
     perf) 
 
-
 proc filesDatabaseDownload(req; app) = 
   let 
     uname  = req.queryParams["u"]
@@ -483,6 +483,7 @@ proc filesDatabaseDownload(req; app) =
     }, 
     readfile string app.userDbPath(uname, dbname))
 
+# APP INIT -------------------------------------
 
 proc initApp(config: AppConfig): App = 
   preapreStorage config
@@ -496,35 +497,35 @@ proc initApp(config: AppConfig): App =
         fn(req, app)
 
     if config.frontend.enabled:
-      result.get    br"landing",                rr pageIndex
-      result.get    br"static-files",           rr FilesStaticServ
-      result.get    br"docs",                   rr pageDocs
+      get    result,    br"landing",               rr pageIndex
+      get    result,    br"static-files",          rr FilesStaticServ
+      get    result,    br"docs",                  rr pageDocs
 
-      result.get    br"sign-up",                rr pageSignup
-      result.post   br"sign-up",                rr pageSignup
-      result.get    br"sign-in",                rr pageSignin
-      result.post   br"sign-in",                rr pageSignin
-      result.get    br"sign-out",               rr pageSignout
+      get    result,    br"sign-up",               rr pageSignup
+      post   result,    br"sign-up",               rr pageSignup
+      get    result,    br"sign-in",               rr pageSignin
+      post   result,    br"sign-in",               rr pageSignin
+      get    result,    br"sign-out",              rr pageSignout
       
-      result.get    br"users-list",             rr listUsersPage
-      result.get    br"profile",                rr pageUserProfile
-      result.post   br"profile",                rr pageUserProfile
+      get    result,    br"users-list",            rr listUsersPage
+      get    result,    br"profile",               rr pageUserProfile
+      post   result,    br"profile",               rr pageUserProfile
 
-      result.get    br"database",               rr pageDatabase 
-      result.post   br"database",               rr pageDatabase 
-      result.get    br"database-download",      rr filesDatabaseDownload
+      get    result,    br"database",              rr pageDatabase 
+      post   result,    br"database",              rr pageDatabase 
+      get    result,    br"database-download",     rr filesDatabaseDownload
 
-    result.get     br"api-home",              rr apiHome
-    result.post    br"sign-in-api",           rr apisignin
-    result.post    br"api-query-database",    rr askQueryApi
-    result.get     br"api-get-node-by-id",    rr getNodeApi
-    result.get     br"api-get-edge-by-id",    rr getEdgeApi
-    result.post    br"api-insert-nodes",      rr insertNodesApi
-    result.post    br"api-insert-edges",      rr insertEdgesApi
-    result.put     br"api-update-nodes",      rr updateNodesApi
-    result.put     br"api-update-edges",      rr updateEdgesApi
-    result.delete  br"api-delete-nodes",      rr deleteNodesApi
-    result.delete  br"api-delete-edges",      rr deleteEdgesApi
+    get      result,    br"api-home",              rr apiHome
+    post     result,    br"sign-in-api",           rr apiSignin
+    post     result,    br"api-query-database",    rr apiAskQuery
+    get      result,    br"api-get-node-by-id",    rr apiGetNode
+    get      result,    br"api-get-edge-by-id",    rr apiGetEdge
+    post     result,    br"api-insert-nodes",      rr apiInsertNodes
+    post     result,    br"api-insert-edges",      rr apiInsertEdges
+    put      result,    br"api-update-nodes",      rr apiupdateNodes
+    put      result,    br"api-update-edges",      rr apiupdateEdges
+    delete   result,    br"api-delete-nodes",      rr apiDeleteNodes
+    delete   result,    br"api-delete-edges",      rr apiDeleteEdges
     
     # get    "/api/database/indexes/",  gqlService
     # post   "/api/database/index/",    gqlService
@@ -538,6 +539,7 @@ proc run(app: App) =
   echo fmt"running in {app.config.url}"
   serve app.server, app.config.server.port, app.config.server.host.string
 
+# GO -------------------------------------------
 
 when isMainModule:
   let

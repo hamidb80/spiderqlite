@@ -267,23 +267,23 @@ func parseQueryNode(s: string): QueryNode =
     inc i
 
   while i < s.len:
-    result.ident.add s[i]
+    add result.ident, s[i]
     inc i
 
 func discriminate(str: string, specials: set[char]): seq[string] = 
   var isSpecial = false
-  result.add ""
+  add result, ""
 
   for ch in str:
     if ch in specials:
       if not isSpecial:
         isSpecial = true
-        result.add ""
+        add result, ""
 
     else:
       if isSpecial:
         isSpecial = false
-        result.add ""
+        add result, ""
 
     result[^1].add ch
 
@@ -480,7 +480,7 @@ func hasDuplicated(imapIndex: seq[int]): bool =
 
 func select[T](c: seq[seq[T]], s: seq[int]): seq[T] = 
   for i, x in s:
-    result.add c[i][x]
+    add result, c[i][x]
 
 iterator chooseCandidates(candidates: seq[seq[int]]): seq[int] = 
   var 
@@ -511,7 +511,7 @@ func matchImpl(p, q: QueryGraph): Option[IdentMap] =
   var candidates: seq[seq[int]]
 
   for i in 0..<p.nodes.len:
-    candidates.add @[]
+    add candidates, @[]
 
     for j in 0..<q.nodes.len:
       if p.iocounts[i] == q.iocounts[j]:
@@ -702,10 +702,10 @@ func sqlCondsOfEdge(gn; imap; edge, source, target: string, varResolver): string
         var acc: seq[string]
 
         if isrc != ".":
-          acc.add fmt"{iedge}.{sourceCol} == {isrc}.{idCol}"
+          add acc, fmt"{iedge}.{sourceCol} == {isrc}.{idCol}"
 
         if itar != ".":
-          acc.add fmt"{iedge}.{targetCol} == {itar}.{idCol}"
+          add acc, fmt"{iedge}.{targetCol} == {itar}.{idCol}"
 
         case acc.len
         of 0: 
@@ -724,7 +724,7 @@ func sqlCondsOfEdge(gn; imap; edge, source, target: string, varResolver): string
 func findIdents(gn; result: var seq[string]) =
   case gn.kind
   of gkIdent:
-    result.add gn.sval
+    add result, gn.sval
   
   else:
     for a in gn.children:
@@ -783,7 +783,7 @@ func toSqlSelect(take: SpqlNode, relsIdent: seq[string], imap): string =
 #   for ch in gn.children:
 #     if ch.kind == gkDef:
 #       if ch.defkind == defEdge:
-#         result.add ch.children[1].sval
+#         add result, ch.children[1].sval
 
 
 func resolve(sqlPat: seq[SqlPatSep], patEdges: seq[string], imap; gn; varResolver): string {.effectsOf: varResolver.} =
@@ -875,9 +875,9 @@ func resolve(sqlPat: seq[SqlPatSep], patEdges: seq[string], imap; gn; varResolve
             for i, ch in g.children:
               var temp = ch.resolveSql(@[], "???", "", s => "!!!")
               if issome s:
-                temp.add ' '
-                temp.add s.get[i]
-              acc.add temp
+                add temp, ' '
+                add temp, s.get[i]
+              add acc, temp
             
             "ORDER BY " & acc.join ", "
 

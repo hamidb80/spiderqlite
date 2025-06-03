@@ -536,7 +536,7 @@ func userslistPageHtml*(users: seq[JsonNode]): string =
   var dbRows = ""
   for u in users:
     let uname = u[docCol]["name"].getstr
-    dbRows.add fmt"""
+    add dbRows, fmt"""
       <tr>
         <td>
           <a href="{profile_url uname}" class="text-decoration-none" smooth-link>
@@ -584,7 +584,7 @@ func profilePageHtml*(uname: string, dbs: seq[JsonNode], sizes,
       docs = db[docCol]
       dbname = getstr docs["name"]
 
-    dbrows.add fmt"""
+    add dbrows, fmt"""
   <tr>
     <td>
       <a href="{databaseurl uname, dbname}" class="text-decoration-none" smooth-link>
@@ -680,7 +680,7 @@ func databasePageHtml*(
     edgeRows = ""
 
   for ni in nodesInfo:
-    nodeRows.add fmt"""
+    add nodeRows, fmt"""
       <tr>
         <td>{ni[0]}</td>
         <td>{ni[1]}</td>
@@ -689,7 +689,7 @@ func databasePageHtml*(
     """
 
   for ei in edgesInfo:
-    edgeRows.add fmt"""
+    add edgeRows, fmt"""
       <tr>
         <td>{ei[0]}</td>
         <td>{ei[1]}</td>
@@ -702,10 +702,10 @@ func databasePageHtml*(
     edgeTags: seq[string]
 
   for ni in nodesInfo:
-    nodeTags.add ni.tag
+    add nodeTags, ni.tag
 
   for ei in edgesInfo:
-    edgeTags.add ei.tag
+    add edgeTags, ei.tag
 
 
   let visData = %*{
