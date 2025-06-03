@@ -335,7 +335,7 @@ ASK     p
 RETURN  p
 ```
 
-##### qeury for relation
+##### query for relation [without cond on edge]
 ```sql
 #movie    m
 @acted_in a
@@ -356,6 +356,21 @@ RETURN
     [].
       m
 ```
+
+
+##### query for relation [with cond on edge]
+
+```sql
+@acted_in i->a->j
+  >
+    i.age
+    j.age
+```
+
+- XXX: won't be supported since it is not 
+how you should write graph queries i.e. it is valid in relational world 
+but not Graph databases.
+
 
 #### Using template
 ```sql

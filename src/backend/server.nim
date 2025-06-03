@@ -208,7 +208,11 @@ proc apiInsertEdges(req; app) =
   withDB app:
     let ids = collect:
       for n in j:
-        insertEdgeDB db, parseTag getstr n["tag"], n["doc"], getInt n["source"], getInt n["target"]
+        insertEdgeDB(db, 
+          parseTag getstr n["tag"], 
+                          n["doc"], 
+          getInt          n["source"], 
+          getInt          n["target"])
 
   req.respond 200, jsonHeader(), jsonAffectedRows(len ids, ids)
 
