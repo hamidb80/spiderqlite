@@ -860,9 +860,10 @@ func databasePageHtml*(
       </div>
 
       <div class="mt-5">
-        <h3>
+        <h3 class="d-flex>
           <i class="bi bi-graph-up"></i>
           Analysis
+          <hr class="mx-2 w-100 border-2">
         </h3>
 
         <div class="ms-4">
