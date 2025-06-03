@@ -255,12 +255,12 @@ proc apiHome(req; app) =
     "status": "running",
   }
 
-proc signinApi(req; app) =
+proc apisignin(req; app) =
   discard
 
 # ------------------------
 
-proc staticFilesServ(req; app) =
+proc FilesStaticServ(req; app) =
   let
     fname   = "./assets/" & req.uri.splitPath.tail
     ext     = fname.splitFile.ext.strip(chars= {'.'}, trailing = false)
@@ -268,10 +268,10 @@ proc staticFilesServ(req; app) =
 
   req.respond 200, toWebby @{"Content-Type": getMimetype ext} , content
 
-proc indexPage(req; app) =
+proc pageIndex(req; app) =
   req.respond 200, emptyHttpHeaders(), landingPageHtml()
 
-proc docsPage(req; app) = 
+proc pageDocs(req; app) = 
   req.respond 200, emptyHttpHeaders(), docsPageHtml()
 
 
@@ -286,7 +286,7 @@ proc signInImpl(req; app; uid: Id, uname: string) =
   
   req.respond 200, toWebby @{"Set-Cookie": fmt"{authKey}={token}"} , redirectingHtml profile_url uname
 
-proc signupPage(req; app) =
+proc pageSignup(req; app) =
   if isPost req:
     let 
       form  = decodedQuery req.body
@@ -308,7 +308,7 @@ proc signupPage(req; app) =
   else:
     req.respond 200, emptyHttpHeaders(), signupPageHtml(@[])
 
-proc signinPage(req; app) =
+proc pageSignin(req; app) =
   if isPost req:
     let 
       form  = decodedQuery req.body
@@ -338,7 +338,7 @@ proc signinPage(req; app) =
 proc signOutCookieSet: webby.HttpHeaders =
   result["Set-Cookie"] = $initCookie(authKey, "", path = "/")
 
-proc signoutPage(req; app) =
+proc pageSignout(req; app) =
   req.respond 200, signOutCookieSet(), redirectingHtml "/sign-in/"
 
 
@@ -347,7 +347,7 @@ proc listUsersPage(req; app) =
     let users = askQueryDb(db, s => "", parseSpQl all_users, app.defaultQueryStrategies)
   req.respond 200, emptyHttpHeaders(), userslistPageHtml users["result"].getElems
 
-proc userProfilePage(req; app) =
+proc pageUserProfile(req; app) =
   let uname = req.queryParams["u"]
 
   if isPost req:
@@ -395,7 +395,7 @@ proc userProfilePage(req; app) =
       signOutCookieSet(), 
       profilePageHtml(uname, dbs, sizes, lastModifs))
 
-proc databasePage(req; app) = 
+proc pageDatabase(req; app) = 
   let 
     uname  = req.queryParams["u"]
     dbname = req.queryParams["db"]
@@ -471,7 +471,7 @@ proc databasePage(req; app) =
     perf) 
 
 
-proc databaseDownload(req; app) = 
+proc filesDatabaseDownload(req; app) = 
   let 
     uname  = req.queryParams["u"]
     dbname = req.queryParams["db"]
@@ -496,26 +496,26 @@ proc initApp(config: AppConfig): App =
         fn(req, app)
 
     if config.frontend.enabled:
-      result.get    br"landing",                rr indexPage
-      result.get    br"static-files",           rr staticFilesServ
-      result.get    br"docs",                   rr docsPage
+      result.get    br"landing",                rr pageIndex
+      result.get    br"static-files",           rr FilesStaticServ
+      result.get    br"docs",                   rr pageDocs
 
-      result.get    br"sign-up",                rr signupPage
-      result.post   br"sign-up",                rr signupPage
-      result.get    br"sign-in",                rr signinPage
-      result.post   br"sign-in",                rr signinPage
-      result.get    br"sign-out",               rr signoutPage
+      result.get    br"sign-up",                rr pageSignup
+      result.post   br"sign-up",                rr pageSignup
+      result.get    br"sign-in",                rr pageSignin
+      result.post   br"sign-in",                rr pageSignin
+      result.get    br"sign-out",               rr pageSignout
       
       result.get    br"users-list",             rr listUsersPage
-      result.get    br"profile",                rr userProfilePage
-      result.post   br"profile",                rr userProfilePage
+      result.get    br"profile",                rr pageUserProfile
+      result.post   br"profile",                rr pageUserProfile
 
-      result.get    br"database",               rr databasePage 
-      result.post   br"database",               rr databasePage 
-      result.get    br"database-download",      rr databaseDownload
+      result.get    br"database",               rr pageDatabase 
+      result.post   br"database",               rr pageDatabase 
+      result.get    br"database-download",      rr filesDatabaseDownload
 
     result.get     br"api-home",              rr apiHome
-    result.post    br"sign-in-api",           rr signinApi
+    result.post    br"sign-in-api",           rr apisignin
     result.post    br"api-query-database",    rr askQueryApi
     result.get     br"api-get-node-by-id",    rr getNodeApi
     result.get     br"api-get-edge-by-id",    rr getEdgeApi
