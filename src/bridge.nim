@@ -1,4 +1,4 @@
-import std/[strformat, strutils, json, sugar]
+import std/[strutils, json, sugar]
 
 import db_connector/db_sqlite
 

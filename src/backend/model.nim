@@ -1,5 +1,7 @@
-import std/[json, strformat]
+import std/[json, strformat, os, paths]
 
+import ../utils/other
+import ./config
 import ../bridge
 
 
@@ -65,3 +67,18 @@ func initDbDoc*(name: string): JsonNode =
   }
 
 # ----------------------------------------------
+
+
+proc initDB*(fpath: Path) = 
+  initDbSchema openSqliteDB fpath
+
+proc prepareDB*(fpath: Path) = 
+  if not fileExists fpath: 
+    initDB fpath
+
+proc preapreStorage*(config: AppConfig) = 
+  discard existsOrCreateDir config.storage.appDbFile.string.splitPath.head
+  discard existsOrCreateDir config.storage.usersDbDir.string
+  discard existsOrCreateDir config.storage.backupdir.string
+
+  prepareDB config.storage.appDbFile

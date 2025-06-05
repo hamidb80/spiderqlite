@@ -3,8 +3,7 @@ import std/[os, options, paths, strutils, strformat, tables, nativesockets]
 import parsetoml, mummy
 
 import ../utils/other
-
-
+import ../query_language/core
 
 type
   AdminConfig* = object
@@ -60,6 +59,13 @@ type
   AppContext* = ref object
     cmdParams*: ParamTable
     tomlConf*:  TomlValueRef
+
+type
+  App* = object
+    server*: Server
+    config*: AppConfig
+    defaultQueryStrategies*: QueryStrategies
+
 
 
 func `$`*(p: Port): string = 
