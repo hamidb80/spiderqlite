@@ -104,12 +104,13 @@ Here are some of the things that I found worth mentioning.
 - Neo4j
 - ArangoDB
 - https://github.com/krisajenkins/yesql
+- https://antonz.org/sqlean-define/
 
 ### Sample Databases
+- https://www.kaggle.com/datasets/amanbarthwal/imdb-movies-data
 - https://wiki.postgresql.org/wiki/Sample_Databases
-- https://www.sqlitetutorial.net/sqlite-sample-database/
+  - https://postgrespro.com/community/demodb
 - https://github.com/siara-cc/sakila_sqlite3/
-- https://antonz.org/sqlean-define/
 
 ## credits
 - https://www.svgrepo.com/svg/383453/spider-web
