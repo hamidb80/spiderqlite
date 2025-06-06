@@ -20,32 +20,32 @@ const # ---------- tags
 
 const # ----------- local aliases
 
-  user   = userTag
-  db     = dbTag
+  USER   = userTag
+  DB     = dbTag
   # auth   = authTag
 
-  owns   = ownsTag
+  OWNS   = ownsTag
 
 
 const # ---------- queries
 
   get_user_by_name* = fmt"""
-    #{user}  u
+    #{USER}  u
       == .name |uname|
     ASK u
     RET u
   """
 
   all_users* = fmt"""
-    #{user} u
+    #{USER} u
     ASK     u
     RET     u
   """
 
   dbs_of_user* = fmt"""
-    @{owns}     o
-    #{db}       db
-    #{user}     u
+    @{OWNS}     o
+    #{DB}       db
+    #{USER}     u
       == .name |uname|
 
     ASK       ^u>-o->db
@@ -68,7 +68,6 @@ func initDbDoc*(name: string): JsonNode =
 
 # ----------------------------------------------
 
-
 proc initDB*(fpath: Path) = 
   initDbSchema openSqliteDB fpath
 
@@ -82,3 +81,5 @@ proc preapreStorage*(config: AppConfig) =
   discard existsOrCreateDir config.storage.backupdir.string
 
   prepareDB config.storage.appDbFile
+
+# ----------------------------------------------

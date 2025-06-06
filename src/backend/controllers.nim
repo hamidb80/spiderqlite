@@ -306,11 +306,14 @@ proc pageIndex*(req; app) =
 proc pageDocs*(req; app) = 
   req.respond 200, emptyHttpHeaders(), docsPageHtml(req.ctx)
 
+proc setCookie(name, val: string): HttpHeaders = 
+  toWebby @{"Set-Cookie": fmt"{name}={val}"}
+
 proc signInImpl(req; app; uid: Id, uname: string) =
-  let jwtoken = signJwt %*{"1": 1}
-
-
-  req.respond 200, toWebby @{"Set-Cookie": fmt"{JWT_AUTH_COOKIE}={jwtoken}"} , redirectingHtml(profile_url uname)
+  withDb app:
+    let ans = askQueryDB(db, %*{"uname": uname}, parseSpQl get_user_by_name, app.defaultQueryStrategies)
+    let jwtoken = signJwt ans["result"][0] 
+    req.respond 200, setCookie(JWT_AUTH_COOKIE, jwtoken), redirectingHtml profile_url uname
 
 proc pageSignin*(req; app) =
   if isPost req:

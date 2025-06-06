@@ -143,9 +143,11 @@ proc askQueryDbRaw*(db, ctx, spql, queryStrateies): string =
   # << $inMicroseconds(tcollect - tquery)
   << '}'
 
-proc askQueryDB*(db, ctx, spql, queryStrateies): JsonNode = 
+proc askQueryDB*(db; ctx; spql; queryStrateies): JsonNode = 
   parseJson askQueryDbRaw(db, ctx, spql, queryStrateies)
 
+proc askQueryDB*(db; tab: JsonNode; spql; queryStrateies): JsonNode = 
+  askQueryDb(db, s => $tab[s], spql, queryStrateies)
 
 proc countEntitiesDB*(db, ent): seq[tuple[tag: string, count: int, doc: JsonNode]] =
   for row in db.rows countEntitiesQuery ent:
