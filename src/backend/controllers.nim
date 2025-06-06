@@ -267,31 +267,9 @@ proc signInImpl(req; app; uid: Id, uname: string) =
   withDb app:
     let 
       aid = insertNodeDB(db, parseTag "#auth",     %token)
-      rid = insertEdgeDB(db, parseTag "#auth_for", newJNull(), aid, uid)
+      # rid = insertEdgeDB(db, parseTag "#auth_for", newJNull(), aid, uid)
   
   req.respond 200, toWebby @{"Set-Cookie": fmt"{authKey}={token}"} , redirectingHtml profile_url uname
-
-proc pageSignup*(req; app) =
-  if isPost req:
-    let 
-      form  = decodedQuery req.body
-      uname = form["username"]
-      passw = form["password"]
-
-    withDB app:
-      let ans = ignore askQueryDB(db, s => $(%uname), 
-        parseSpQl get_user_by_name, 
-        app.defaultQueryStrategies)
-
-      case ans["result"].len
-      of 0:
-        let uid = insertNodeDB(db, userTag, initUserDoc(uname, passw, false))
-        signInImpl req, app, uid, uname
-      else:
-        req.respond 200, emptyHttpHeaders(), signupPageHtml @["duplicated username"]
-
-  else:
-    req.respond 200, emptyHttpHeaders(), signupPageHtml(@[])
 
 proc pageSignin*(req; app) =
   if isPost req:
@@ -320,6 +298,28 @@ proc pageSignin*(req; app) =
   else:
     req.respond 200, emptyHttpHeaders(), signinPageHtml(@[])
 
+proc pageSignup*(req; app) =
+  if isPost req:
+    let 
+      form  = decodedQuery req.body
+      uname = form["username"]
+      passw = form["password"]
+
+    withDB app:
+      let ans = ignore askQueryDB(db, s => $(%uname), 
+        parseSpQl get_user_by_name, 
+        app.defaultQueryStrategies)
+
+      case ans["result"].len
+      of 0:
+        let uid = insertNodeDB(db, userTag, initUserDoc(uname, passw, false))
+        signInImpl req, app, uid, uname
+      else:
+        req.respond 200, emptyHttpHeaders(), signupPageHtml @["duplicated username"]
+
+  else:
+    req.respond 200, emptyHttpHeaders(), signupPageHtml(@[])
+
 proc signOutCookieSet: webby.HttpHeaders =
   result["Set-Cookie"] = $initCookie(authKey, "", path = "/")
 
@@ -347,7 +347,7 @@ proc pageUserProfile*(req; app) =
           userDoc = db.askQueryDB(_ => $ %uname, parseSpql get_user_by_name, app.defaultQueryStrategies)
           uid = userDoc["result"][0][idCol].getInt
           did = db.insertNodeDB(dbTag,   initDbDoc dbname)
-          oid = db.insertEdgeDB(ownsTag, newJNull(), uid, did)
+          # oid = db.insertEdgeDB(ownsTag, newJNull(), uid, did)
 
         req.respond 200, emptyHttpHeaders(), redirectingHtml profile_url(uname)
 

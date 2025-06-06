@@ -22,7 +22,7 @@ const # ----------- local aliases
 
   user   = userTag
   db     = dbTag
-  auth   = authTag
+  # auth   = authTag
 
   owns   = ownsTag
 
