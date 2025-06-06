@@ -47,9 +47,6 @@ func evenp*(n: int): bool =
 func oddp*(n: int): bool = 
   not evenp n
 
-func `mod`*[M: static int](n: int, m: type M): range[0 .. M-1] = 
-  system.`mod` n, m
-
 # ---- seq
 
 

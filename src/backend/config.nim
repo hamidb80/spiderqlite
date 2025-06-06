@@ -20,6 +20,8 @@ type
 
   # TODO in database page get random node and edge of each tag and show its strcuture [fields with types] 
     
+  ViewCtx* = object
+    username*: Option[string]
 
   ServerConfig* = object
     host*: Host

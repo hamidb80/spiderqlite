@@ -342,15 +342,17 @@ func sepQuery(qc: QueryChain): seq[QueryPart] =
       of 3: # arrow
         if dir != t.dir:
           raisee "edge direction is not consistent, expected same direction as " & $dir & " but got "  & $t.dir
+      
+      else:
+          raisee "invalid"
 
   else:
     raisee "invalid query length: " & $sz & "query chain was: " & $qc
 
-
-  for i, en in qc:
-    case i mod 5
-    of 0: discard
-    of 1 .. 4: discard
+  # for i, en in qc:
+  #   case i mod 5
+  #   of 0: discard
+  #   of 1 .. 4: discard
 
 func parseQueryGraph(patts: seq[string]): QueryGraph =
   result = QueryGraph()

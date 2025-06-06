@@ -23,12 +23,11 @@ requires "waterpark"      # https://github.com/guzba/waterpark
 requires "parsetoml"      # https://github.com/NimParsers/parsetoml
 requires "questionable"   # https://github.com/codex-storage/questionable
 requires "cookiejar"      # https://github.com/planety/cookiejar
+requires "jwt" 
 
 requires "pretty"         # https://github.com/treeform/pretty
 
 
-task dev, "development run": 
-  exec "nim --deepcopy:on -d:useMalloc --mm:arc -d:debug   r src/backend/server.nim ./docs/dev.toml --dump-config"
-
-task rel, "performant run": 
-  exec "nim --deepcopy:on -d:useMalloc --mm:arc -d:release   r src/backend/server.nim ./docs/dev.toml --dump-config"
+task dev, "development run":
+  # https://github.com/nim-lang/choosenim/issues/27
+  exec "nim --deepcopy:on -d:useMalloc --mm:arc -d:ssl r src/backend/server.nim ./docs/dev.toml --dump-config"

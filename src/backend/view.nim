@@ -1,7 +1,9 @@
 import std/[strformat, json]
-import ../query_language/core
-import ./routes
 
+import ../query_language/core
+import ./config
+
+import ./routes
 
 # ------------------------------ combinators
 
@@ -147,7 +149,7 @@ func lbtnicon(label, icon: string, cls = "", link = ""): string =
 
 # ------------------------------ pages
 
-func landingPageHtml*: string =
+func landingPageHtml*(ctx: ViewCtx): string =
   wrapHtml "landing", """
     <div class="bg-white">
       <div class=" container p-4">
@@ -474,7 +476,7 @@ func landingPageHtml*: string =
     </div>
     """
 
-func docsPageHtml*(): string =
+func docsPageHtml*(ctx: ViewCtx): string =
   wrapHtml "landing", """
     This is gonna be docs
   """
@@ -484,7 +486,7 @@ const
   signinIcon = "bi-box-arrow-in-right"
   signupIcon = "bi-person-add"
 
-func signinupPageHtml*(title, icon: string, errors: seq[string], inputs,
+func signinupPageHtml*(ctx: ViewCtx, title, icon: string, errors: seq[string], inputs,
     btns: string): string =
   var errorsAcc = ""
   for e in errors:
@@ -511,8 +513,8 @@ func signinupPageHtml*(title, icon: string, errors: seq[string], inputs,
   """
 
 
-func signinPageHtml*(errors: seq[string]): string =
-  signinupPageHtml "Sign In", signinIcon, errors,
+func signinPageHtml*(ctx: ViewCtx, errors: seq[string]): string =
+  signinupPageHtml ctx, "Sign In", signinIcon, errors,
       fmt"""
           {formField1("username", "bi-at",       "username", "inp-uname", "text")}
           {formField1("passowrd", "bi-asterisk", "password", "inp-passw", "password")}
@@ -521,8 +523,8 @@ func signinPageHtml*(errors: seq[string]): string =
           {lbtnicon("sign in", signinIcon, "btn-primary         mx-1")}
   """
 
-func signupPageHtml*(errors: seq[string]): string =
-  signinupPageHtml "Sign up", signupIcon, errors,
+func signupPageHtml*(ctx: ViewCtx, errors: seq[string]): string =
+  signinupPageHtml ctx, "Sign up", signupIcon, errors,
       fmt"""
           {formField1("username", "bi-at",       "username", "inp-uname", "text")}
           {formField1("password", "bi-asterisk", "password", "inp-passw", "password")}
@@ -532,7 +534,7 @@ func signupPageHtml*(errors: seq[string]): string =
   """
 
 
-func userslistPageHtml*(users: seq[JsonNode]): string =
+func userslistPageHtml*(ctx: ViewCtx, users: seq[JsonNode]): string =
   var dbRows = ""
   for u in users:
     let uname = u[docCol]["name"].getstr
@@ -576,7 +578,7 @@ func userslistPageHtml*(users: seq[JsonNode]): string =
     </div>
   """
 
-func profilePageHtml*(uname: string, dbs: seq[JsonNode], sizes,
+func profilePageHtml*(ctx: ViewCtx, uname: string, dbs: seq[JsonNode], sizes,
     lastModifications: seq[int]): string =
   var dbrows = ""
   for i, db in dbs:
@@ -664,7 +666,7 @@ func profilePageHtml*(uname: string, dbs: seq[JsonNode], sizes,
 
 # TODO add notifiocantion with unpoly to show latests norifs <norif>content</norif>
 
-func databasePageHtml*(
+func databasePageHtml*(ctx: ViewCtx, 
   uname, dbname: string,
   size, lastmodif: int,
   nodesInfo, edgesInfo: seq[tuple[tag: string, count: int, doc: JsonNode]],

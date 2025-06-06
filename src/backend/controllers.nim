@@ -1,11 +1,11 @@
-import std/[strformat, paths, mimetypes, json, tables, uri, sugar, strutils, os, oids, times, monotimes, math, sequtils]
+import std/[strformat, paths, mimetypes, json, tables, uri, sugar, strutils, os, times, monotimes, math, sequtils, options]
 
 
 import ../query_language/[parser, core]
 import ../utils/other
 import ../bridge
 import routes
-import ./[model, view, config]
+import ./[model, config, view]
 
 
 import db_connector/db_sqlite
@@ -20,15 +20,16 @@ import cookiejar
 using 
   req: Request
   app: App
+  ctx: ViewCtx
 
 
-const authKey = "auth"
+const JWT_AUTH_COOKIE = "auth"
 
 
 func userDbFileName(uname, dbname: string): string = 
   fmt"user-{uname}-db-{dbname}.db.sqlite3"
 
-func userDbPath(app: App, uname, dbname: string): Path = 
+func userDbPath(app; uname, dbname: string): Path = 
   app.config.storage.usersDbDir / userDbFileName(uname, dbname).Path
 
 
@@ -143,7 +144,7 @@ template logPerf(body): untyped =
 
 # Controllers ------------------------------------
 
-proc apiAskQuery*(req; app) =
+proc apiAskQuery*(req; app;) =
   try:
     let j = parseJson req.body
     withdb app:
@@ -168,13 +169,13 @@ proc getEntity(req; app; ent: Entity) =
   # XXX logSql
   req.respond 200, jsonHeader(), val
 
-proc apiGetNode*(req, app) = 
+proc apiGetNode*(req: Request, app: App) = 
   getEntity req, app, nodes
 
-proc apiGetEdge*(req, app) = 
+proc apiGetEdge*(req: Request, app: App) = 
   getEntity req, app, edges
 
-proc apiInsertNodes*(req; app) = 
+proc apiInsertNodes*(req; app;) = 
   let j = parseJson req.body
   withDB app:
     let ids = collect:
@@ -183,7 +184,7 @@ proc apiInsertNodes*(req; app) =
 
   req.respond 200, jsonHeader(), jsonAffectedRows(len ids, ids)
 
-proc apiInsertEdges*(req; app) = 
+proc apiInsertEdges*(req; app;) = 
   let j = parseJson req.body
   withDB app:
     let ids = collect:
@@ -215,10 +216,10 @@ proc updateEntity(req; app; ent: Entity) =
   else:
     raisee "invalid json object for update. it should be object of {id => new_doc}"
 
-proc apiupdateNodes*(req; app) = 
+proc apiupdateNodes*(req; app;) = 
   updateEntity req, app, nodes
 
-proc apiupdateEdges*(req; app) = 
+proc apiupdateEdges*(req; app;) = 
   updateEntity req, app, edges
 
 
@@ -230,19 +231,19 @@ proc deleteEntity(req; app; ent: Entity) =
     let affected = deleteEntitiesDB(db, ent, ids)
   req.respond 200, jsonHeader(), jsonAffectedRows affected
 
-proc apiDeleteNodes*(req; app) = 
+proc apiDeleteNodes*(req; app;) = 
   deleteEntity req, app, nodes
 
-proc apiDeleteEdges*(req; app) = 
+proc apiDeleteEdges*(req; app;) = 
   deleteEntity req, app, edges
 
 
-proc apiHome*(req; app) =
+proc apiHome*(req; app;) =
   req.respond 200, emptyHttpHeaders(), $ %*{
     "status": "ok",
   }
 
-proc apiSignin*(req; app) =
+proc apiSignin*(req; app;) =
   discard
 
 # ------------------------
@@ -255,21 +256,61 @@ proc filesStaticServ*(req; app) =
 
   req.respond 200, toWebby @{"Content-Type": getMimetype ext} , content
 
+
+import jwt
+const JWT_SECRET = "1234"
+const JWT_ALGO = "HS256"
+const JWT_DATA_KEY = "dat"
+
+
+proc verifyJWT(token: string): bool =
+  try:
+    let jwtToken = token.toJWT()
+    result = jwtToken.verify(JWT_SECRET, HS256)
+  except InvalidToken:
+    result = false
+
+proc decodeJWT(token: string): JsonNode =
+  token.toJWT.claims[JWT_DATA_KEY].node
+
+proc signJWT(data: JsonNode): string =
+  var token = toJWT(%*{
+    "header": {
+      "alg": JWT_ALGO,
+      "typ": "JWT"
+    },
+    "claims": {
+      JWT_DATA_KEY: data,
+      "exp": (getTime() + 1.days).toUnix()
+    }
+  })
+
+  token.sign(JWT_SECRET)
+  $token
+
+
+proc cookies(req): CookieJar = 
+  result = initCookieJar()
+  parse result, req.headers["Cookie"]
+
+proc ctx(req): ViewCtx = 
+  let token = req.cookies[JWT_AUTH_COOKIE]
+  if verifyJWT token:
+    result.username = some getStr token.decodeJWT["username"]
+  else:
+    discard
+
 proc pageIndex*(req; app) =
-  req.respond 200, emptyHttpHeaders(), landingPageHtml()
+  req.respond 200, emptyHttpHeaders(), landingPageHtml(req.ctx)
 
 proc pageDocs*(req; app) = 
-  req.respond 200, emptyHttpHeaders(), docsPageHtml()
-
+  req.respond 200, emptyHttpHeaders(), docsPageHtml(req.ctx)
 
 proc signInImpl(req; app; uid: Id, uname: string) =
-  let token = $genOid()
-  withDb app:
-    let 
-      aid = insertNodeDB(db, parseTag "#auth",     %token)
-      # rid = insertEdgeDB(db, parseTag "#auth_for", newJNull(), aid, uid)
-  
-  req.respond 200, toWebby @{"Set-Cookie": fmt"{authKey}={token}"} , redirectingHtml profile_url uname
+  let jwtoken = signJwt %*{"1": 1}
+
+
+  req.respond 200, toWebby @{"Set-Cookie": fmt"{JWT_AUTH_COOKIE}={jwtoken}"} , redirectingHtml(profile_url uname)
 
 proc pageSignin*(req; app) =
   if isPost req:
@@ -284,19 +325,22 @@ proc pageSignin*(req; app) =
         db, s => $ctx[s], 
         parseSpQl get_user_by_name, app.defaultQueryStrategies)
 
-      case ans["result"].len
+      case len ans["result"]
       of 0:
-        req.respond 401, emptyHttpHeaders(), signinPageHtml(@["no such user"])
+        req.respond 401, emptyHttpHeaders(), signinPageHtml(req.ctx, @["no such user"])
 
-      else:
+      of 1:
         let u = ans["result"][0]
         if u[docCol]["pass"].getStr == passw:
           signInImpl req, app, getInt u[idCol], uname
         else:
-          req.respond 200, emptyHttpHeaders(), signinPageHtml(@["pass wrong"])
-        
+          req.respond 200, emptyHttpHeaders(), signinPageHtml(req.ctx, @["pass wrong"])
+
+      else:
+        req.respond 500, emptyHttpHeaders(), signinPageHtml(req.ctx, @["internal error"])
+
   else:
-    req.respond 200, emptyHttpHeaders(), signinPageHtml(@[])
+    req.respond 200, emptyHttpHeaders(), signinPageHtml(req.ctx, @[])
 
 proc pageSignup*(req; app) =
   if isPost req:
@@ -315,22 +359,22 @@ proc pageSignup*(req; app) =
         let uid = insertNodeDB(db, userTag, initUserDoc(uname, passw, false))
         signInImpl req, app, uid, uname
       else:
-        req.respond 200, emptyHttpHeaders(), signupPageHtml @["duplicated username"]
+        req.respond 200, emptyHttpHeaders(), signupPageHtml(req.ctx, @["duplicated username"])
 
   else:
-    req.respond 200, emptyHttpHeaders(), signupPageHtml(@[])
+    req.respond 200, emptyHttpHeaders(), signupPageHtml(req.ctx, @[])
 
 proc signOutCookieSet: webby.HttpHeaders =
-  result["Set-Cookie"] = $initCookie(authKey, "", path = "/")
+  result["Set-Cookie"] = $initCookie(JWT_AUTH_COOKIE, "", path = "/")
 
 proc pageSignout*(req; app) =
-  req.respond 200, signOutCookieSet(), redirectingHtml "/sign-in/"
+  req.respond 200, signOutCookieSet(), redirectingHtml( "/sign-in/")
 
 
 proc pageListUsers*(req; app) = 
   withDB app:
     let users = askQueryDb(db, s => "", parseSpQl all_users, app.defaultQueryStrategies)
-  req.respond 200, emptyHttpHeaders(), userslistPageHtml users["result"].getElems
+  req.respond 200, emptyHttpHeaders(), userslistPageHtml(req.ctx, users["result"].getElems)
 
 proc pageUserProfile*(req; app) =
   let uname = req.queryParams["u"]
@@ -349,7 +393,7 @@ proc pageUserProfile*(req; app) =
           did = db.insertNodeDB(dbTag,   initDbDoc dbname)
           # oid = db.insertEdgeDB(ownsTag, newJNull(), uid, did)
 
-        req.respond 200, emptyHttpHeaders(), redirectingHtml profile_url(uname)
+        req.respond 200, emptyHttpHeaders(), redirectingHtml( profile_url(uname))
 
     elif "change-password" in form:
       discard
@@ -378,7 +422,7 @@ proc pageUserProfile*(req; app) =
 
     req.respond(200, 
       signOutCookieSet(), 
-      profilePageHtml(uname, dbs, sizes, lastModifs))
+      profilePageHtml(req.ctx, uname, dbs, sizes, lastModifs))
 
 proc pageDatabase*(req; app) = 
   let 
@@ -444,6 +488,7 @@ proc pageDatabase*(req; app) =
           edgesGroup = db.getEdgesDB(edgeids)
 
   req.respond 200, emptyHttpHeaders(), databasePageHtml(
+    req.ctx,
     uname, 
     dbname, 
     int getFileSize path,
