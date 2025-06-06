@@ -1,4 +1,4 @@
-import std/[strformat, json]
+import std/[strformat, json, options]
 
 import ../query_language/core
 import ./config
@@ -14,8 +14,29 @@ proc redirectingHtml*(link: string): string =
     </a>
   """
 
+template iff(cond, whentrue, whenfalse): untyped =
+  if cond: whentrue
+  else   : whenfalse
 
-func navPartial: string =
+func navPartial(ctx: ViewCtx): string =
+  const sin = fmt"""
+  <li class="nav-item">
+    <a class="nav-link" href="{signin_url()}" smooth-link>
+      sign-in
+      <i class="bi bi-box-arrow-in-right"></i>
+    </a>
+  </li>
+  """
+
+  const sout = fmt"""
+  <li class="nav-item">
+    <a class="nav-link" href="{signout_url()}" smooth-link>
+      sign-out
+      <i class="bi bi-x"></i>
+    </a>
+  </li>
+  """
+
   fmt"""
   <nav class="navbar navbar-expand-lg bg-primary px-3 py-1" data-bs-theme="dark">
     <a class="text-white mb-1 text-decoration-none" href="/" smooth-link>
@@ -25,7 +46,9 @@ func navPartial: string =
       </i>
     </a>
     <ul class="nav">
-    
+
+      {iff issome ctx.username, sout, sin}
+
       <li class="nav-item">
         <a class="nav-link" href="{docs_url()}" smooth-link>
           Docs
@@ -33,19 +56,6 @@ func navPartial: string =
         </a>
       </li>
         
-      <li class="nav-item">
-        <a class="nav-link" href="{signin_url()}" smooth-link>
-          sign-in
-          <i class="bi bi-box-arrow-in-right"></i>
-        </a>
-      </li>
-
-      <li class="nav-item">
-        <a class="nav-link" href="{signout_url()}" smooth-link>
-          sign-out
-          <i class="bi bi-x"></i>
-        </a>
-      </li>
 
       <li class="nav-item">
         <a class="nav-link" href="{users_list_url()}" smooth-link>
@@ -65,7 +75,7 @@ func navPartial: string =
   </nav>
   """
 
-func wrapHtml(title, inner: string): string =
+func wrapHtml(ctx: ViewCtx, title, inner: string): string =
   fmt"""
   <!DOCTYPE html>
   <html>
@@ -100,7 +110,7 @@ func wrapHtml(title, inner: string): string =
   </head>
   <body class="bg-light">
     <main>
-      {navPartial()}
+      {navPartial ctx}
       {inner}
     </main>
   </body>
@@ -150,7 +160,7 @@ func lbtnicon(label, icon: string, cls = "", link = ""): string =
 # ------------------------------ pages
 
 func landingPageHtml*(ctx: ViewCtx): string =
-  wrapHtml "landing", """
+  wrapHtml ctx, "landing", """
     <div class="bg-white">
       <div class=" container p-4">
         <h2 class="d-flex justify-content-start">
@@ -477,7 +487,7 @@ func landingPageHtml*(ctx: ViewCtx): string =
     """
 
 func docsPageHtml*(ctx: ViewCtx): string =
-  wrapHtml "landing", """
+  wrapHtml ctx, "landing", """
     This is gonna be docs
   """
 
@@ -495,7 +505,7 @@ func signinupPageHtml*(ctx: ViewCtx, title, icon: string, errors: seq[string], i
     add errorsAcc, "</li>"
 
 
-  wrapHtml title, fmt"""
+  wrapHtml ctx, title, fmt"""
     <div class="card mt-4 mx-auto shadow-sm" style="max-width: 600px;">
       <div class="card-header">
         <h3>
@@ -549,7 +559,7 @@ func userslistPageHtml*(ctx: ViewCtx, users: seq[JsonNode]): string =
       </tr>
     """
 
-  wrapHtml "users", fmt"""
+  wrapHtml ctx, "users", fmt"""
     <div class="container my-4">
       <h2 class="mb-4">
         <i class="bi bi-people"></i>
@@ -599,7 +609,7 @@ func profilePageHtml*(ctx: ViewCtx, uname: string, dbs: seq[JsonNode], sizes,
   </tr>
   """
 
-  wrapHtml uname & "'s profile", fmt"""
+  wrapHtml ctx, uname & "'s profile", fmt"""
     <div class="container my-4">
       <h2 class="mb-4">
         <i class="bi bi-person-vcard"></i>
@@ -753,7 +763,7 @@ func databasePageHtml*(ctx: ViewCtx,
 
 
 
-  wrapHtml fmt"{dbname} DB for @{uname}", fmt"""
+  wrapHtml ctx, fmt"{dbname} DB for @{uname}", fmt"""
     <div class="container my-4">
       <h2 class="mb-4">
         <i class="bi bi-database"></i>

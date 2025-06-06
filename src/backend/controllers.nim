@@ -294,11 +294,16 @@ proc cookies(req): CookieJar =
   parse result, req.headers["Cookie"]
 
 proc ctx(req): ViewCtx = 
-  let token = req.cookies[JWT_AUTH_COOKIE]
-  if verifyJWT token:
-    result.username = some getStr token.decodeJWT["username"]
-  else:
-    discard
+  let ck = req.cookies
+  if JWT_AUTH_COOKIE in ck:
+    let token = ck[JWT_AUTH_COOKIE]
+    echo req.headers.toBase
+    if verifyJWT token:
+      echo token.decodeJWT
+      if "name" in token.decodeJWT:
+        result.username = some getStr token.decodeJWT["name"]
+    else:
+      echo "invalid token: ", token
 
 proc pageIndex*(req; app) =
   req.respond 200, emptyHttpHeaders(), landingPageHtml(req.ctx)
@@ -306,13 +311,18 @@ proc pageIndex*(req; app) =
 proc pageDocs*(req; app) = 
   req.respond 200, emptyHttpHeaders(), docsPageHtml(req.ctx)
 
+
+
 proc setCookie(name, val: string): HttpHeaders = 
-  toWebby @{"Set-Cookie": fmt"{name}={val}"}
+  toWebby @{"Set-Cookie": $initCookie(name, val, path = "/")}
+
+proc signOutCookieSet: webby.HttpHeaders =
+  result["Set-Cookie"] = $initCookie(JWT_AUTH_COOKIE, "", expires="-1", path = "/")
 
 proc signInImpl(req; app; uid: Id, uname: string) =
   withDb app:
     let ans = askQueryDB(db, %*{"uname": uname}, parseSpQl get_user_by_name, app.defaultQueryStrategies)
-    let jwtoken = signJwt ans["result"][0] 
+    let jwtoken = signJwt ans["result"][0]["__doc"] 
     req.respond 200, setCookie(JWT_AUTH_COOKIE, jwtoken), redirectingHtml profile_url uname
 
 proc pageSignin*(req; app) =
@@ -367,9 +377,6 @@ proc pageSignup*(req; app) =
   else:
     req.respond 200, emptyHttpHeaders(), signupPageHtml(req.ctx, @[])
 
-proc signOutCookieSet: webby.HttpHeaders =
-  result["Set-Cookie"] = $initCookie(JWT_AUTH_COOKIE, "", path = "/")
-
 proc pageSignout*(req; app) =
   req.respond 200, signOutCookieSet(), redirectingHtml( "/sign-in/")
 
@@ -423,8 +430,8 @@ proc pageUserProfile*(req; app) =
         add sizes,      int    getFileSize p
         add lastModifs, toUnix getLastModificationTime p
 
-    req.respond(200, 
-      signOutCookieSet(), 
+    req.respond(200,
+      emptyHttpHeaders(), 
       profilePageHtml(req.ctx, uname, dbs, sizes, lastModifs))
 
 proc pageDatabase*(req; app) = 
