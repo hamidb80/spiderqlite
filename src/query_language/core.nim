@@ -757,8 +757,9 @@ func askedQuery(gn): QueryGraph =
   parseQueryGraph n.children.mapIt it.sval
 
 func getTake(gn): SpqlNode =
-  get:
-    findNode gn, gkTake
+  let m = gn.findNode gkTake
+  if issome m: get m
+  else       : raisee "cannot find take/return"
 
 func getUse(gn): string =
   gn.findNode(gkuse).get.children[0].sval

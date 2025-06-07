@@ -297,9 +297,7 @@ proc ctx(req): ViewCtx =
   let ck = req.cookies
   if JWT_AUTH_COOKIE in ck:
     let token = ck[JWT_AUTH_COOKIE]
-    echo req.headers.toBase
     if verifyJWT token:
-      echo token.decodeJWT
       if "name" in token.decodeJWT:
         result.username = some getStr token.decodeJWT["name"]
     else:
@@ -486,7 +484,7 @@ proc pageDatabase*(req; app) =
           spql = parseSpql c
 
         queryReuslts = db.askQueryDB(
-            _ => "\"???\"", 
+            %*{},
             spql, 
             app.defaultQueryStrategies)["result"]
 
