@@ -106,7 +106,7 @@ type
 
     gkWrapper
 
-  GqlDefKind* = enum
+  SpqlDefKind* = enum
     defNode
     defEdge
 
@@ -115,7 +115,7 @@ type
 
     case kind*: Spqlkind
     of gkDef:
-      defKind*: GqlDefKind
+      defKind*: SpqlDefKind
 
     of gkIdent, gkStrLit, gkComment, gkVar, gkInfix, gkPrefix, gkCall, gkMacro:
       sval*: string

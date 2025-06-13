@@ -11,26 +11,12 @@ type
     username*: string
     password*: Password
 
-  UsersConfig* = object
-    maxDatabases*: Natural
-    verificationAfterSignup*: bool
-
-  # TODO each database has some queries to explore
-  # PlaygroundConfig* = object
-
-  # TODO in database page get random node and edge of each tag and show its strcuture [fields with types] 
-    
-  ViewCtx* = object
-    username*: Option[string]
-
   ServerConfig* = object
     host*: Host
     port*: Port
 
   StorageConfig* = object
-    appDbFile*:  Path
-    usersDbDir*: Path
-    backupDir*:  Path
+    dbDir*: Path
 
   FrontendConfig* = object
     enabled*: bool
@@ -42,9 +28,6 @@ type
     performance*: bool
 
   AppConfig* = ref object
-    admin*:    AdminConfig
-    users*:    UsersConfig
-
     server*:   ServerConfig
     frontend*: FrontendConfig
 
@@ -163,19 +146,8 @@ proc buildConfig*(ctx: AppContext): AppConfig =
     frontend: FrontendConfig(
       enabled:  v(ctx, "--frontend-enabled", "SPQL_FRONTEND_ENABLED", "frontend.enabled", bool),
     ),
-    admin: AdminConfig(
-      enabled:  v(ctx, "--admin-enabled",  "SPQL_ADMIN_ENABLED",  "admin.enabled",  bool),
-      username: v(ctx, "--admin-username", "SPQL_ADMIN_USERNAME", "admin.username", string),
-      password: v(ctx, "--admin-password", "SPQL_ADMIN_PASSWORD", "admin.password", Password),
-    ),
-    users: UsersConfig(
-      maxDatabases:            v(ctx, "--user-max-dbs",            "SPQL_USER_MAX_DBS",            "users.max_dbs",            Natural),
-      verificationAfterSignup: v(ctx, "--user-needs-verification", "SPQL_USER_NEEDS_VERIFICATION", "users.needs_verification", bool),
-    ),
     storage: StorageConfig(
-      appDbFile:  v(ctx, "--app-db-file",  "SPQL_APP_DB_FILE",  "storage.app_db_file",  Path),
-      usersDbDir: v(ctx, "--users-db-dir", "SPQL_USERS_DB_DIR", "storage.users_db_dir", Path),
-      backupDir:  v(ctx, "--backup-dir",   "SPQL_BACKUP_DIR",   "storage.backup_dir",   Path),
+      dbDir: v(ctx, "--db-dir", "SPQL_DB_DIR", "storage.db_dir", Path),
     ),
 
     logs: LogConfig(

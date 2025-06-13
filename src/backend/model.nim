@@ -76,10 +76,6 @@ proc prepareDB*(fpath: Path) =
     initDB fpath
 
 proc preapreStorage*(config: AppConfig) = 
-  discard existsOrCreateDir config.storage.appDbFile.string.splitPath.head
-  discard existsOrCreateDir config.storage.usersDbDir.string
-  discard existsOrCreateDir config.storage.backupdir.string
-
-  prepareDB config.storage.appDbFile
+  discard existsOrCreateDir config.storage.dbDir.string
 
 # ----------------------------------------------

@@ -18,25 +18,7 @@ template iff(cond, whentrue, whenfalse): untyped =
   if cond: whentrue
   else   : whenfalse
 
-func navPartial(ctx: ViewCtx): string =
-  const sin = fmt"""
-  <li class="nav-item">
-    <a class="nav-link" href="{signin_url()}" smooth-link>
-      sign-in
-      <i class="bi bi-box-arrow-in-right"></i>
-    </a>
-  </li>
-  """
-
-  const sout = fmt"""
-  <li class="nav-item">
-    <a class="nav-link" href="{signout_url()}" smooth-link>
-      sign-out
-      <i class="bi bi-x"></i>
-    </a>
-  </li>
-  """
-
+func navPartial(): string =
   fmt"""
   <nav class="navbar navbar-expand-lg bg-primary px-3 py-1" data-bs-theme="dark">
     <a class="text-white mb-1 text-decoration-none" href="/" smooth-link>
@@ -47,8 +29,6 @@ func navPartial(ctx: ViewCtx): string =
     </a>
     <ul class="nav">
 
-      {iff issome ctx.username, sout, sin}
-
       <li class="nav-item">
         <a class="nav-link" href="{docs_url()}" smooth-link>
           Docs
@@ -56,13 +36,6 @@ func navPartial(ctx: ViewCtx): string =
         </a>
       </li>
         
-
-      <li class="nav-item">
-        <a class="nav-link" href="{users_list_url()}" smooth-link>
-          users
-          <i class="bi bi-people"></i>
-        </a>
-      </li>
     
       <li class="nav-item">
         <a class="nav-link" href="{playground_url()}" smooth-link>
@@ -75,7 +48,7 @@ func navPartial(ctx: ViewCtx): string =
   </nav>
   """
 
-func wrapHtml(ctx: ViewCtx, title, inner: string): string =
+func wrapHtml(title, inner: string): string =
   fmt"""
   <!DOCTYPE html>
   <html>
@@ -110,7 +83,7 @@ func wrapHtml(ctx: ViewCtx, title, inner: string): string =
   </head>
   <body class="bg-light">
     <main>
-      {navPartial ctx}
+      {navPartial()}
       {inner}
     </main>
   </body>
@@ -159,8 +132,8 @@ func lbtnicon(label, icon: string, cls = "", link = ""): string =
 
 # ------------------------------ pages
 
-func landingPageHtml*(ctx: ViewCtx): string =
-  wrapHtml ctx, "landing", """
+func landingPageHtml*(): string =
+  wrapHtml "landing", """
     <div class="bg-white">
       <div class=" container p-4">
         <h2 class="d-flex justify-content-start">
@@ -245,18 +218,6 @@ func landingPageHtml*(ctx: ViewCtx): string =
               <div class="h4">Don't Have Much Resources?</div>
               <p class="text-muted">
                 SpiderQL server doesn't use much RAM! it is based on SQLite
-              </p>
-            </div>
-          </div>
-
-          <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
-            <div class="icon mx-2">
-              <i class="bi bi-people text-primary"></i>
-            </div>
-            <div class="description">
-              <div class="h4">Have Multiple Apps?</div>
-              <p class="text-muted">
-                is supports mutli user
               </p>
             </div>
           </div>
@@ -486,149 +447,29 @@ func landingPageHtml*(ctx: ViewCtx): string =
     </div>
     """
 
-func docsPageHtml*(ctx: ViewCtx): string =
-  wrapHtml ctx, "landing", """
+func docsPageHtml*(): string =
+  wrapHtml "landing", """
     This is gonna be docs
   """
 
-
-const
-  signinIcon = "bi-box-arrow-in-right"
-  signupIcon = "bi-person-add"
-
-func signinupPageHtml*(ctx: ViewCtx, title, icon: string, errors: seq[string], inputs,
-    btns: string): string =
-  var errorsAcc = ""
-  for e in errors:
-    add errorsAcc, "<li>"
-    add errorsAcc, e
-    add errorsAcc, "</li>"
-
-
-  wrapHtml ctx, title, fmt"""
-    <div class="card mt-4 mx-auto shadow-sm" style="max-width: 600px;">
-      <div class="card-header">
-        <h3>
-          {texticon(title, icon, "", "me-3", false)}
-        </h3>
-      </div>
-      <div class="card-body">
-        <form action="." up-submit method="POST>
-          {inputs}
-          <ul>{errorsAcc}</ul>
-          <div class="d-flex justify-content-center mt-4">{btns}</div>
-        </form>
-      </div>
-    </div>
-  """
-
-
-func signinPageHtml*(ctx: ViewCtx, errors: seq[string]): string =
-  signinupPageHtml ctx, "Sign In", signinIcon, errors,
-      fmt"""
-          {formField1("username", "bi-at",       "username", "inp-uname", "text")}
-          {formField1("passowrd", "bi-asterisk", "password", "inp-passw", "password")}
-  """, fmt"""
-          {lbtnicon("sign up", signupIcon, "btn-outline-primary mx-1", "/sign-up/")}
-          {lbtnicon("sign in", signinIcon, "btn-primary         mx-1")}
-  """
-
-func signupPageHtml*(ctx: ViewCtx, errors: seq[string]): string =
-  signinupPageHtml ctx, "Sign up", signupIcon, errors,
-      fmt"""
-          {formField1("username", "bi-at",       "username", "inp-uname", "text")}
-          {formField1("password", "bi-asterisk", "password", "inp-passw", "password")}
-  """, fmt"""
-          {lbtnicon("sign up", signupIcon, "btn-primary         mx-1")}
-          {lbtnicon("sign in", signinIcon, "btn-outline-primary mx-1", "/sign-in/")}
-  """
-
-
-func userslistPageHtml*(ctx: ViewCtx, users: seq[JsonNode]): string =
-  var dbRows = ""
-  for u in users:
-    let uname = u[docCol]["name"].getstr
-    add dbRows, fmt"""
+func databaseListPageHtml*(dbs: seq[(string, BiggestInt)]): string =
+  var dbrows = ""
+  for (name, size) in dbs:
+    add dbrows, fmt"""
       <tr>
         <td>
-          <a href="{profile_url uname}" class="text-decoration-none" smooth-link>
-            @{uname}
+          <a href="{databaseurl name}" class="text-decoration-none" smooth-link>
+            {name}
           </a>
         </td>
-        <td>N/A</td>
+        <td>
+          {size}
+        </td>
       </tr>
-    """
+      """
 
-  wrapHtml ctx, "users", fmt"""
+  wrapHtml "database list", fmt"""
     <div class="container my-4">
-      <h2 class="mb-4">
-        <i class="bi bi-people"></i>
-        <span>
-          Users ({users.len})
-        </span>
-      </h2>
-
-      <table class="table table-hover shadow-sm">
-        <thead>
-          <tr>
-            <th>
-              <i class="bi bi-alphabet"></i>
-              name
-            </th>
-            <th>
-              <i class="bi bi-database-add"></i>
-              total DBs
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {dbrows}
-        </tbody>
-      </table>
-    </div>
-  """
-
-func profilePageHtml*(ctx: ViewCtx, uname: string, dbs: seq[JsonNode], sizes,
-    lastModifications: seq[int]): string =
-  var dbrows = ""
-  for i, db in dbs:
-    let
-      docs = db[docCol]
-      dbname = getstr docs["name"]
-
-    add dbrows, fmt"""
-  <tr>
-    <td>
-      <a href="{databaseurl uname, dbname}" class="text-decoration-none" smooth-link>
-        {dbname}
-      </a>
-    </td>
-    <td>{lastModifications[i]}</td>
-    <td>{sizes[i]}</td>
-    <td>N/A</td>
-  </tr>
-  """
-
-  wrapHtml ctx, uname & "'s profile", fmt"""
-    <div class="container my-4">
-      <h2 class="mb-4">
-        <i class="bi bi-person-vcard"></i>
-        <span class="mx-2">
-          <a href="{profile_url uname}" class="text-decoration-none" smooth-link>
-            @{uname}</a>'s info
-        </span>
-      </h2>
-
-      <div class="my-4">
-        <form action="." up-submit class="d-flex justify-content-between" method="post">
-          <input type="hidden" name="change_password">
-          <input type="password" name="" class="form-control" placeholder="new password">
-          <button class="btn btn-primary text-nowrap">
-            change password
-            <i class="bi bi-key"></i>
-          </button>
-        </form>
-      </div>
 
       <div class="my-4">
         <h3>
@@ -644,16 +485,8 @@ func profilePageHtml*(ctx: ViewCtx, uname: string, dbs: seq[JsonNode], sizes,
                 name
               </th>
               <th>
-                <i class="bi bi-clock-history"></i>            
-                last modification
-              </th>
-              <th>
                 <i class="bi bi-sd-card"></i>
                 size
-              </th>
-              <th>
-                <i class="bi bi-cloud-check"></i>
-                last backup
               </th>
             </tr>
           </thead>
@@ -662,22 +495,12 @@ func profilePageHtml*(ctx: ViewCtx, uname: string, dbs: seq[JsonNode], sizes,
           </tbody>
         </table>
 
-        <form action="{profile_url uname}" method="post" up-submit class="d-flex justify-content-between">
-          <input type="text" name="database-name" class="form-control" placeholder="database name">
-          <button name="add-database" class="btn btn-primary text-nowrap">
-            add database
-            <i class="bi bi-database-add"></i>
-          </button>
-        </form>
       </div>
     </div>
   """
 
-
-# TODO add notifiocantion with unpoly to show latests norifs <norif>content</norif>
-
-func databasePageHtml*(ctx: ViewCtx, 
-  uname, dbname: string,
+func databasePageHtml*( 
+  dbname: string,
   size, lastmodif: int,
   nodesInfo, edgesInfo: seq[tuple[tag: string, count: int, doc: JsonNode]],
   tagsOfNodes, tagsOfEdges: int,
@@ -763,20 +586,14 @@ func databasePageHtml*(ctx: ViewCtx,
 
 
 
-  wrapHtml ctx, fmt"{dbname} DB for @{uname}", fmt"""
+  wrapHtml fmt"{dbname} DB", fmt"""
     <div class="container my-4">
       <h2 class="mb-4">
         <i class="bi bi-database"></i>
         <span>Database</span>
-        <a href="{database_url uname, dbname}" class="text-decoration-none" smooth-link>
+        <a href="{database_url dbname}" class="text-decoration-none" smooth-link>
           {dbname}
         </a>
-        <sub class="text-secondary">
-          for 
-          <a href="{profile_url uname}" class="text-decoration-none" smooth-link>
-            @{uname}
-          </a>
-        </sub>
       </h2>
 
       <div>
@@ -821,7 +638,7 @@ func databasePageHtml*(ctx: ViewCtx,
                 Actions
               </h4>
 
-              <form method="post" action="{database_url uname, dbname}" class="ms-2">
+              <form method="post" action="{database_url dbname}" class="ms-2">
                 <button name="backup-database" class="btn btn-outline-primary">
                   <i class="bi bi-floppy"></i>
                   <span>back-up</span>
@@ -1052,7 +869,7 @@ func databasePageHtml*(ctx: ViewCtx,
                 Editor
               </h4>
               
-              <form action="{database_url uname, dbname}" method="POST" up-submit id="ask-form" up-target="#query-vis, #query-data, #performance_measure">
+              <form action="{database_url dbname}" method="POST" up-submit id="ask-form" up-target="#query-vis, #query-data, #performance_measure">
                 <textarea class="form-control editor-height" name="spql_query" lang="sql">
                     #; a b c
                     ask a->^b->c
@@ -1148,10 +965,10 @@ func databasePageHtml*(ctx: ViewCtx,
               Focused
             </h4>
 
-            <form id="node-get" action="{database_url uname, dbname}" method="post" up-submit up-target="#partial-data">
+            <form id="node-get" action="{database_url dbname}" method="post" up-submit up-target="#partial-data">
               <input type="hidden" name="node-id">
             </form>
-            <form id="edge-get" action="{database_url uname, dbname}" method="post" up-submit up-target="#partial-data">
+            <form id="edge-get" action="{database_url dbname}" method="post" up-submit up-target="#partial-data">
               <input type="hidden" name="edge-id">
             </form>
 
@@ -1180,7 +997,7 @@ func databasePageHtml*(ctx: ViewCtx,
               Node
             </h4>
 
-            <form action="{database_url uname, dbname}" method="post" class="ms-2" up-submit>
+            <form action="{database_url dbname}" method="post" class="ms-2" up-submit>
               <fieldset>
                 <label>
                   <i class="bi bi-hash"></i>
@@ -1212,7 +1029,7 @@ func databasePageHtml*(ctx: ViewCtx,
               Edge
             </h4>
             
-            <form action="{database_url uname, dbname}" method="post" class="ms-2" up-submit>
+            <form action="{database_url dbname}" method="post" class="ms-2" up-submit>
               <fieldset>
                 <label>
                   <i class="bi bi-hash"></i>
@@ -1266,7 +1083,7 @@ func databasePageHtml*(ctx: ViewCtx,
               Node
             </h4>
 
-            <form action="{database_url uname, dbname}" method="post" class="ms-2" up-submit>
+            <form action="{database_url dbname}" method="post" class="ms-2" up-submit>
               <fieldset>
                 <label>
                   <i class="bi bi-at"></i>
@@ -1294,7 +1111,7 @@ func databasePageHtml*(ctx: ViewCtx,
               Edge
             </h4>
             
-            <form action="{database_url uname, dbname}" method="post" class="ms-2" up-submit>
+            <form action="{database_url dbname}" method="post" class="ms-2" up-submit>
               <fieldset>
                 <label>
                   <i class="bi bi-at"></i>
@@ -1327,7 +1144,7 @@ func databasePageHtml*(ctx: ViewCtx,
 
         <div class="row">
           <section class="col-md-6 col-sm-12 mt-2">
-            <form action="{database_url uname, dbname}" method="post" up-submit class="d-flex justify-content-between">
+            <form action="{database_url dbname}" method="post" up-submit class="d-flex justify-content-between">
               <input type="file" accept=".json" name="node-doc" class="form-control" placeholder="JSON data" required>
               <button name="add-collection" class="btn btn-outline-primary text-nowrap">
                 <i class="bi bi-cloud-upload"></i>

@@ -21,26 +21,15 @@ proc initApp(config: AppConfig): App =
         fn(req, app)
 
     if config.frontend.enabled:
-      get    result,    br"landing",               rr pageIndex
+      get    result,    br"landing",               rr pageLanding
       get    result,    br"static-files",          rr filesStaticServ
       get    result,    br"docs",                  rr pageDocs
-
-      get    result,    br"sign-up",               rr pageSignup
-      post   result,    br"sign-up",               rr pageSignup
-      get    result,    br"sign-in",               rr pageSignin
-      post   result,    br"sign-in",               rr pageSignin
-      get    result,    br"sign-out",              rr pageSignout
-      
-      get    result,    br"users-list",            rr pageListUsers
-      get    result,    br"profile",               rr pageUserProfile
-      post   result,    br"profile",               rr pageUserProfile
+      get    result,    br"playground",            rr pageDatabaseList
 
       get    result,    br"database",              rr pageDatabase 
       post   result,    br"database",              rr pageDatabase 
       get    result,    br"database-download",     rr filesDatabaseDownload
 
-    get      result,    br"api-home",              rr apiHome
-    post     result,    br"sign-in-api",           rr apiSignin
     post     result,    br"api-query-database",    rr apiAskQuery
     get      result,    br"api-get-node-by-id",    rr apiGetNode
     get      result,    br"api-get-edge-by-id",    rr apiGetEdge

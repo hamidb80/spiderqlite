@@ -12,7 +12,6 @@ import db_connector/db_sqlite
 import mummy, mummy/routers
 import webby
 import parsetoml
-import cookiejar
 
 # TODO use waterpark
 # import pretty
@@ -20,28 +19,22 @@ import cookiejar
 using 
   req: Request
   app: App
-  ctx: ViewCtx
 
+# Helpers -------------------------------------------
 
-const JWT_AUTH_COOKIE = "auth"
+func userDbFileName(dbname: string): string = 
+  fmt"db-{dbname}.db.sqlite3"
 
+func userDbPath(app; dbname: string): Path = 
+  app.config.storage.dbDir / userDbFileName(dbname).Path
 
-func userDbFileName(uname, dbname: string): string = 
-  fmt"user-{uname}-db-{dbname}.db.sqlite3"
-
-func userDbPath(app; uname, dbname: string): Path = 
-  app.config.storage.usersDbDir / userDbFileName(uname, dbname).Path
-
+func jsonHeader: HttpHeaders = 
+  toWebby @{"Content-Type": "application/json"}
 
 proc getMimetype(ext: string): string = 
   # XXX move out for performance
   var m = newMimetypes()
   m.getMimetype ext
-
-
-func jsonHeader: HttpHeaders = 
-  toWebby @{"Content-Type": "application/json"}
-
 
 func jsonAffectedRows(n: int, ids: seq[int] = @[]): string = 
   "{" & 
@@ -59,7 +52,6 @@ func decodedQuery(body: string): Table[string, string] =
   for (key, val) in decodeQuery body:
     result[key] = val
 
-
 func isPost(req): bool = 
   req.httpmethod == "POST"
 
@@ -72,7 +64,6 @@ func isPost(req): bool =
 #   of JBool:   $j.getBool
 #   else: 
 #     raisee "invalid json kind: " & $j.kind
-
 
 func getJsType(j: JsonNode, depth = 0): JsonNode = 
   case j.kind
@@ -95,10 +86,8 @@ func getJsType(j: JsonNode, depth = 0): JsonNode =
 
     obj
 
-
 func extractStrategies*(tv: TomlValueRef): seq[TomlValueRef] = 
   getElems tv["strategies"]
-
 
 func extractVisEdges(queryResult: JsonNode): tuple[nodeIds, edgeIds: seq[int]] =
   for arr in queryResult:
@@ -125,12 +114,9 @@ template logSql(q): untyped =
   if app.config.logs.sql:
     echo q
 
-proc getDB(config: AppConfig): DbConn = 
-  openSqliteDB config.storage.appDbFile
-
-template withDb(app, body): untyped =
+template withDb(dbpath, body): untyped =
   # TODO error handling
-  let db {.inject.} = getDB(app.config)
+  let db {.inject.} = openSqliteDB dbpath
   body
   close db
   
@@ -142,12 +128,12 @@ template logPerf(body): untyped =
     let tdelta = ttail - thead
     echo inMicroseconds tdelta, "us"
 
-# Controllers ------------------------------------
+# Controllers -------------------------------------------
 
 proc apiAskQuery*(req; app;) =
   try:
     let j = parseJson req.body
-    withdb app:
+    withdb app.config.storage.dbdir.string / req.queryParams["db"]:
       req.respond 200, jsonHeader(), askQueryDbRaw(
         db, s => $j["context"][s], 
         parseSpql getstr j["query"], 
@@ -163,7 +149,7 @@ proc apiAskQuery*(req; app;) =
 
 proc getEntity(req; app; ent: Entity) =
   let id    = parseInt   req.queryParams["id"]
-  withDB app:
+  withDB app.config.storage.dbdir.string / req.queryParams["db"]:
     let val   = getEntityDbRaw(db, id, ent)
     
   # XXX logSql
@@ -177,7 +163,7 @@ proc apiGetEdge*(req: Request, app: App) =
 
 proc apiInsertNodes*(req; app;) = 
   let j = parseJson req.body
-  withDB app:
+  withDB app.config.storage.dbdir.string / req.queryParams["db"]:
     let ids = collect:
       for n in j:
         insertNodeDB db, parseTag getstr n["tag"], n["doc"]
@@ -186,7 +172,7 @@ proc apiInsertNodes*(req; app;) =
 
 proc apiInsertEdges*(req; app;) = 
   let j = parseJson req.body
-  withDB app:
+  withDB app.config.storage.dbdir.string / req.queryParams["db"]:
     let ids = collect:
       for n in j:
         insertEdgeDB(db, 
@@ -204,7 +190,7 @@ proc updateEntity(req; app; ent: Entity) =
 
   case j.kind
   of JObject:
-    withDB app:
+    withDB app.config.storage.dbdir.string / req.queryParams["db"]:
       var acc: seq[int]
       for key, doc in j:
         let id = parseInt key
@@ -227,7 +213,7 @@ proc deleteEntity(req; app; ent: Entity) =
   let
     j        = parseJson req.body
     ids      = j["ids"].to seq[int]
-  withDB app:
+  withDB app.config.storage.dbdir.string / req.queryParams["db"]:
     let affected = deleteEntitiesDB(db, ent, ids)
   req.respond 200, jsonHeader(), jsonAffectedRows affected
 
@@ -237,14 +223,10 @@ proc apiDeleteNodes*(req; app;) =
 proc apiDeleteEdges*(req; app;) = 
   deleteEntity req, app, edges
 
-
 proc apiHome*(req; app;) =
   req.respond 200, emptyHttpHeaders(), $ %*{
     "status": "ok",
   }
-
-proc apiSignin*(req; app;) =
-  discard
 
 # ------------------------
 
@@ -256,189 +238,26 @@ proc filesStaticServ*(req; app) =
 
   req.respond 200, toWebby @{"Content-Type": getMimetype ext} , content
 
-
-import jwt
-const JWT_SECRET = "1234"
-const JWT_ALGO = "HS256"
-const JWT_DATA_KEY = "dat"
-
-
-proc verifyJWT(token: string): bool =
-  try:
-    let jwtToken = token.toJWT()
-    result = jwtToken.verify(JWT_SECRET, HS256)
-  except InvalidToken:
-    result = false
-
-proc decodeJWT(token: string): JsonNode =
-  token.toJWT.claims[JWT_DATA_KEY].node
-
-proc signJWT(data: JsonNode): string =
-  var token = toJWT(%*{
-    "header": {
-      "alg": JWT_ALGO,
-      "typ": "JWT"
-    },
-    "claims": {
-      JWT_DATA_KEY: data,
-      "exp": (getTime() + 1.days).toUnix()
-    }
-  })
-
-  token.sign(JWT_SECRET)
-  $token
-
-
-proc cookies(req): CookieJar = 
-  result = initCookieJar()
-  parse result, req.headers["Cookie"]
-
-proc ctx(req): ViewCtx = 
-  let ck = req.cookies
-  if JWT_AUTH_COOKIE in ck:
-    let token = ck[JWT_AUTH_COOKIE]
-    if verifyJWT token:
-      if "name" in token.decodeJWT:
-        result.username = some getStr token.decodeJWT["name"]
-    else:
-      echo "invalid token: ", token
-
-proc pageIndex*(req; app) =
-  req.respond 200, emptyHttpHeaders(), landingPageHtml(req.ctx)
+proc pageLanding*(req; app) =
+  req.respond 200, emptyHttpHeaders(), landingPageHtml()
 
 proc pageDocs*(req; app) = 
-  req.respond 200, emptyHttpHeaders(), docsPageHtml(req.ctx)
+  req.respond 200, emptyHttpHeaders(), docsPageHtml()
 
+proc pageDatabaseList*(req; app) = 
+  let pre  = app.config.storage.dbDir.string
+  let fnames = collect:
+    for fpath in walkFiles pre / "*.db":
+      (fpath.splitFile.name, getFileSize fpath)
 
-
-proc setCookie(name, val: string): HttpHeaders = 
-  toWebby @{"Set-Cookie": $initCookie(name, val, path = "/")}
-
-proc signOutCookieSet: webby.HttpHeaders =
-  result["Set-Cookie"] = $initCookie(JWT_AUTH_COOKIE, "", expires="-1", path = "/")
-
-proc signInImpl(req; app; uid: Id, uname: string) =
-  withDb app:
-    let ans = askQueryDB(db, %*{"uname": uname}, parseSpQl get_user_by_name, app.defaultQueryStrategies)
-    let jwtoken = signJwt ans["result"][0]["__doc"] 
-    req.respond 200, setCookie(JWT_AUTH_COOKIE, jwtoken), redirectingHtml profile_url uname
-
-proc pageSignin*(req; app) =
-  if isPost req:
-    let 
-      form  = decodedQuery req.body
-      uname = form["username"]
-      passw = form["password"]
-      ctx   = %*{"uname": uname}
-
-    withDB app:
-      let ans = askQueryDB(
-        db, s => $ctx[s], 
-        parseSpQl get_user_by_name, app.defaultQueryStrategies)
-
-      case len ans["result"]
-      of 0:
-        req.respond 401, emptyHttpHeaders(), signinPageHtml(req.ctx, @["no such user"])
-
-      of 1:
-        let u = ans["result"][0]
-        if u[docCol]["pass"].getStr == passw:
-          signInImpl req, app, getInt u[idCol], uname
-        else:
-          req.respond 200, emptyHttpHeaders(), signinPageHtml(req.ctx, @["pass wrong"])
-
-      else:
-        req.respond 500, emptyHttpHeaders(), signinPageHtml(req.ctx, @["internal error"])
-
-  else:
-    req.respond 200, emptyHttpHeaders(), signinPageHtml(req.ctx, @[])
-
-proc pageSignup*(req; app) =
-  if isPost req:
-    let 
-      form  = decodedQuery req.body
-      uname = form["username"]
-      passw = form["password"]
-
-    withDB app:
-      let ans = ignore askQueryDB(db, s => $(%uname), 
-        parseSpQl get_user_by_name, 
-        app.defaultQueryStrategies)
-
-      case ans["result"].len
-      of 0:
-        let uid = insertNodeDB(db, userTag, initUserDoc(uname, passw, false))
-        signInImpl req, app, uid, uname
-      else:
-        req.respond 200, emptyHttpHeaders(), signupPageHtml(req.ctx, @["duplicated username"])
-
-  else:
-    req.respond 200, emptyHttpHeaders(), signupPageHtml(req.ctx, @[])
-
-proc pageSignout*(req; app) =
-  req.respond 200, signOutCookieSet(), redirectingHtml( "/sign-in/")
-
-
-proc pageListUsers*(req; app) = 
-  withDB app:
-    let users = askQueryDb(db, s => "", parseSpQl all_users, app.defaultQueryStrategies)
-  req.respond 200, emptyHttpHeaders(), userslistPageHtml(req.ctx, users["result"].getElems)
-
-proc pageUserProfile*(req; app) =
-  let uname = req.queryParams["u"]
-
-  if isPost req:
-    let form = decodedQuery req.body
-
-    if   "add-database"    in form:
-      let dbname = form["database-name"]
-      prepareDB app.userDbPath(uname, dbname)
-
-      withDB app:
-        let
-          userDoc = db.askQueryDB(_ => $ %uname, parseSpql get_user_by_name, app.defaultQueryStrategies)
-          uid = userDoc["result"][0][idCol].getInt
-          did = db.insertNodeDB(dbTag,   initDbDoc dbname)
-          # oid = db.insertEdgeDB(ownsTag, newJNull(), uid, did)
-
-        req.respond 200, emptyHttpHeaders(), redirectingHtml( profile_url(uname))
-
-    elif "change-password" in form:
-      discard
-
-    else:
-      # invalid
-      discard
-    
-  else:
-    withDb app:
-      let dbs = db.askQueryDB(
-          _ => $ %uname, 
-          parseSpQl dbs_of_user, 
-          app.defaultQueryStrategies)["result"].getElems
-
-      var 
-        sizes, lastModifs: seq[int]
-
-      for doc in dbs:
-        let
-          dbname = getstr doc[docCol]["name"] 
-          p = string userDbPath(app, uname, dbname)
-
-        add sizes,      int    getFileSize p
-        add lastModifs, toUnix getLastModificationTime p
-
-    req.respond(200,
-      emptyHttpHeaders(), 
-      profilePageHtml(req.ctx, uname, dbs, sizes, lastModifs))
+  req.respond 200, emptyHttpHeaders(), databaseListPageHtml fnames
 
 proc pageDatabase*(req; app) = 
   let 
-    uname  = req.queryParams["u"]
     dbname = req.queryParams["db"]
-    path   = string userDbPath(app, uname, dbname)
+    path   = string userDbPath(app, dbname)
 
-  withDb app: # XXX use user's db not app.db !!
+  withDb app.config.storage.dbdir.string / req.queryParams["db"]:
     var
       cnodes = countEntitiesDB(db, nodes)
       cedges = countEntitiesDB(db, edges)
@@ -496,8 +315,6 @@ proc pageDatabase*(req; app) =
           edgesGroup = db.getEdgesDB(edgeids)
 
   req.respond 200, emptyHttpHeaders(), databasePageHtml(
-    req.ctx,
-    uname, 
     dbname, 
     int getFileSize path,
     toUnix getLastModificationTime path,
@@ -518,4 +335,4 @@ proc filesDatabaseDownload*(req; app) =
       "Content-Type": "application/octet-stream",
       "Content-Disposition": fmt "attachment; filename=\"{dbname}.db.sqlite3\"",
     }, 
-    readfile string app.userDbPath(uname, dbname))
+    readfile string app.userDbPath(dbname))

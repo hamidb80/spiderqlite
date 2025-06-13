@@ -69,23 +69,12 @@ macro defRoute*(nameLit, path): untyped =
 # -------------------------------------------------------
 
 
-defRoute "static-files",     "/static/**"     ?  ()
-
-defRoute "landing",          "/"              ?  ()
-defRoute "docs",             "/docs/"         ?  ()
-defRoute "playground",       "/playground/"   ?  ()
-
-defRoute "sign-up",          "/sign-up/"      ?  ()
-defRoute "sign-in",          "/sign-in/"      ?  ()
-defRoute "sign-in-api",      "/api/sign-in/"  ?  ()
-defRoute "sign-out",         "/sign-out/"     ?  ()
-defRoute "profile",          "/profile/"      ?  (u: string)
-defRoute "users-list",       "/users/"        ?  ()
-
-defRoute "database",          "/database/"           ?  (u: string, db: string)
-defRoute "database-download", "/database/download/"  ?  (u: string, db: string)
-
-defRoute "api-home",             "/api/"                 ? ()
+defRoute "static-files",         "/static/**"     ?  ()
+defRoute "landing",              "/"              ?  ()
+defRoute "docs",                 "/docs/"         ?  ()
+defRoute "playground",           "/playground/"   ?  ()
+defRoute "database",             "/database/"            ?  (db: string)
+defRoute "database-download",    "/database/download/"   ?  (db: string)
 defRoute "api-query-database",   "/api/database/query/"  ? ()
 defRoute "api-get-node-by-id",   "/api/database/node/"   ? ()
 defRoute "api-get-edge-by-id",   "/api/database/edge/"   ? ()
