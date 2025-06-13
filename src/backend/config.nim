@@ -35,7 +35,6 @@ type
 
     logs*:     LogConfig
 
-    open_browser*: bool
     queryStrategyFile*: Path
 
 
@@ -157,7 +156,6 @@ proc buildConfig*(ctx: AppContext): AppConfig =
       performance: v(ctx, "--log-performance",   "SPQL_LOG_PERFORMANCE",   "logs.performance", bool),
     ),
 
-    open_browser:      v(ctx, "--open-browser", "SPQL_OPEN-BROWSER", "open_browser", bool),
     queryStrategyFile: v(ctx, "--query-strategy-file-path", "SPQL_QS_FPATH", "query_strategy_file_path", Path),
   )
 

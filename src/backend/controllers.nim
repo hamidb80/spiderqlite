@@ -4,8 +4,7 @@ import std/[strformat, paths, mimetypes, json, tables, uri, sugar, strutils, os,
 import ../query_language/[parser, core]
 import ../utils/other
 import ../bridge
-import routes
-import ./[model, config, view]
+import ./[config, view]
 
 
 import db_connector/db_sqlite
@@ -22,11 +21,8 @@ using
 
 # Helpers -------------------------------------------
 
-func userDbFileName(dbname: string): string = 
-  fmt"db-{dbname}.db.sqlite3"
-
-func userDbPath(app; dbname: string): Path = 
-  app.config.storage.dbDir / userDbFileName(dbname).Path
+func dbPath(app; dbname: string): string = 
+  app.config.storage.dbDir.string / dbname & ".db"
 
 func jsonHeader: HttpHeaders = 
   toWebby @{"Content-Type": "application/json"}
@@ -114,9 +110,9 @@ template logSql(q): untyped =
   if app.config.logs.sql:
     echo q
 
-template withDb(dbpath, body): untyped =
+template withDb(dbname, body): untyped =
   # TODO error handling
-  let db {.inject.} = openSqliteDB dbpath
+  let db {.inject.} = openSqliteDB app.config.storage.dbdir.string /  dbname & ".db"
   body
   close db
   
@@ -133,7 +129,7 @@ template logPerf(body): untyped =
 proc apiAskQuery*(req; app;) =
   try:
     let j = parseJson req.body
-    withdb app.config.storage.dbdir.string / req.queryParams["db"]:
+    withdb req.queryParams["db"]:
       req.respond 200, jsonHeader(), askQueryDbRaw(
         db, s => $j["context"][s], 
         parseSpql getstr j["query"], 
@@ -149,7 +145,7 @@ proc apiAskQuery*(req; app;) =
 
 proc getEntity(req; app; ent: Entity) =
   let id    = parseInt   req.queryParams["id"]
-  withDB app.config.storage.dbdir.string / req.queryParams["db"]:
+  withDB req.queryParams["db"]:
     let val   = getEntityDbRaw(db, id, ent)
     
   # XXX logSql
@@ -163,7 +159,7 @@ proc apiGetEdge*(req: Request, app: App) =
 
 proc apiInsertNodes*(req; app;) = 
   let j = parseJson req.body
-  withDB app.config.storage.dbdir.string / req.queryParams["db"]:
+  withDB req.queryParams["db"]:
     let ids = collect:
       for n in j:
         insertNodeDB db, parseTag getstr n["tag"], n["doc"]
@@ -172,7 +168,7 @@ proc apiInsertNodes*(req; app;) =
 
 proc apiInsertEdges*(req; app;) = 
   let j = parseJson req.body
-  withDB app.config.storage.dbdir.string / req.queryParams["db"]:
+  withDB req.queryParams["db"]:
     let ids = collect:
       for n in j:
         insertEdgeDB(db, 
@@ -190,7 +186,7 @@ proc updateEntity(req; app; ent: Entity) =
 
   case j.kind
   of JObject:
-    withDB app.config.storage.dbdir.string / req.queryParams["db"]:
+    withDB req.queryParams["db"]:
       var acc: seq[int]
       for key, doc in j:
         let id = parseInt key
@@ -213,7 +209,7 @@ proc deleteEntity(req; app; ent: Entity) =
   let
     j        = parseJson req.body
     ids      = j["ids"].to seq[int]
-  withDB app.config.storage.dbdir.string / req.queryParams["db"]:
+  withDB req.queryParams["db"]:
     let affected = deleteEntitiesDB(db, ent, ids)
   req.respond 200, jsonHeader(), jsonAffectedRows affected
 
@@ -254,10 +250,10 @@ proc pageDatabaseList*(req; app) =
 
 proc pageDatabase*(req; app) = 
   let 
-    dbname = req.queryParams["db"]
-    path   = string userDbPath(app, dbname)
+    dbname = req.queryParams["db"] 
+    path   = app.dbPath dbname
 
-  withDb app.config.storage.dbdir.string / req.queryParams["db"]:
+  withDb dbname:
     var
       cnodes = countEntitiesDB(db, nodes)
       cedges = countEntitiesDB(db, edges)
@@ -335,4 +331,4 @@ proc filesDatabaseDownload*(req; app) =
       "Content-Type": "application/octet-stream",
       "Content-Disposition": fmt "attachment; filename=\"{dbname}.db.sqlite3\"",
     }, 
-    readfile string app.userDbPath(dbname))
+    readfile string app.dbPath(dbname))

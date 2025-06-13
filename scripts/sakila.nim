@@ -3,66 +3,64 @@
 
 
 import db_connector/db_sqlite
-import std/[json, tables, strutils]
+import std/[json, tables, strutils, paths]
 
-import ../src/utils
+import ../src/utils/other
+import ../src/backend/model
+
+# ---------------------------------
+
+type
+  Node = enum
+    nFilm
+    nActor
+
+var vritualId: Table[(Node, int), int]
+
+prepareDB Path "temp/sakila_graph.db"
+
+let 
+  sakilaDB    = openSqliteDB "temp/sakila.db"
+  graphDB     = openSqliteDB "temp/sakila_graph.db"
 
 
-when isMainModule:
-  type
-    Node = enum
-      nFilm
-      nActor
-  
-  var 
-    vritualId: Table[(Node, int), int]
-
+echo "films"
+for x in sakilaDB.fastRows sql"SELECT * FROM film f":
   let 
-    sakilaDB    = openSqliteDB "sakila.db"
-    graphDB     = openSqliteDB "graph.db"
-    schemeQuery = readFile     "./sql/schema.sql"
+    oldid = parseint x[0]
+    data = %*{
+      "title": x[1],
+    }
+    newid = graphDB.insertID(
+      sql"INSERT INTO nodes (__tag, __doc) VALUES ('movie',?)", 
+      $data)
+  vritualId[(nfilm, oldid)] = newid
+  
+echo "actors"
+for x in sakilaDB.fastRows sql"SELECT * FROM actor a":
+  let
+    oldid = parseint x[0]
+    data = %*{
+      "name": x[1] & ' ' & x[2],
+    }
+    newid = graphDB.insertID(
+      sql"INSERT INTO nodes (__tag, __doc) VALUES ('person', ?)",
+      $data)
 
-  for q in schemeQuery.split ";":
-    if not isEmptyOrWhitespace q:
-      graphDB.exec sql q
+  vritualId[(nActor, oldid)] = newid
 
-  echo "films"
-  for x in sakilaDB.fastRows sql"SELECT * FROM film f":
-    let 
-      oldid = parseint x[0]
-      data = %*{
-        "title": x[1],
-      }
-      newid = graphDB.insertID(
-        sql"INSERT INTO nodes (tag, doc) VALUES ('movie',?)", 
-        $data)
-    vritualId[(nfilm, oldid)] = newid
+echo "rels"
+for x in sakilaDB.fastRows sql"SELECT * FROM film_actor fa":
+  let 
+    actorid = parseint x[0]
+    filmid = parseint x[1]
     
-  echo "actors"
-  for x in sakilaDB.fastRows sql"SELECT * FROM actor a":
-    let
-      oldid = parseint x[0]
-      data = %*{
-        "name": x[1] & ' ' & x[2],
-      }
-      newid = graphDB.insertID(
-        sql"INSERT INTO nodes (tag, doc) VALUES ('person', ?)",
-        $data)
+  graphDB.exec(
+    sql"INSERT INTO edges (__tag, __head, __tail, __doc) VALUES ('acted_in', ?, ?, '{}')", 
+    vritualId[(nActor, actorid)], 
+    vritualId[(nFilm , filmid)]
+  )
 
-    vritualId[(nActor, oldid)] = newid
-
-  echo "rels"
-  for x in sakilaDB.fastRows sql"SELECT * FROM film_actor fa":
-    let 
-      actorid = parseint x[0]
-      filmid = parseint x[1]
-      
-    graphDB.exec(
-      sql"INSERT INTO edges (tag, source, target, doc) VALUES ('acted_in', ?, ?, '{}')", 
-      vritualId[(nActor, actorid)], 
-      vritualId[(nFilm , filmid)]
-    )
-
-  echo "done"
-  close sakilaDB
-  close graphDB
+echo "done"
+close sakilaDB
+close graphDB

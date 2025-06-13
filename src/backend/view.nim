@@ -60,6 +60,8 @@ func wrapHtml(title, inner: string): string =
 
     <!-- 3rd party -->
 
+
+<!--
     <link rel="stylesheet" href="https://bootswatch.com/5/journal/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
@@ -75,7 +77,7 @@ func wrapHtml(title, inner: string): string =
     <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 
     <!-- local -->
-
+-->
     <script defer            type="module"       src="/static/page.js"></script>
     <link   rel="icon"       type="image/x-icon" href="/static/logo.ico">
     <link   rel="stylesheet"                     href="/static/styles.css">
@@ -325,8 +327,6 @@ func landingPageHtml*(): string =
             <i class="bi bi-code-square"></i>
             Query Language
           </h2>
-
-          XXX select option to see more examples
 
           <blockquote class="blockquote bg-white py-2 px-3 rounded mb-5 shadow-sm">
             <b>

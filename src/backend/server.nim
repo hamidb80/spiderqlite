@@ -1,4 +1,4 @@
-import std/[strutils, strformat, os, tables, browsers]
+import std/[strutils, strformat, os, tables]
 
 import mummy, mummy/routers
 
@@ -74,8 +74,5 @@ when isMainModule:
 
   if conf.logs.config:
     echo conf[]
-
-  if conf.frontend.enabled and conf.open_browser:
-    openDefaultBrowser app.config.url
 
   run app
