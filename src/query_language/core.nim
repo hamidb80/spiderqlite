@@ -771,12 +771,15 @@ func toSqlSelect(take: SpqlNode, relsIdent: seq[string], imap): string =
   let mappedRels = relsIdent.map imap
 
   if take.visualize:
-    let it = take.children[0]
-    fmt"""json_array(
-      {it.sval}.{idCol}, 
-      {it.sval}.{sourceCol}, 
-      {it.sval}.{targetCol}
-    )"""
+    let args = take.children.mapit(
+      fmt"""json_array(
+        {it.sval}.{idCol}, 
+        {it.sval}.{sourceCol}, 
+        {it.sval}.{targetCol}
+      )"""
+    ).join(",")
+
+    fmt"json_array({args})"
 
   else:
     take

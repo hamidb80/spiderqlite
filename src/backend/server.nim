@@ -71,6 +71,20 @@ echo "\n\nTODO show errors to user in query page\n\n"
   ask ^p>-a->m
   draw  a
 
+  ------------------------------
+
+  #movie m1
+  #movie m2
+  #acted_in a1
+  #acted_in a2
+  #person p
+    = 
+      .name
+      "KARL BERRY"
+
+  ask m2<-a2-<p>-a1->m1
+  draw  a1 a2
+
 ]#
 
 when isMainModule:

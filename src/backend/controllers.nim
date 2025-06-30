@@ -89,12 +89,10 @@ func extractStrategies*(tv: TomlValueRef): seq[TomlValueRef] =
   getElems tv["strategies"]
 
 func extractVisEdges(queryResult: JsonNode): tuple[nodeIds, edgeIds: seq[int]] =
-  {.cast(nosideEffect).}:
-    echo pretty queryResult
 
-  # for edgeGroup in queryResult:
-  #   for arr in edgeGroup:
-    for arr in queryResult:
+  for edgeGroup in queryResult:
+    for arr in edgeGroup:
+    # for arr in queryResult:
       add result.nodeIds, arr[1].getint
       add result.nodeIds, arr[2].getint
       add result.edgeIds, arr[0].getint  
@@ -295,10 +293,13 @@ proc pageDatabase*(req; app) =
           c    = form["spql_query"]
           spql = parseSpql c
 
-        queryReuslts = db.askQueryDB(
+          queryResponse = db.askQueryDB(
             %*{},
             spql, 
-            app.defaultQueryStrategies)["result"]
+            app.defaultQueryStrategies)
+
+        queryReuslts = queryResponse["result"]
+        debugecho queryReuslts
 
         perf  = (getMonoTime() - head).inMicroseconds
 
