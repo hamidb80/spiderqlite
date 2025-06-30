@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.0.3"
+version       = "0.0.5"
 author        = "hamidb80"
 description   = """
   SpiderQL is query abstraction library & managed database server
