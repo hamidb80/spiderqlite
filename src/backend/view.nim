@@ -274,7 +274,7 @@ func landingPageHtml*(): string =
 
           <div class="d-flex my-4 col-lg-4 col-md-6 col-sm-12">
             <div class="icon mx-2">
-              <i class="bi bi-rocket-takeoff text-primary"></i>
+              <i class="bi bi-rocket-verboff text-primary"></i>
             </div>
             <div class="description">
               <div class="h4">Go <i>Fastttt!</i></div>

@@ -732,7 +732,7 @@ func deepIdentReplace(gn; imap) =
   of gkIdent: 
     gn.sval = imap[gn.sval]
   
-  of gkWrapper, gkTake, gkGroupBy, gkHaving, gkOrderBy, gkCase, gkElse, gkWhen, gkInfix, gkPrefix, gkCall:
+  of gkWrapper, gkVerb, gkGroupBy, gkHaving, gkOrderBy, gkCase, gkElse, gkWhen, gkInfix, gkPrefix, gkCall:
     for ch in gn.children:
       deepIdentReplace ch, imap
 
@@ -748,10 +748,10 @@ func askedQuery(gn): QueryGraph =
   let n = get gn.findNode gkAsk
   parseQueryGraph n.children.mapIt it.sval
 
-func getTake*(gn): SpqlNode =
-  let m = gn.findNode gkTake
+func getVerb*(gn): SpqlNode =
+  let m = gn.findNode gkVerb
   if issome m: get m
-  else       : raisee "cannot find take/return"
+  else       : raisee "cannot find verb/return"
 
 func getUse(gn): string =
   gn.findNode(gkuse).get.children[0].sval
@@ -766,12 +766,12 @@ func getGroup(gn): Option[SpqlNode] =
 func toSqlSelectImpl(gn; relsIdent: seq[string]): string = 
   resolveSql gn, relsIdent, "select", "???", s => "!!!"
 
-func toSqlSelect(take: SpqlNode, relsIdent: seq[string], imap): string = 
-  deepIdentReplace take, imap
+func toSqlSelect(verb: SpqlNode, relsIdent: seq[string], imap): string = 
+  deepIdentReplace verb, imap
   let mappedRels = relsIdent.map imap
 
-  if take.visualize:
-    let args = take.children.mapit(
+  if verb.visualize:
+    let args = verb.children.mapit(
       fmt"""json_array(
         {it.sval}.{idCol}, 
         {it.sval}.{sourceCol}, 
@@ -782,7 +782,7 @@ func toSqlSelect(take: SpqlNode, relsIdent: seq[string], imap): string =
     fmt"json_array({args})"
 
   else:
-    take
+    verb
       .children
       .mapit(toSqlSelectImpl(it, mappedRels))
       .join ", "
@@ -797,7 +797,7 @@ func toSqlSelect(take: SpqlNode, relsIdent: seq[string], imap): string =
 
 func resolve(sqlPat: seq[SqlPatSep], patEdges: seq[string], imap; gn; varResolver): string {.effectsOf: varResolver.} =
   let
-    takes       = gn.getTake
+    verbs       = gn.getVerb
     revmap      = rev imap
 
   for i, p in sqlPat:
@@ -840,7 +840,7 @@ func resolve(sqlPat: seq[SqlPatSep], patEdges: seq[string], imap; gn; varResolve
 
         of "SELECT_FIELDS":
           ## PIN
-          toSqlSelect takes, patEdges, imap
+          toSqlSelect verbs, patEdges, imap
 
         of "GROUP_STATEMENT":  
           if g =? gn.getGroup:
@@ -962,7 +962,7 @@ func howToFind(gn): KindOfQuery =
 func findByPattern(gn; queryStrategies): tuple[qs: QueryStrategy, imap: IdentMap] = 
   for qs in queryStrategies.collection:
     if identMap =? matches(gn.askedQuery, qs.pattern):
-      if (gn.getTake.selects.map identMap) <= qs.selectable:
+      if (gn.getVerb.selects.map identMap) <= qs.selectable:
         return (qs, identMap)
 
       else:

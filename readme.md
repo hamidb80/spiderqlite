@@ -32,7 +32,7 @@ It aims to bring best of SQLite, Neo4j, CouchDB together.
 #### Config
 To use as server, it is mandatory to provide a config file which is written in [TOML](https://toml.io/) format. You can you the one that use for development or you write your own. The values in config file can be overwritten by environment variables or flags which are passed as command line arguemnts.
 
-You can look `src/config.nim` to see full list of available configs, but for introduction let's take a look at few of them.
+You can look `src/config.nim` to see full list of available configs, but for introduction let's verb a look at few of them.
 
 ```nim
 server: ServerConfig(

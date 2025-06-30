@@ -89,7 +89,7 @@ type
     gkParams
     gkUse
     gkGroupBy     # GROUP BY
-    gkTake        # select take
+    gkVerb        # select verb
     gkFrom        # from
     gkHaving      # HAVING
     gkOrderBy     # ORDER BY
@@ -127,7 +127,7 @@ type
     of gkBool:
       bval*: bool
 
-    of gkTake:
+    of gkVerb:
       visualize*: bool
 
     else:
@@ -375,8 +375,8 @@ func lexSpql(content: string): seq[Token] =
 template gNode*(k: Spqlkind, ch: seq[SpqlNode] = @[]): SpqlNode =
   SpqlNode(kind: k, children: ch)
 
-template gTake*(forVis: bool): SpqlNode =
-  SpqlNode(kind: Spqlkind.gkTake, visualize: forVis)
+template gVerb*(forVis: bool): SpqlNode =
+  SpqlNode(kind: Spqlkind.gkVerb, visualize: forVis)
 
 template gIdent*(str): SpqlNode =
   SpqlNode(kind: gkIdent, sval: str)
@@ -470,8 +470,8 @@ func parseSpQl(tokens: seq[Token]): SpqlNode =
       newNode:
         case t.sval.toUpperAscii
         of "ASK",  "MATCH",  "FROM":         gNode gkAsk
-        of "TAKE", "SELECT", "RETURN", "RET":gTake false
-        of "DRAW"                           :gTake true
+        of "TAKE", "SELECT", "RETURN", "RET":gVerb false
+        of "DRAW"                           :gVerb true
 
         of "PARAMS", "PARAMETERS":           gNode gkParams
         of "USE", "TEMPLATE":                gNode gkUse

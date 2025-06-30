@@ -303,7 +303,7 @@ proc pageDatabase*(req; app) =
 
         perf  = (getMonoTime() - head).inMicroseconds
 
-        if spql.getTake.visualize:
+        if spql.getVerb.visualize:
           let (nodeids, edgeids) = extractVisEdges queryReuslts
           nodesGroup = db.getNodesDB(nodeids)
           edgesGroup = db.getEdgesDB(edgeids)
