@@ -104,7 +104,7 @@ proc updateEntityDocDB*(db, ent, id, doc): bool =
   of edges: updateEdgeDocDB db, id, doc
 
 proc askQueryDbRaw*(db, ctx, spql, queryStrateies): string = 
-  let sql = toSql(spql, queryStrateies, ctx)
+  let sql = inspect toSql(spql, queryStrateies, ctx)
 
   result = newStringOfCap 1024 * 20 # KB
   << "{\"result\":["
@@ -113,8 +113,9 @@ proc askQueryDbRaw*(db, ctx, spql, queryStrateies): string =
   for row in db.fastRows sql:
     inc rows
     let r   = row[0]
-    if r[0] in {'[', '{'} or (r.len < 20 and isNumber r): << r
-    else:                                                 << escapeJson r
+    
+    if r.len > 0 and r[0] in {'[', '{'} or (r.len < 20 and isNumber r): << r
+    else:                                                    << escapeJson r
     << ','
 
   if result[^1] == ',': # check for 0 results
@@ -123,6 +124,7 @@ proc askQueryDbRaw*(db, ctx, spql, queryStrateies): string =
   << "],\"length\":"
   << $rows
 
+  # if timing:
   # << ','
   # << "\"performance\":{"
   # << "\"unit\": \"us\""

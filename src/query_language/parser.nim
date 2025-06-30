@@ -59,8 +59,6 @@ type
     gkWhen
     gkElse
 
-    gkMacro
-
     gkUnique      # unique
 
     gkTypes       # types
@@ -117,7 +115,7 @@ type
     of gkDef:
       defKind*: SpqlDefKind
 
-    of gkIdent, gkStrLit, gkComment, gkVar, gkInfix, gkPrefix, gkCall, gkMacro:
+    of gkIdent, gkStrLit, gkComment, gkVar, gkInfix, gkPrefix, gkCall:
       sval*: string
 
     of gkIntLit:
@@ -128,6 +126,9 @@ type
 
     of gkBool:
       bval*: bool
+
+    of gkTake:
+      visualize*: bool
 
     else:
       discard
@@ -236,6 +237,14 @@ func lexSpql(content: string): seq[Token] =
       ++ i
       << Token(kind: lkSep)
 
+      # fixes zero indent
+      if content{i+1} != ' ':
+        let step = 0
+        while (not empty indLevels) and (step < indLevels[^1]):
+          << Token(kind: lkDeIndent)
+          indLevels.less
+
+
     of ' ':
       let step = skipSpaces(content, i)
 
@@ -264,7 +273,7 @@ func lexSpql(content: string): seq[Token] =
       << Token(kind: lkDot)
       ++i
   
-    of Letters, '_', '/', '+', '=', '<', '>', '^', '~', '$', '[', '{', '(', ';':
+    of Letters, '_', '/', '+', '=', '<', '>', '^', '~', '$', '[', '{', '(', ';', '!':
       let 
         size = parseIdent(content, i)
         word = content[i..i+size]
@@ -355,13 +364,19 @@ func lexSpql(content: string): seq[Token] =
         << Token(kind: lkIdent, sval: word)
         inc i, size+1
 
+    of '\r': discard
+
     else:
       # of '~', '`', ':', ';', '?', '%', ',', '!':
-      raisee "invalid char: " & ch
+      debugecho ">> '", ch.ord, "'"
+      raisee "invalid char: '" & ch & "'"
 
 
 template gNode*(k: Spqlkind, ch: seq[SpqlNode] = @[]): SpqlNode =
   SpqlNode(kind: k, children: ch)
+
+template gTake*(forVis: bool): SpqlNode =
+  SpqlNode(kind: Spqlkind.gkTake, visualize: forVis)
 
 template gIdent*(str): SpqlNode =
   SpqlNode(kind: gkIdent, sval: str)
@@ -455,7 +470,8 @@ func parseSpQl(tokens: seq[Token]): SpqlNode =
       newNode:
         case t.sval.toUpperAscii
         of "ASK",  "MATCH",  "FROM":         gNode gkAsk
-        of "TAKE", "SELECT", "RETURN", "RET":gNode gkTake
+        of "TAKE", "SELECT", "RETURN", "RET":gTake false
+        of "DRAW"                           :gTake true
 
         of "PARAMS", "PARAMETERS":           gNode gkParams
         of "USE", "TEMPLATE":                gNode gkUse
@@ -496,11 +512,6 @@ func parseSpQl(tokens: seq[Token]): SpqlNode =
    
         of "$", "NOT":            prefixNode t.sval
 
-        elif t.sval.endsWith '!':
-          SpqlNode(
-            kind: gkMacro,
-            sval: t.sval[0..^2])
-        
         else:
           # idents with dot: movie.id
           let parts = t.sval.split('.', maxsplit=1)
@@ -547,7 +558,15 @@ func parseSpQl(tokens: seq[Token]): SpqlNode =
 
   stack[0]
   
-func parseSpQl*(content: string): SpqlNode = 
+
+import pretty
+
+proc parseSpQl*(content: string): SpqlNode = 
+  when defined debug:
+    {.cast(nosideEffect).}:
+      print lexSpql content
+      print parseSpQl lexSpql content
+
   parseSpQl lexSpql content
 
 

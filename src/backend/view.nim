@@ -60,24 +60,19 @@ func wrapHtml(title, inner: string): string =
 
     <!-- 3rd party -->
 
-
-<!--
-    <link rel="stylesheet" href="https://bootswatch.com/5/journal/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
+    <script type="text/javascript" src="/static/vis-network.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/unpoly@3.8.0/unpoly.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/unpoly@3.8.0/unpoly.min.css">
 
+    <link rel="stylesheet" href="/static/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/autoit.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/base16/decaf.min.css">
-    
-    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 
     <!-- local -->
--->
     <script defer            type="module"       src="/static/page.js"></script>
     <link   rel="icon"       type="image/x-icon" href="/static/logo.ico">
     <link   rel="stylesheet"                     href="/static/styles.css">
@@ -597,95 +592,34 @@ func databasePageHtml*(
       </h2>
 
       <div>
-        <div class="row">
-          <section class="col-md-4 col-sm-12 mt-4">
-            <div>
-              <h4>
-                <i class="bi bi-info-square"></i>
-                Info
-              </h4>
-              
-              <table class="table table-hover shadow-sm">
-                <tbody>
-                  <tr>
-                    <td>
-                      <i class="bi bi-sd-card"></i>
-                      <b class="ms-1">database size</b>
-                    </td>
-                    <td>{size}</td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <i class="bi bi-clock-history"></i>
-                      <b class="ms-1">last modification</b>
-                    </td>
-                    <td>{lastmodif}</td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <i class="bi bi-eye"></i>
-                      <b class="ms-1">is view only?</b>
-                    </td>
-                    <td>No</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+        <section class="mt-4">
+          <div>
+            <h4>
+              <i class="bi bi-info-square"></i>
+              Info
+            </h4>
+            
+            <table class="table table-hover shadow-sm">
+              <tbody>
+                <tr>
+                  <td>
+                    <i class="bi bi-sd-card"></i>
+                    <b class="ms-1">database size</b>
+                  </td>
+                  <td>{size}</td>
+                </tr>
+                <tr>
+                  <td>
+                    <i class="bi bi-clock-history"></i>
+                    <b class="ms-1">last modification</b>
+                  </td>
+                  <td>{lastmodif}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
-            <div>
-              <h4>
-                <i class="bi bi-gear"></i>
-                Actions
-              </h4>
-
-              <form method="post" action="{database_url dbname}" class="ms-2">
-                <button name="backup-database" class="btn btn-outline-primary">
-                  <i class="bi bi-floppy"></i>
-                  <span>back-up</span>
-                </button>
-
-                <button name="remove-database" class="btn btn-outline-primary">
-                  <i class="bi bi-trash"></i>
-                  <span>remove</span>
-                </button>
-
-                <button name="backup-database" class="btn btn-outline-primary">
-                  <i class="bi bi-box-seam"></i>
-                  <span>change mode</span>
-                </button>
-              </form>
-            </div>
-          </section>
-          <section class="col-md-8 col-sm-12 mt-4">
-            <div>
-              <h4>
-                <i class="bi bi-truck"></i>
-                Back-ups
-              </h4>
-
-              <table class="table table-hover shadow-sm">
-                <thead>
-                  <tr>
-                    <th>
-                      <i class="bi bi-calendar-event"></i>
-                      time
-                    </th>
-                    <th>
-                      <i class="bi bi-sd-card"></i>
-                      size
-                    </th>
-                    <th>
-                      <i class="bi bi-cloud-download"></i>
-                      download
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </div>
+        </section>
       </div>
 
       <div class="mt-5">
@@ -828,6 +762,38 @@ func databasePageHtml*(
               Query
             </h3>
 
+            <div class="mt-3">
+              <h4>
+                <i class="bi bi-input-cursor-text"></i>
+                Editor
+              </h4>
+              
+              <form action="{database_url dbname}" method="POST" up-submit id="ask-form" up-target="#query-vis, #query-data, #performance_measure">
+                <textarea class="form-control editor-height" name="spql_query" lang="sql">
+#; a b c
+ask a->^b->c
+draw b
+                </textarea>
+
+                <fieldset>
+                  <label>
+                    <i class="bi bi-braces"></i>
+                    context:
+                  </label>
+                  <input type="file" accept=".json" name="node-doc" class="form-control" placeholder="JSON data">
+                </fieldset>
+
+                <button name="ask" class="btn btn-outline-primary btn-sm w-100 mt-2">
+                  <i class="bi bi-search"></i>
+                  Ask
+                </button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <section class="col-md-6 col-sm-12">
+
             <div>
               <h4>
                 <i class="bi bi-cloud"></i>
@@ -862,37 +828,7 @@ func databasePageHtml*(
                 </button>
               </form>
             </div>
-
-            <div class="mt-3">
-              <h4>
-                <i class="bi bi-input-cursor-text"></i>
-                Editor
-              </h4>
-              
-              <form action="{database_url dbname}" method="POST" up-submit id="ask-form" up-target="#query-vis, #query-data, #performance_measure">
-                <textarea class="form-control editor-height" name="spql_query" lang="sql">
-                    #; a b c
-                    ask a->^b->c
-                    ret 
-                      draw! b
-                </textarea>
-
-                <fieldset>
-                  <label>
-                    <i class="bi bi-braces"></i>
-                    context:
-                  </label>
-                  <input type="file" accept=".json" name="node-doc" class="form-control" placeholder="JSON data">
-                </fieldset>
-
-                <button name="ask" class="btn btn-outline-primary btn-sm w-100 mt-2">
-                  <i class="bi bi-search"></i>
-                  Ask
-                </button>
-              </form>
-            </div>
-          </div>
-
+        
           <div class="mt-3" id="performance_measure">
             <h4>
               <i class="bi bi-speedometer2"></i>
@@ -917,20 +853,9 @@ func databasePageHtml*(
                 </tr>
               </tbody>
             </table>
-
           </div>
         </section>
-
-        <section class="col-md-6 col-sm-12">
-          <h3>
-            <i class="bi bi-stickies"></i>
-            Result
-          </h3>
-          
-          <div id="query-data">
-            <pre><code class="compact rounded shadow-sm language-javascript">{pretty queryResults}</code></pre>
-          </div>
-        </section>
+    
       </div>
 
       <div class="row mt-3" id="query-vis">
@@ -979,6 +904,19 @@ func databasePageHtml*(
                 {partialSelectionSec}
               </div>
             </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="row mt-3">
+        <section class="col-md-6 col-sm-12">
+          <h3>
+            <i class="bi bi-stickies"></i>
+            Result
+          </h3>
+          
+          <div id="query-data">
+            <pre><code class="compact rounded shadow-sm language-javascript">{pretty queryResults}</code></pre>
           </div>
         </section>
       </div>

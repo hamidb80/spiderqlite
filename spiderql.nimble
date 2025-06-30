@@ -22,4 +22,4 @@ requires "questionable"   # https://github.com/codex-storage/questionable
 
 task dev, "development run":
   # https://github.com/nim-lang/choosenim/issues/27
-  exec "nim --deepcopy:on -d:useMalloc --mm:arc -d:ssl r src/backend/server.nim ./docs/dev.toml --dump-config"
+  exec "nim --deepcopy:on -d:useMalloc -d:debug --mm:arc -d:ssl r src/backend/server.nim ./docs/dev.toml --dump-config"

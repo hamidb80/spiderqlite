@@ -27,6 +27,9 @@ func dbPath(app; dbname: string): string =
 func jsonHeader: HttpHeaders = 
   toWebby @{"Content-Type": "application/json"}
 
+func htmlHeader: HttpHeaders = 
+  toWebby @{"Content-Type": "text/html"}
+
 proc getMimetype(ext: string): string = 
   # XXX move out for performance
   var m = newMimetypes()
@@ -86,27 +89,21 @@ func extractStrategies*(tv: TomlValueRef): seq[TomlValueRef] =
   getElems tv["strategies"]
 
 func extractVisEdges(queryResult: JsonNode): tuple[nodeIds, edgeIds: seq[int]] =
-  for arr in queryResult:
-    add result.nodeIds, arr[1].getint
-    add result.nodeIds, arr[2].getint
-    add result.edgeIds, arr[0].getint  
+  {.cast(nosideEffect).}:
+    echo pretty queryResult
 
-func canBeVisualized(queryResult: JsonNode, depth=0): bool =
-  case queryResult.kind
-  of JArray: 
-    for i in queryResult:
-      if not canBeVisualized(i, depth+1):
-        return false
-    true
-  of Jint:   depth != 0
-  else:      false
+  # for edgeGroup in queryResult:
+  #   for arr in edgeGroup:
+    for arr in queryResult:
+      add result.nodeIds, arr[1].getint
+      add result.nodeIds, arr[2].getint
+      add result.edgeIds, arr[0].getint  
 
-
-template logBody: untyped =
+template logBody: untyped {.used.} =
   if app.config.logs.reqbody:
     echo req.body
 
-template logSql(q): untyped =
+template logSql(q): untyped {.used.} =
   if app.config.logs.sql:
     echo q
 
@@ -116,7 +113,7 @@ template withDb(dbname, body): untyped =
   body
   close db
   
-template logPerf(body): untyped =
+template logPerf(body): untyped {.used.} =
   let thead = getMonoTime()
   body
   let ttail = getMonoTime()
@@ -220,7 +217,7 @@ proc apiDeleteEdges*(req; app;) =
   deleteEntity req, app, edges
 
 proc apiHome*(req; app;) =
-  req.respond 200, emptyHttpHeaders(), $ %*{
+  req.respond 200, jsonHeader(), $ %*{
     "status": "ok",
   }
 
@@ -235,10 +232,10 @@ proc filesStaticServ*(req; app) =
   req.respond 200, toWebby @{"Content-Type": getMimetype ext} , content
 
 proc pageLanding*(req; app) =
-  req.respond 200, emptyHttpHeaders(), landingPageHtml()
+  req.respond 200, htmlHeader(), landingPageHtml()
 
 proc pageDocs*(req; app) = 
-  req.respond 200, emptyHttpHeaders(), docsPageHtml()
+  req.respond 200, htmlHeader(), docsPageHtml()
 
 proc pageDatabaseList*(req; app) = 
   let pre  = app.config.storage.dbDir.string
@@ -246,7 +243,7 @@ proc pageDatabaseList*(req; app) =
     for fpath in walkFiles pre / "*.db":
       (fpath.splitFile.name, getFileSize fpath)
 
-  req.respond 200, emptyHttpHeaders(), databaseListPageHtml fnames
+  req.respond 200, htmlHeader(), databaseListPageHtml fnames
 
 proc pageDatabase*(req; app) = 
   let 
@@ -305,12 +302,12 @@ proc pageDatabase*(req; app) =
 
         perf  = (getMonoTime() - head).inMicroseconds
 
-        if canBeVisualized queryReuslts:
+        if spql.getTake.visualize:
           let (nodeids, edgeids) = extractVisEdges queryReuslts
           nodesGroup = db.getNodesDB(nodeids)
           edgesGroup = db.getEdgesDB(edgeids)
 
-  req.respond 200, emptyHttpHeaders(), databasePageHtml(
+  req.respond 200, htmlHeader(), databasePageHtml(
     dbname, 
     int getFileSize path,
     toUnix getLastModificationTime path,
@@ -322,13 +319,11 @@ proc pageDatabase*(req; app) =
     perf) 
 
 proc filesDatabaseDownload*(req; app) = 
-  let 
-    uname  = req.queryParams["u"]
-    dbname = req.queryParams["db"]
+  let dbname = req.queryParams["db"]
 
   req.respond(200, 
     toWebby @{
       "Content-Type": "application/octet-stream",
       "Content-Disposition": fmt "attachment; filename=\"{dbname}.db.sqlite3\"",
     }, 
-    readfile string app.dbPath(dbname))
+    readfile app.dbPath(dbname))

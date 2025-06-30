@@ -20,6 +20,8 @@ const
   sourceCol*  = "__head"
   targetCol*  = "__tail"
 
+  emptyDoc*   = "{}"
+
 
 
 type
@@ -601,16 +603,6 @@ func resolveSql(node: SpqlNode, relIdents: seq[string], mode: string, name: stri
     else:
       raisee "invalid ident with children count of: " & $node.children.len
 
-  of gkMacro:
-      case node.sval.toUpperAscii
-      of "DRAW":
-        let edge = node.children[0].sval
-        # TODO assert has 1 param and it's ident
-        fmt"json_array({edge}.{idCol}, {edge}.{sourceCol}, {edge}.{targetCol})"
-      
-      else:
-        raisee "invalid macro: " & node.sval
-
   of gkCall:
       node.sval & 
       '(' & 
@@ -646,7 +638,7 @@ func resolveSql(node: SpqlNode, relIdents: seq[string], mode: string, name: stri
 func defInfo(n: SpqlNode): tuple[tag: string, aliases: seq[string], cond: Option[SpqlNode]] = 
   let
     tag      = n.children[0].sval
-    hasCond  = n.children[^1].kind in {gkPrefix, gkInfix, gkCall, gkMacro}
+    hasCond  = n.children[^1].kind in {gkPrefix, gkInfix, gkCall}
     aliasesMaxIndex = 
       if hasCond: n.children.len - 2
       else:       n.children.len - 1
@@ -740,7 +732,7 @@ func deepIdentReplace(gn; imap) =
   of gkIdent: 
     gn.sval = imap[gn.sval]
   
-  of gkWrapper, gkTake, gkGroupBy, gkHaving, gkOrderBy, gkCase, gkElse, gkWhen, gkInfix, gkPrefix, gkCall, gkMacro:
+  of gkWrapper, gkTake, gkGroupBy, gkHaving, gkOrderBy, gkCase, gkElse, gkWhen, gkInfix, gkPrefix, gkCall:
     for ch in gn.children:
       deepIdentReplace ch, imap
 
@@ -756,7 +748,7 @@ func askedQuery(gn): QueryGraph =
   let n = get gn.findNode gkAsk
   parseQueryGraph n.children.mapIt it.sval
 
-func getTake(gn): SpqlNode =
+func getTake*(gn): SpqlNode =
   let m = gn.findNode gkTake
   if issome m: get m
   else       : raisee "cannot find take/return"
@@ -777,10 +769,21 @@ func toSqlSelectImpl(gn; relsIdent: seq[string]): string =
 func toSqlSelect(take: SpqlNode, relsIdent: seq[string], imap): string = 
   deepIdentReplace take, imap
   let mappedRels = relsIdent.map imap
-  take
-    .children
-    .mapit(toSqlSelectImpl(it, mappedRels))
-    .join ", "
+
+  if take.visualize:
+    let it = take.children[0]
+    fmt"""json_array(
+      {it.sval}.{idCol}, 
+      {it.sval}.{sourceCol}, 
+      {it.sval}.{targetCol}
+    )"""
+
+  else:
+    take
+      .children
+      .mapit(toSqlSelectImpl(it, mappedRels))
+      .join ", "
+
 
 # func getRels(gn): seq[string] = 
 #   for ch in gn.children:

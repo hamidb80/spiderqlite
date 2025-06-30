@@ -156,6 +156,41 @@ sql        = '''
   |offset_statement|
 '''
 
+
+[[strategies]]
+key        = "2-edge"
+parameters = "a b d c1 c2"
+pattern    = "a<-c1-<b>-c2->d"
+selectable = "a b d c1 c2"
+edges      = "c1 c2"
+sql        = '''
+  SELECT 
+    |select_fields|
+  FROM
+    |node b|
+  JOIN 
+    |node a|,
+    |edge c1|
+  ON
+    |check_conds a| AND
+    |check_conds c1| AND
+    |check_rels  c1 b a|
+  JOIN
+    |node d|,
+    |edge c2|
+  ON
+    |check_conds d| AND
+    |check_conds c2| AND
+    |check_rels  c2 b d|
+  WHERE
+    |check_conds b|
+  |group_statement|
+  |having_statement|
+  |order_statement|
+  |limit_statement|
+  |offset_statement|
+'''
+
 [[strategies]]
 key        = "2-nodes-2-way-inv-1"
 parameters = "a b c1 c2"

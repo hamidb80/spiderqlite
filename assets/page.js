@@ -140,8 +140,17 @@ up.compiler("[vis-graph]", (container, data) => {
         align: "top"
       },
       arrows: {
-        to: { enabled: true, scaleFactor: 1, type: "arrow" }
+        to: {
+          enabled: true,
+          scaleFactor: 1,
+          type: "arrow"
+        }
       }
+    },
+
+    layout: {
+      // randomSeed: 191006,
+      improvedLayout: false
     }
   })
 
