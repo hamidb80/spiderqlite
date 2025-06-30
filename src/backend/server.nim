@@ -57,6 +57,21 @@ proc run(app: App) =
 # TODO add more examples
 # TODO add presentation
 # TODO make it work via FFI
+echo "\n\nTODO show errors to user in query page\n\n"
+
+#[
+
+  #movie m
+  #acted_in a
+  #person p
+    = 
+      .name
+      "KARL BERRY"
+
+  ask ^p>-a->m
+  draw  a
+
+]#
 
 when isMainModule:
   let
