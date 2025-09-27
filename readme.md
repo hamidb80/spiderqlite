@@ -11,6 +11,9 @@ Making SQL frictionless by removing the pain of schema changes and bringing the 
   <img src="./assets/logo-cc.svg" alt="spiderQlite Logo" width="z00px">
 </p>
 
+## Current State
+Abondoned in favor of [Gremlin](https://tinkerpop.apache.org/) (Apache TinkerPop)
+
 ## Initial Motivation
 The author found the SQL tables too rigid, and felt something is missing in document-based databases like MongoDB and CouchDB which makes them unconventional to use (not mentioning their wierd query language). At that time, graph databases like Neo4j and ArangoDB made more sense to him. Because his projects were mostly small size, using mentioned databases is not worth it since they require lots of RAM and computational power.
 
