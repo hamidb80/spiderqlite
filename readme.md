@@ -1,3 +1,8 @@
+# Notice 
+see better implementation from microsoft
+https://github.com/microsoft/openCypherTranspiler
+-------------
+
 > Truth saves you even though you're afraid of it, and mendacity destroys you even though you don't see any danger -- Imam Ali
 -------------
 
